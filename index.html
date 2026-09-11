@@ -1,0 +1,1745 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>题目复习系统</title>
+<style>
+  *{box-sizing:border-box;}
+  :root{
+    --ink:#1f2937;--sub:#6b7280;--line:#e5e7eb;
+    --blue:#1d4ed8;--blue-bg:#eff6ff;
+    --red:#dc2626;--red-bg:#fef2f2;
+    --yellow:#b45309;--yellow-bg:#fffbeb;
+    --green:#15803d;--green-bg:#f0fdf4;
+    --archive:#6d28d9;--archive-bg:#f5f3ff;
+    --head:#0f172a;
+  }
+  body{margin:0;padding:20px 14px 50px;font-family:-apple-system,BlinkMacSystemFont,"PingFang SC","Microsoft YaHei",sans-serif;background:#f8fafc;color:var(--ink);line-height:1.6;}
+  .wrap{max-width:1140px;margin:0 auto;}
+  h1{font-size:20px;margin:0 0 4px;}
+  .sub{color:var(--sub);font-size:13px;margin-bottom:14px;}
+  .sim-bar{background:#0f172a;color:#fff;border-radius:10px;padding:12px 16px;display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:16px;}
+  .sim-bar label{font-size:13px;font-weight:600;color:#fff;margin:0;}
+  .sim-bar input[type="date"]{padding:7px 10px;border:1px solid #334155;border-radius:7px;background:#1e293b;color:#fff;font-size:13px;font-family:inherit;cursor:pointer;}
+  .sim-bar .today-display{margin-left:auto;font-size:13px;color:#60a5fa;font-weight:600;}
+  .sim-bar .sat-display{font-size:12px;color:#fbbf24;font-weight:600;}
+  .error-box{display:none;background:#fef2f2;border:1px solid #fecaca;border-left:4px solid #dc2626;border-radius:8px;padding:10px 14px;font-size:13px;color:#b91c1c;margin-bottom:14px;}
+  .stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(98px,1fr));gap:10px;margin-bottom:16px;}
+  .stat{background:#fff;border:1px solid var(--line);border-radius:10px;padding:11px;text-align:center;}
+  .stat .n{font-size:21px;font-weight:700;line-height:1.2;}
+  .stat .l{font-size:12px;color:var(--sub);margin-top:2px;}
+  .stat.red .n{color:var(--red);}
+  .stat.yellow .n{color:var(--yellow);}
+  .stat.green .n{color:var(--green);}
+  .stat.archive .n{color:var(--archive);}
+  .stat.blue .n{color:var(--blue);}
+  .stat.remedy .n{color:#7c3aed;}
+  .tabs{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:16px;}
+  .tab{padding:8px 14px;border:1px solid var(--line);background:#fff;border-radius:8px;font-size:13px;font-weight:600;cursor:pointer;color:var(--ink);}
+  .tab:hover{background:#f1f5f9;}
+  .tab.active{background:var(--blue);color:#fff;border-color:var(--blue);}
+  .tab.remedy.active{background:#7c3aed;border-color:#7c3aed;}
+  .panel{display:none;}
+  .panel.active{display:block;}
+  .card{background:#fff;border:1px solid var(--line);border-radius:10px;padding:16px;margin-bottom:14px;box-shadow:0 1px 2px rgba(15,23,42,.04);}
+  h2{font-size:15px;margin:0 0 12px;padding-left:9px;border-left:3px solid var(--blue);}
+  label{display:block;font-size:12px;font-weight:600;color:var(--sub);margin-bottom:4px;}
+  input,select,textarea{padding:7px 9px;border:1px solid var(--line);border-radius:6px;font-size:13px;font-family:inherit;background:#fff;width:100%;}
+  select{cursor:pointer;}
+  textarea{resize:vertical;min-height:50px;}
+  .form-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:10px;margin-bottom:12px;}
+  .form-grid .wide{grid-column:1/-1;}
+  .btn{padding:8px 16px;border:1px solid var(--line);background:#fff;border-radius:8px;font-size:13px;font-weight:600;cursor:pointer;color:var(--ink);transition:all .15s;font-family:inherit;}
+  .btn:hover{background:#f1f5f9;}
+  .btn-primary{background:var(--blue);color:#fff;border-color:var(--blue);}
+  .btn-primary:hover{background:#1e40af;}
+  .btn-purple{background:#7c3aed;color:#fff;border-color:#7c3aed;}
+  .btn-purple:hover{background:#6d28d9;}
+  .btn-danger{color:var(--red);border-color:#fecaca;}
+  .btn-danger:hover{background:#fef2f2;}
+  .btn-sm{padding:4px 9px;font-size:12px;}
+  .btn-warn{background:#f59e0b;color:#fff;border-color:#f59e0b;}
+  .btn-warn:hover{background:#d97706;}
+  .tag{display:inline-block;padding:2px 8px;border-radius:20px;font-size:11px;font-weight:700;vertical-align:middle;}
+  .t-red{background:var(--red-bg);color:var(--red);}
+  .t-yellow{background:var(--yellow-bg);color:var(--yellow);}
+  .t-green{background:var(--green-bg);color:var(--green);}
+  .t-archive{background:var(--archive-bg);color:var(--archive);}
+  .t-remedy{background:#ede9fe;color:#7c3aed;}
+  .t-new{background:#dcfce7;color:#15803d;}
+  .t-wait{background:#fef3c7;color:#b45309;}
+  table{width:100%;border-collapse:collapse;font-size:13px;}
+  th{background:var(--head);color:#fff;text-align:left;padding:8px 10px;font-size:12px;white-space:nowrap;}
+  td{padding:8px 10px;border-top:1px solid var(--line);vertical-align:middle;}
+  tbody tr:nth-child(even){background:#fafbfc;}
+  tbody tr:hover{background:var(--blue-bg);}
+  .due-item{background:#fff;border:1px solid var(--line);border-left:4px solid var(--line);border-radius:8px;padding:12px 14px;margin-bottom:10px;}
+  .due-item.red{border-left-color:var(--red);}
+  .due-item.yellow{border-left-color:var(--yellow);}
+  .due-item.green{border-left-color:var(--green);}
+  .due-item .head{display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:10px;}
+  .due-item .meta{font-size:13px;flex:1;min-width:200px;}
+  .due-item .actions{display:flex;gap:6px;flex-wrap:wrap;}
+  .btn-bad{background:var(--red);color:#fff;border-color:var(--red);}
+  .btn-bad:hover{background:#b91c1c;}
+  .btn-ok{background:var(--yellow);color:#fff;border-color:var(--yellow);}
+  .btn-ok:hover{background:#92400e;}
+  .btn-good{background:var(--green);color:#fff;border-color:var(--green);}
+  .btn-good:hover{background:#166534;}
+  .btn-sat{background:#fff;color:#b45309;border-color:#fcd34d;}
+  .btn-sat:hover{background:#fffbeb;}
+  .empty{color:var(--sub);font-size:13px;padding:20px;text-align:center;background:#fff;border:1px dashed var(--line);border-radius:8px;}
+  .mini{font-size:12px;color:var(--sub);}
+  .err-reason{color:#6b7280;font-size:12px;margin-top:3px;}
+  .filter-bar{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:12px;align-items:end;}
+  .filter-bar > div{flex:1;min-width:120px;}
+  .key{background:var(--blue-bg);border:1px solid #bfdbfe;border-left:4px solid var(--blue);border-radius:8px;padding:10px 14px;font-size:13px;margin-bottom:14px;}
+  .key b{color:var(--blue);}
+  .key-sat{background:#fffbeb;border:1px solid #fcd34d;border-left:4px solid #f59e0b;}
+  .key-sat b{color:#b45309;}
+  .key-archive{background:var(--archive-bg);border:1px solid #ddd6fe;border-left:4px solid var(--archive);}
+  .key-archive b{color:var(--archive);}
+  .key-remedy{background:#ede9fe;border:1px solid #ddd6fe;border-left:4px solid #7c3aed;}
+  .key-remedy b{color:#7c3aed;}
+  .chapter-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:8px;margin:10px 0 14px;}
+  .ch-item{background:#f8fafc;border:1px solid var(--line);border-radius:8px;padding:8px;}
+  .ch-item label{font-size:11px;margin-bottom:3px;color:#0f172a;font-weight:700;display:flex;justify-content:space-between;align-items:center;gap:4px;}
+  .ch-item .count-badge{font-size:10px;padding:1px 6px;border-radius:10px;font-weight:600;white-space:nowrap;}
+  .badge-new{background:#dcfce7;color:#15803d;}
+  .badge-zero{background:#e2e8f0;color:#94a3b8;}
+  .badge-remedy{background:#ede9fe;color:#7c3aed;}
+  .ch-item input{width:100%;padding:5px 7px;font-size:13px;text-align:center;}
+  .result-item{background:#f8fafc;border:1px solid var(--line);border-radius:8px;padding:10px 12px;margin-bottom:8px;}
+  .result-item .info{font-size:13px;margin-bottom:8px;}
+  .result-item .actions{display:flex;gap:6px;flex-wrap:wrap;}
+  .result-item.done{opacity:.55;background:#f1f5f9;}
+  .result-item.done .actions{pointer-events:none;}
+  .pill{display:inline-block;padding:1px 7px;border-radius:12px;font-size:11px;font-weight:600;background:#e2e8f0;color:#334155;margin-right:6px;}
+  .foot{margin-top:24px;background:var(--head);color:#e2e8f0;border-radius:10px;padding:14px 16px;font-size:13px;line-height:1.7;}
+  .foot b{color:#60a5fa;}
+  .due-header{display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px;margin-bottom:12px;}
+  .subject-box{background:#f8fafc;border:1px solid var(--line);border-radius:10px;padding:14px;margin-bottom:14px;}
+  .subject-box.math{border-left:4px solid #2563eb;}
+  .subject-box.circ{border-left:4px solid #ea580c;}
+  .subject-box.remedy{border-left:4px solid #7c3aed;}
+  .subject-head{display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px;margin-bottom:12px;}
+  .subject-head .title{font-size:15px;font-weight:700;}
+  .subject-head .stat{font-size:12px;color:var(--sub);background:#fff;padding:4px 10px;border-radius:20px;border:1px solid var(--line);}
+  .scope-row{display:flex;gap:10px;align-items:end;margin-bottom:10px;flex-wrap:wrap;}
+  .scope-row > div{flex:1;min-width:150px;}
+  .hint-text{font-size:12px;color:var(--sub);margin-bottom:10px;padding:6px 10px;background:#fffbeb;border-radius:6px;border-left:3px solid #f59e0b;}
+  .remedy-queue-item{background:#faf5ff;border:1px solid #e9d5ff;border-radius:8px;padding:8px 12px;margin-bottom:6px;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;font-size:13px;}
+  .remedy-queue-item .info{flex:1;min-width:200px;}
+  .schedule-preview{background:#f8fafc;border:1px solid var(--line);border-radius:8px;padding:10px 14px;margin-bottom:8px;font-size:13px;}
+  .schedule-preview .head{font-weight:700;color:#0f172a;margin-bottom:6px;}
+  .schedule-preview .chips{display:flex;gap:6px;flex-wrap:wrap;}
+  .chip{display:inline-block;padding:2px 8px;border-radius:12px;font-size:11px;font-weight:600;background:#e2e8f0;color:#334155;}
+  .chip-remedy{background:#ede9fe;color:#7c3aed;}
+  .remedy-status-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:10px;margin-bottom:12px;}
+  .remedy-status-box{background:#fff;border:1px solid var(--line);border-radius:8px;padding:12px;text-align:center;}
+  .remedy-status-box .n{font-size:22px;font-weight:700;color:#7c3aed;line-height:1.2;}
+  .remedy-status-box .l{font-size:12px;color:var(--sub);margin-top:2px;}
+  @media (max-width:600px){.form-grid{grid-template-columns:1fr;}}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <h1>题目复习系统</h1>
+  <div class="sub">录入题目 → 自动排程 → 今日到期复习 → 周测/月测抽检 → 补救历史题。</div>
+
+  <div class="error-box" id="errorBox"></div>
+
+  <div class="sim-bar">
+    <label>模拟今天：</label>
+    <input type="date" id="simDate">
+    <span class="sat-display" id="satDisplay"></span>
+    <span class="today-display" id="simDisplay"></span>
+  </div>
+
+  <div class="stats" id="stats"></div>
+
+  <div class="tabs">
+    <button class="tab active" data-tab="input">录入新题</button>
+    <button class="tab" data-tab="due">今日到期</button>
+    <button class="tab" data-tab="all">全部题目</button>
+    <button class="tab" data-tab="weekly">周测</button>
+    <button class="tab" data-tab="monthly">月测</button>
+    <button class="tab remedy" data-tab="remedy">补救板块</button>
+    <button class="tab" data-tab="data">数据备份</button>
+  </div>
+
+  <!-- 录入 -->
+  <div class="panel active" id="panel-input">
+    <div class="card">
+      <h2>录入新题</h2>
+      <div class="key">
+        <b>排程规则：</b>红 → 明天；黄 → 3 天后；绿 → 7 天后；绿再会 → 30 天后；绿连续 3 次会 → 归档。
+      </div>
+      <div class="form-grid">
+        <div><label>科目</label>
+          <select id="inSubject"><option value="数学">数学</option><option value="电路">电路</option></select>
+        </div>
+        <div><label>章节</label><select id="inChapter"></select></div>
+        <div><label>来源</label>
+          <select id="inSource"><option value="真题本">真题本</option><option value="讲义">讲义</option></select>
+        </div>
+        <div><label>页码</label><input id="inPage" placeholder="如 P45"></div>
+        <div><label>题号</label><input id="inNo" placeholder="如 例3"></div>
+        <div><label>标记</label>
+          <select id="inStatus"><option value="红">红</option><option value="黄">黄</option><option value="绿">绿</option><option value="归档">归档</option></select>
+        </div>
+        <div class="wide"><label>错因 / 备注</label>
+          <textarea id="inErr" placeholder="如：隐函数求导公式记错"></textarea>
+        </div>
+      </div>
+      <button class="btn btn-primary" id="addBtn">添加并自动排程</button>
+      <span class="mini" id="addHint" style="margin-left:10px;"></span>
+    </div>
+  </div>
+
+  <!-- 今日到期 -->
+  <div class="panel" id="panel-due">
+    <div class="card">
+      <h2>今日到期任务</h2>
+      <div class="filter-bar">
+        <div><label>科目</label>
+          <select id="dueFilterSubject">
+            <option value="全部">全部</option>
+            <option value="数学">数学</option>
+            <option value="电路">电路</option>
+          </select>
+        </div>
+        <div><label>章节</label>
+          <select id="dueFilterChapter"><option value="全部">全部</option></select>
+        </div>
+        <div><label>标记</label>
+          <select id="dueFilterStatus">
+            <option value="全部">全部</option>
+            <option value="红">红</option>
+            <option value="黄">黄</option>
+            <option value="绿">绿</option>
+          </select>
+        </div>
+        <div><label>类型</label>
+          <select id="dueFilterType">
+            <option value="全部">全部</option>
+            <option value="常规">常规</option>
+            <option value="补救">补救</option>
+          </select>
+        </div>
+        <div><label>搜索（页码/题号）</label>
+          <input id="dueFilterSearch" placeholder="如 P45 / 例3">
+        </div>
+      </div>
+      <div class="due-header">
+        <div>
+          <span id="todayLabel" class="mini"></span>
+          <span id="dueCount" class="mini" style="margin-left:8px;"></span>
+        </div>
+        <div>
+          <button class="btn btn-sm btn-warn" id="postponeAllBtn">延筛选结果到周六</button>
+          <button class="btn btn-sm" id="dueResetFilterBtn">重置筛选</button>
+        </div>
+      </div>
+      <div class="key key-sat">
+        <b>没时间复习？</b>点单题「延到周六」或「延筛选结果到周六」，把到期任务挪到本周六集中处理。
+      </div>
+      <div id="dueList"></div>
+    </div>
+  </div>
+
+  <!-- 全部题目 -->
+  <div class="panel" id="panel-all">
+    <div class="card">
+      <h2>全部题目</h2>
+      <div class="filter-bar">
+        <div><label>科目</label>
+          <select id="filterSubject"><option value="全部">全部</option><option value="数学">数学</option><option value="电路">电路</option></select>
+        </div>
+        <div><label>章节</label><select id="filterChapter"><option value="全部">全部</option></select></div>
+        <div><label>标记</label>
+          <select id="filterStatus"><option value="全部">全部</option><option value="红">红</option><option value="黄">黄</option><option value="绿">绿</option><option value="归档">归档</option></select>
+        </div>
+        <div><label>类型</label>
+          <select id="filterSource"><option value="全部">全部</option><option value="补救">仅补救题</option><option value="常规">仅常规题</option></select>
+        </div>
+      </div>
+      <div style="overflow-x:auto;">
+        <table>
+          <thead>
+            <tr><th>科目</th><th>章节</th><th>来源</th><th>页码</th><th>题号</th><th>标记</th><th>类型</th><th>状态</th><th>首次</th><th>下次</th><th>次数</th><th>操作</th></tr>
+          </thead>
+          <tbody id="allTbody"></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <!-- 周测 -->
+  <div class="panel" id="panel-weekly">
+    <div class="card">
+      <h2>周测 · 每周六</h2>
+      <div class="key">
+        <b>隐藏补抽：</b>选「本周录入优先」时，某章本周录入的红黄题不够数量，自动扩展到该章全部红黄题补足。<br>
+        <b>补救题：</b>首次复习后即可被周测抽到。<br>
+        <b>权重：</b>红 3、黄 2。
+      </div>
+
+      <div class="subject-box math">
+        <div class="subject-head">
+          <div class="title">📐 数学 · 周测</div>
+          <div class="stat" id="wkMathStat">本周录入 0 题 / 总 0 题</div>
+        </div>
+        <div class="scope-row">
+          <div>
+            <label>抽题范围</label>
+            <select id="wkMathScope">
+              <option value="new">本周录入优先（不够自动扩展）</option>
+              <option value="all">全部题目</option>
+            </select>
+          </div>
+        </div>
+        <div class="hint-text">章节徽章：绿色=本周录入；紫色=补救题已可抽；灰色=无。</div>
+        <div id="wkMathChapterInputs"></div>
+        <button class="btn btn-primary" id="wkMathBtn">抽取数学周测</button>
+        <button class="btn" id="wkMathReBtn">重新抽题</button>
+        <button class="btn" id="wkMathFillOne">每章1题</button>
+        <button class="btn" id="wkMathClear">清空</button>
+        <div id="wkMathResult" style="margin-top:14px;"></div>
+      </div>
+
+      <div class="subject-box circ">
+        <div class="subject-head">
+          <div class="title">⚡ 电路 · 周测</div>
+          <div class="stat" id="wkCircStat">本周录入 0 题 / 总 0 题</div>
+        </div>
+        <div class="scope-row">
+          <div>
+            <label>抽题范围</label>
+            <select id="wkCircScope">
+              <option value="new">本周录入优先（不够自动扩展）</option>
+              <option value="all">全部题目</option>
+            </select>
+          </div>
+        </div>
+        <div class="hint-text">章节徽章：绿色=本周录入；紫色=补救题已可抽；灰色=无。</div>
+        <div id="wkCircChapterInputs"></div>
+        <button class="btn btn-primary" id="wkCircBtn">抽取电路周测</button>
+        <button class="btn" id="wkCircReBtn">重新抽题</button>
+        <button class="btn" id="wkCircFillOne">每章1题</button>
+        <button class="btn" id="wkCircClear">清空</button>
+        <div id="wkCircResult" style="margin-top:14px;"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 月测 -->
+  <div class="panel" id="panel-monthly">
+    <div class="card">
+      <h2>月测 · 每月底</h2>
+      <div class="key key-archive">
+        <b>隐藏补抽：</b>选「本月录入优先」时，某章本月录入的题不够数量，自动扩展到该章全部题目补足。<br>
+        <b>补救题：</b>首次复习后即可被月测抽到。<br>
+        <b>权重：</b>红 3、黄 2、绿 2、归档 1。
+      </div>
+
+      <div class="subject-box math">
+        <div class="subject-head">
+          <div class="title">📐 数学 · 月测</div>
+          <div class="stat" id="moMathStat">本月录入 0 题 / 总 0 题</div>
+        </div>
+        <div class="scope-row">
+          <div>
+            <label>抽题范围</label>
+            <select id="moMathScope">
+              <option value="new">本月录入优先（不够自动扩展）</option>
+              <option value="all">全部题目</option>
+            </select>
+          </div>
+        </div>
+        <div class="hint-text">章节徽章：绿色=本月录入；紫色=补救题已可抽；灰色=无。</div>
+        <div id="moMathChapterInputs"></div>
+        <button class="btn btn-primary" id="moMathBtn">抽取数学月测</button>
+        <button class="btn" id="moMathReBtn">重新抽题</button>
+        <button class="btn" id="moMathFillOne">每章1题</button>
+        <button class="btn" id="moMathClear">清空</button>
+        <div id="moMathResult" style="margin-top:14px;"></div>
+      </div>
+
+      <div class="subject-box circ">
+        <div class="subject-head">
+          <div class="title">⚡ 电路 · 月测</div>
+          <div class="stat" id="moCircStat">本月录入 0 题 / 总 0 题</div>
+        </div>
+        <div class="scope-row">
+          <div>
+            <label>抽题范围</label>
+            <select id="moCircScope">
+              <option value="new">本月录入优先（不够自动扩展）</option>
+              <option value="all">全部题目</option>
+            </select>
+          </div>
+        </div>
+        <div class="hint-text">章节徽章：绿色=本月录入；紫色=补救题已可抽；灰色=无。</div>
+        <div id="moCircChapterInputs"></div>
+        <button class="btn btn-primary" id="moCircBtn">抽取电路月测</button>
+        <button class="btn" id="moCircReBtn">重新抽题</button>
+        <button class="btn" id="moCircFillOne">每章1题</button>
+        <button class="btn" id="moCircClear">清空</button>
+        <div id="moCircResult" style="margin-top:14px;"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 补救板块 -->
+  <div class="panel" id="panel-remedy">
+    <div class="card">
+      <h2 style="border-left-color:#7c3aed;">补救板块 · 历史题批量排程</h2>
+
+      <div class="key key-remedy">
+        <b>补救题流程：</b>① 待排池录入 → ② 排程后进入系统（今日到期可见）→ ③ 首次复习后即可被周测/月测抽到。
+      </div>
+
+      <div class="remedy-status-grid">
+        <div class="remedy-status-box">
+          <div class="n" id="rmPoolCount">0</div>
+          <div class="l">待排池（未排程）</div>
+        </div>
+        <div class="remedy-status-box">
+          <div class="n" id="rmWaitingCount">0</div>
+          <div class="l">已排程·待首次复习</div>
+        </div>
+        <div class="remedy-status-box">
+          <div class="n" id="rmActiveCount">0</div>
+          <div class="l">已复习·可被抽题</div>
+        </div>
+      </div>
+
+      <div class="subject-box remedy">
+        <div style="font-size:14px;font-weight:700;margin-bottom:10px;">① 录入历史题到待排池</div>
+        <div class="form-grid">
+          <div><label>科目</label>
+            <select id="rmSubject"><option value="数学">数学</option><option value="电路">电路</option></select>
+          </div>
+          <div><label>章节</label><select id="rmChapter"></select></div>
+          <div><label>来源</label>
+            <select id="rmSource"><option value="真题本">真题本</option><option value="讲义">讲义</option></select>
+          </div>
+          <div><label>页码</label><input id="rmPage" placeholder="如 P45"></div>
+          <div><label>题号</label><input id="rmNo" placeholder="如 例3"></div>
+          <div><label>标记</label>
+            <select id="rmStatus"><option value="红">红</option><option value="黄">黄</option><option value="绿">绿</option><option value="归档">归档</option></select>
+          </div>
+          <div class="wide"><label>错因 / 备注</label>
+            <textarea id="rmErr" placeholder="如：隐函数求导公式记错"></textarea>
+          </div>
+        </div>
+        <button class="btn btn-purple" id="rmAddBtn">加入待排池</button>
+        <span class="mini" id="rmAddHint" style="margin-left:10px;"></span>
+      </div>
+
+      <div class="subject-box remedy">
+        <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px;margin-bottom:10px;">
+          <div style="font-size:14px;font-weight:700;">② 待排池 <span class="mini" id="rmQueueCount"></span></div>
+          <button class="btn btn-sm btn-danger" id="rmClearQueue">清空待排池</button>
+        </div>
+        <div id="rmQueueList"></div>
+      </div>
+
+      <div class="subject-box remedy">
+        <div style="font-size:14px;font-weight:700;margin-bottom:10px;">③ 补救排程设置</div>
+        <div class="form-grid">
+          <div><label>开始日期</label><input type="date" id="rmStartDate"></div>
+          <div><label>持续天数</label><input type="number" id="rmDays" value="14" min="1" max="60"></div>
+          <div><label>数学每天上限</label><input type="number" id="rmMathLimit" value="15" min="1" max="100"></div>
+          <div><label>电路每天上限</label><input type="number" id="rmCircLimit" value="10" min="1" max="100"></div>
+          <div><label>排序优先级</label>
+            <select id="rmSortBy">
+              <option value="status">按标记（红→黄→绿→归档）</option>
+              <option value="chapter">按章节顺序</option>
+            </select>
+          </div>
+        </div>
+        <button class="btn btn-purple" id="rmPreviewBtn">预览排程</button>
+        <button class="btn btn-purple" id="rmGenerateBtn">生成排程并加入系统</button>
+        <div id="rmPreview" style="margin-top:14px;"></div>
+      </div>
+
+      <div class="subject-box remedy">
+        <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px;margin-bottom:10px;">
+          <div style="font-size:14px;font-weight:700;">④ 已排程补救题</div>
+          <select id="rmScheduledFilter" style="width:auto;font-size:12px;padding:4px 8px;">
+            <option value="all">全部</option>
+            <option value="waiting">待首次复习</option>
+            <option value="active">已复习可抽题</option>
+          </select>
+        </div>
+        <div id="rmScheduledList"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 数据备份 -->
+  <div class="panel" id="panel-data">
+    <div class="card">
+      <h2>数据备份</h2>
+      <p class="mini" style="margin-bottom:12px;">数据保存在本机浏览器 localStorage。换设备或清理浏览器会丢失，建议定期导出备份。</p>
+      <button class="btn btn-primary" id="excelBtn">导出 Excel（含日期+星期）</button>
+      <button class="btn" id="exportBtn">导出 JSON 备份</button>
+      <button class="btn" id="importBtn">导入 JSON 备份</button>
+      <input type="file" id="importFile" accept=".json" style="display:none">
+      <button class="btn btn-danger" id="resetBtn" style="margin-top:8px;">清空所有数据</button>
+    </div>
+  </div>
+
+  <div class="foot">
+    <b>使用顺序：</b>录入新题 → 今日到期复习并更新颜色 → 每周六用周测抽题 → 每月底用月测抽检 → 历史题用补救板块批量排程。<br>
+    <b>核心规则：</b>红 → 明天；黄 → 3 天后；绿 → 7 天后；绿再会 → 30 天后；绿连续 3 次会 → 归档。
+  </div>
+</div>
+
+<script>
+(function(){
+  'use strict';
+
+  var ITEM_KEY = 'tiqu_final_items';
+  var SIM_KEY  = 'tiqu_final_simdate';
+  var REMEDY_KEY = 'tiqu_final_remedypool';
+
+  var MATH_CH = ['第1章','第2章','第3章','第4章','第5章','第6章','第7章','第8章','第9章'];
+  var CIRC_CH = ['第1章','第2章','第3章','第4章','第5章','第6章','第7章','第8章','第9章','第10章','第11章','第12章','第13章','第14章'];
+
+  var items = [];
+  var simDate = '';
+  var remedyPool = [];
+
+  function $(id){ return document.getElementById(id); }
+  function showError(msg){ var b=$('errorBox'); if(b){b.style.display='block';b.textContent='⚠ '+msg;} }
+  function clearError(){ var b=$('errorBox'); if(b){b.style.display='none';b.textContent='';} }
+  function fmt(d){ return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0'); }
+  function todayStr(){ return fmt(new Date()); }
+  function addDays(ds,n){ var d=new Date(ds+'T00:00:00'); d.setDate(d.getDate()+n); return fmt(d); }
+  function uid(){ return Date.now().toString(36)+Math.random().toString(36).slice(2,8); }
+  function escapeHtml(s){ return String(s).replace(/[&<>"']/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c];}); }
+  function weekday(dateStr){
+    if(!dateStr) return '';
+    var d = new Date(dateStr+'T00:00:00');
+    var wd = ['周日','周一','周二','周三','周四','周五','周六'];
+    return wd[d.getDay()];
+  }
+  function fmtDateWk(dateStr){ return dateStr ? (dateStr + ' ' + weekday(dateStr)) : ''; }
+
+  function getWeekRange(dateStr){
+    var d = new Date(dateStr+'T00:00:00');
+    var day = d.getDay();
+    var diff = (day === 0) ? -6 : 1 - day;
+    var monday = new Date(d);
+    monday.setDate(d.getDate() + diff);
+    var sunday = new Date(monday);
+    sunday.setDate(monday.getDate() + 6);
+    return { start: fmt(monday), end: fmt(sunday) };
+  }
+  function isThisWeek(dateStr){
+    if(!dateStr) return false;
+    var r = getWeekRange(simDate);
+    return dateStr >= r.start && dateStr <= r.end;
+  }
+  function getMonthRange(dateStr){
+    var d = new Date(dateStr+'T00:00:00');
+    var start = new Date(d.getFullYear(), d.getMonth(), 1);
+    var end = new Date(d.getFullYear(), d.getMonth() + 1, 0);
+    return { start: fmt(start), end: fmt(end) };
+  }
+  function isThisMonth(dateStr){
+    if(!dateStr) return false;
+    var r = getMonthRange(simDate);
+    return dateStr >= r.start && dateStr <= r.end;
+  }
+
+  function statusClass(s){
+    if(s==='红') return 't-red';
+    if(s==='黄') return 't-yellow';
+    if(s==='绿') return 't-green';
+    return 't-archive';
+  }
+  function borderClass(s){
+    if(s==='红') return 'red';
+    if(s==='黄') return 'yellow';
+    if(s==='绿') return 'green';
+    return '';
+  }
+  function getThisSaturday(){
+    var d = new Date(simDate+'T00:00:00');
+    var day = d.getDay();
+    var diff = 6 - day;
+    if(diff<=0) diff += 7;
+    return addDays(simDate, diff);
+  }
+
+  function loadItems(){
+    try{
+      var raw = localStorage.getItem(ITEM_KEY);
+      if(!raw) return [];
+      var arr = JSON.parse(raw);
+      if(!Array.isArray(arr)) return [];
+      arr.forEach(function(it){
+        if(!it.id) it.id = uid();
+        if(!it.subject) it.subject='数学';
+        if(!it.chapter) it.chapter='第1章';
+        if(!it.source) it.source='讲义';
+        if(!it.page) it.page='';
+        if(!it.no) it.no='';
+        if(!it.status) it.status='黄';
+        if(!it.first) it.first=todayStr();
+        if(!it.next) it.next=it.first;
+        if(typeof it.reviewCount!=='number') it.reviewCount=0;
+        if(!it.errReason) it.errReason='';
+        if(typeof it.greenStreak!=='number') it.greenStreak=0;
+        if(typeof it.isRemedy!=='boolean') it.isRemedy=false;
+        if(!it.lastReview) it.lastReview='';
+      });
+      return arr;
+    }catch(e){ return []; }
+  }
+  function saveItems(){ try{ localStorage.setItem(ITEM_KEY,JSON.stringify(items)); }catch(e){ showError('保存失败：'+e.message); } }
+  function saveSim(){ try{ localStorage.setItem(SIM_KEY,simDate); }catch(e){} }
+
+  function loadRemedyPool(){
+    try{
+      var raw = localStorage.getItem(REMEDY_KEY);
+      return raw ? JSON.parse(raw) : [];
+    }catch(e){ return []; }
+  }
+  function saveRemedyPool(){ try{ localStorage.setItem(REMEDY_KEY,JSON.stringify(remedyPool)); }catch(e){} }
+
+  function scheduleNext(newStatus, prevStatus, fromDate){
+    if(newStatus==='红') return addDays(fromDate,1);
+    if(newStatus==='黄') return addDays(fromDate,3);
+    if(newStatus==='绿') return prevStatus==='绿'?addDays(fromDate,30):addDays(fromDate,7);
+    if(newStatus==='归档') return addDays(fromDate,90);
+    return addDays(fromDate,3);
+  }
+
+  function isPickableForExam(it){
+    if(it.isRemedy && (it.reviewCount || 0) === 0){
+      return false;
+    }
+    return true;
+  }
+
+  function isNewInRange(it, mode){
+    if(!isPickableForExam(it)) return false;
+    if(it.isRemedy){
+      if(mode==='weekly') return isThisWeek(it.lastReview);
+      if(mode==='monthly') return isThisMonth(it.lastReview);
+      return false;
+    }
+    if(mode==='weekly') return isThisWeek(it.first);
+    if(mode==='monthly') return isThisMonth(it.first);
+    return false;
+  }
+
+  function applyResult(id, result){
+    var it = null;
+    for(var i=0;i<items.length;i++){ if(items[i].id===id){ it=items[i]; break; } }
+    if(!it) return;
+    var prev = it.status;
+    it.reviewCount = (it.reviewCount||0) + 1;
+    it.lastReview = simDate;
+
+    if(result === '不会'){
+      it.status='红'; it.greenStreak=0; it.next=addDays(simDate,1);
+    }else if(result === '卡'){
+      it.status='黄'; it.greenStreak=0; it.next=addDays(simDate,3);
+    }else if(result === '会'){
+      if(prev === '归档'){
+        it.status='归档'; it.next=addDays(simDate,90);
+      }else if(prev === '绿'){
+        it.greenStreak = (it.greenStreak||0) + 1;
+        if(it.greenStreak >= 3){
+          it.status='归档'; it.next=addDays(simDate,90);
+        }else{
+          it.status='绿'; it.next=addDays(simDate,30);
+        }
+      }else{
+        it.status='绿'; it.greenStreak=0; it.next=addDays(simDate,7);
+      }
+    }
+    saveItems();
+    renderAll();
+  }
+
+  function fillChapterSelect(){
+    var subj = ($('inSubject')||{}).value || '数学';
+    var list = (subj==='数学')?MATH_CH:CIRC_CH;
+    var el = $('inChapter');
+    if(!el) return;
+    el.innerHTML = '';
+    list.forEach(function(ch){
+      var o = document.createElement('option'); o.value=ch; o.textContent=ch;
+      el.appendChild(o);
+    });
+  }
+
+  function fillRemedyChapterSelect(){
+    var subj = ($('rmSubject')||{}).value || '数学';
+    var list = (subj==='数学')?MATH_CH:CIRC_CH;
+    var el = $('rmChapter');
+    if(!el) return;
+    el.innerHTML = '';
+    list.forEach(function(ch){
+      var o = document.createElement('option'); o.value=ch; o.textContent=ch;
+      el.appendChild(o);
+    });
+  }
+
+  function fillFilterChapter(){
+    var subj = ($('filterSubject')||{}).value || '全部';
+    var el = $('filterChapter');
+    if(!el) return;
+    var prev = el.value;
+    el.innerHTML = '<option value="全部">全部</option>';
+    var list = [];
+    if(subj==='数学') list = MATH_CH;
+    else if(subj==='电路') list = CIRC_CH;
+    else list = MATH_CH.concat(CIRC_CH);
+    list.forEach(function(ch){
+      var o = document.createElement('option'); o.value=ch; o.textContent=ch;
+      el.appendChild(o);
+    });
+    var exists = false;
+    for(var i=0;i<el.options.length;i++){ if(el.options[i].value===prev){exists=true;break;} }
+    if(exists) el.value = prev;
+  }
+
+  function fillDueFilterChapter(){
+    var subj = ($('dueFilterSubject')||{}).value || '全部';
+    var el = $('dueFilterChapter');
+    if(!el) return;
+    var prev = el.value;
+    el.innerHTML = '<option value="全部">全部</option>';
+    var list = [];
+    if(subj==='数学') list = MATH_CH;
+    else if(subj==='电路') list = CIRC_CH;
+    else list = MATH_CH.concat(CIRC_CH);
+    list.forEach(function(ch){
+      var o = document.createElement('option'); o.value=ch; o.textContent=ch;
+      el.appendChild(o);
+    });
+    var exists = false;
+    for(var i=0;i<el.options.length;i++){ if(el.options[i].value===prev){exists=true;break;} }
+    if(exists) el.value = prev;
+  }
+
+  function countNewInRange(subject, mode){
+    var count = 0;
+    items.forEach(function(it){
+      if(it.subject !== subject) return;
+      if(isNewInRange(it, mode)) count++;
+    });
+    return count;
+  }
+  function countTotal(subject){
+    var count = 0;
+    items.forEach(function(it){ if(it.subject === subject) count++; });
+    return count;
+  }
+
+  function renderChapterInputs(containerId, subject, mode){
+    var container = $(containerId);
+    if(!container) return;
+    var chapters = subject === '数学' ? MATH_CH : CIRC_CH;
+    var labelNew = (mode==='weekly') ? '本周' : '本月';
+
+    var html = '<div class="chapter-grid">';
+    chapters.forEach(function(ch){
+      var newCount = 0, total = 0, remedyPickable = 0;
+      items.forEach(function(it){
+        if(it.subject===subject && it.chapter===ch){
+          if(mode==='weekly' && it.status!=='红' && it.status!=='黄') return;
+          total++;
+          if(isNewInRange(it, mode)) newCount++;
+          if(it.isRemedy && isPickableForExam(it)) remedyPickable++;
+        }
+      });
+      var badgeClass = 'badge-zero';
+      var badgeText = labelNew + newCount + '/总' + total;
+      if(remedyPickable > 0 && newCount === 0){
+        badgeClass = 'badge-remedy';
+        badgeText = '补救可抽' + remedyPickable + '/总' + total;
+      }else if(newCount > 0){
+        badgeClass = 'badge-new';
+      }
+      var badge = '<span class="count-badge ' + badgeClass + '">' + badgeText + '</span>';
+      html += '<div class="ch-item">' +
+        '<label>' + ch + ' ' + badge + '</label>' +
+        '<input type="number" min="0" max="30" value="0" data-ch-name="' + ch + '">' +
+      '</div>';
+    });
+    html += '</div>';
+    container.innerHTML = html;
+  }
+
+  function renderSubjectStat(elId, subject, mode){
+    var el = $(elId);
+    if(!el) return;
+    var newCount = countNewInRange(subject, mode);
+    var total = countTotal(subject);
+    var labelNew = (mode==='weekly') ? '本周录入' : '本月录入';
+    el.textContent = labelNew + ' ' + newCount + ' 题 / 总 ' + total + ' 题';
+  }
+
+  function weightedPick(pool, count, weights){
+    weights = weights || {'红':3,'黄':2,'绿':2,'归档':1};
+    var picked = [];
+    var remain = pool.slice();
+    while(picked.length<count && remain.length>0){
+      var total = 0;
+      for(var i=0;i<remain.length;i++) total += (weights[remain[i].status]||1);
+      var r = Math.random()*total;
+      var chosen = -1;
+      for(var j=0;j<remain.length;j++){
+        r -= (weights[remain[j].status]||1);
+        if(r<=0){ chosen=j; break; }
+      }
+      if(chosen===-1) chosen = remain.length-1;
+      picked.push(remain[chosen]);
+      remain.splice(chosen,1);
+    }
+    return picked;
+  }
+
+  function doPick(subject, scope, containerId, resultId, mode){
+    var allPool = items.filter(function(it){
+      return it.subject === subject && isPickableForExam(it);
+    });
+
+    var weights;
+    if(mode === 'weekly'){
+      allPool = allPool.filter(function(it){ return it.status === '红' || it.status === '黄'; });
+      weights = {'红':3,'黄':2};
+    }else{
+      weights = {'红':3,'黄':2,'绿':2,'归档':1};
+    }
+
+    var inputs = document.querySelectorAll('#'+containerId+' input[data-ch-name]');
+    var chaptersToPick = [];
+    inputs.forEach(function(inp){
+      var n = parseInt(inp.value,10) || 0;
+      if(n>0){
+        chaptersToPick.push({ chapter: inp.getAttribute('data-ch-name'), count: n });
+      }
+    });
+
+    var resultEl = $(resultId);
+    if(!resultEl) return;
+    if(chaptersToPick.length===0){
+      resultEl.innerHTML = '<div class="empty">请先为至少一个章节设置抽题数量（大于0）。</div>';
+      return;
+    }
+
+    var modeLabel = (mode==='weekly') ? '周测' : '月测';
+    var scopeLabel = (scope==='new') ? ((mode==='weekly')?'本周录入优先':'本月录入优先') : '全部题目';
+
+    var resultHtml = '';
+    var totalPicked = 0;
+    var totalNew = 0;
+    var totalOld = 0;
+
+    chaptersToPick.forEach(function(cfg){
+      var chapterPool = allPool.filter(function(it){ return it.chapter === cfg.chapter; });
+      var picked = [];
+      var newPickedCount = 0;
+      var oldPickedCount = 0;
+
+      if(scope === 'new'){
+        var newPool = chapterPool.filter(function(it){ return isNewInRange(it, mode); });
+        var oldPool = chapterPool.filter(function(it){
+          return newPool.indexOf(it) === -1;
+        });
+        picked = weightedPick(newPool, cfg.count, weights);
+        newPickedCount = picked.length;
+        if(picked.length < cfg.count){
+          var need = cfg.count - picked.length;
+          var extra = weightedPick(oldPool, need, weights);
+          picked = picked.concat(extra);
+          oldPickedCount = extra.length;
+        }
+      }else{
+        picked = weightedPick(chapterPool, cfg.count, weights);
+      }
+
+      totalPicked += picked.length;
+      totalNew += newPickedCount;
+      totalOld += oldPickedCount;
+
+      var extendedTip = '';
+      if(scope === 'new' && oldPickedCount > 0){
+        extendedTip = ' <span class="mini" style="color:#b45309;">（本周/本月仅 '+newPickedCount+' 道，扩展 '+oldPickedCount+' 道）</span>';
+      }
+
+      resultHtml += '<div style="background:#fff;border:1px solid var(--line);border-radius:10px;padding:12px 14px;margin-bottom:12px;">' +
+        '<div style="font-size:13px;font-weight:700;color:#0f172a;padding-bottom:8px;margin-bottom:8px;border-bottom:1px dashed var(--line);">' +
+          cfg.chapter +
+          ' <span class="mini">（题库 '+chapterPool.length+' 道，抽 '+picked.length+' 道）</span>' + extendedTip +
+        '</div>';
+
+      if(picked.length===0){
+        resultHtml += '<div class="mini" style="padding:6px 0;">该章节没有符合条件的题目</div>';
+      }else{
+        picked.forEach(function(it, i){
+          var remedyTag = it.isRemedy ? ' <span class="tag t-remedy">补救</span>' : '';
+          resultHtml += '<div class="result-item" data-result-id="'+it.id+'">' +
+            '<div class="info">' +
+              '<span class="pill">'+(i+1)+'</span>' +
+              '<span class="tag '+statusClass(it.status)+'">'+it.status+'</span>' + remedyTag + ' ' +
+              it.source + ' · ' + it.page + ' · ' + it.no +
+              '<span class="mini" style="margin-left:6px;">首次：'+fmtDateWk(it.first)+'</span>' +
+              (it.errReason?'<div class="mini" style="margin-top:3px;">错因：'+escapeHtml(it.errReason)+'</div>':'') +
+            '</div>' +
+            '<div class="actions">' +
+              '<button class="btn btn-sm btn-bad" data-pick-act="不会" data-pick-id="'+it.id+'">不会</button>' +
+              '<button class="btn btn-sm btn-ok" data-pick-act="卡" data-pick-id="'+it.id+'">卡</button>' +
+              '<button class="btn btn-sm btn-good" data-pick-act="会" data-pick-id="'+it.id+'">会</button>' +
+            '</div>' +
+          '</div>';
+        });
+      }
+      resultHtml += '</div>';
+    });
+
+    var header = '<div class="key" style="margin-bottom:12px;"><b>'+subject+' '+modeLabel+'：</b>共 '+totalPicked+' 道 · 范围 '+scopeLabel;
+    if(scope === 'new' && totalOld > 0){
+      header += ' · 新题 '+totalNew+' 道，扩展 '+totalOld+' 道';
+    }
+    header += '</div>';
+    resultEl.innerHTML = header + resultHtml;
+  }
+
+  function pickResultClickHandler(e){
+    var btn = e.target.closest('button[data-pick-act]');
+    if(!btn) return;
+    var id = btn.getAttribute('data-pick-id');
+    var act = btn.getAttribute('data-pick-act');
+    applyResult(id, act);
+    var row = btn.closest('.result-item');
+    if(row){
+      row.classList.add('done');
+      var info = row.querySelector('.info');
+      if(info){
+        var tag = info.querySelector('.tag');
+        if(tag){
+          for(var i=0;i<items.length;i++){
+            if(items[i].id===id){
+              tag.className = 'tag ' + statusClass(items[i].status);
+              tag.textContent = items[i].status;
+              break;
+            }
+          }
+        }
+      }
+    }
+  }
+
+  function fillAllOne(containerId){
+    var inputs = document.querySelectorAll('#'+containerId+' input[data-ch-name]');
+    inputs.forEach(function(inp){
+      var chap = inp.getAttribute('data-ch-name');
+      var has = items.some(function(it){
+        return it.chapter===chap && isPickableForExam(it) && (it.status==='红'||it.status==='黄'||it.status==='绿'||it.status==='归档');
+      });
+      inp.value = has ? 1 : 0;
+    });
+  }
+  function clearInputs(containerId){
+    var inputs = document.querySelectorAll('#'+containerId+' input[data-ch-name]');
+    inputs.forEach(function(inp){ inp.value = 0; });
+  }
+
+  function renderSimDisplay(){
+    var el = $('simDisplay');
+    if(el) el.textContent = '模拟日期：' + fmtDateWk(simDate);
+    var satEl = $('satDisplay');
+    if(satEl) satEl.textContent = '本周六：' + fmtDateWk(getThisSaturday());
+  }
+
+  function renderStats(){
+    var el = $('stats');
+    if(!el) return;
+    var total = items.length;
+    var red = items.filter(function(i){return i.status==='红';}).length;
+    var yellow = items.filter(function(i){return i.status==='黄';}).length;
+    var green = items.filter(function(i){return i.status==='绿';}).length;
+    var archive = items.filter(function(i){return i.status==='归档';}).length;
+    var due = items.filter(function(i){ return i.status!=='归档' && i.next<=simDate; }).length;
+    var remedyTotal = items.filter(function(i){ return i.isRemedy; }).length;
+    el.innerHTML =
+      '<div class="stat blue"><div class="n">'+total+'</div><div class="l">总题数</div></div>' +
+      '<div class="stat red"><div class="n">'+red+'</div><div class="l">红色</div></div>' +
+      '<div class="stat yellow"><div class="n">'+yellow+'</div><div class="l">黄色</div></div>' +
+      '<div class="stat green"><div class="n">'+green+'</div><div class="l">绿色</div></div>' +
+      '<div class="stat archive"><div class="n">'+archive+'</div><div class="l">归档</div></div>' +
+      '<div class="stat remedy"><div class="n">'+remedyTotal+'</div><div class="l">补救题</div></div>' +
+      '<div class="stat"><div class="n">'+due+'</div><div class="l">今日到期</div></div>';
+  }
+
+  function getDueFiltered(){
+    var subj = ($('dueFilterSubject')||{}).value || '全部';
+    var chap = ($('dueFilterChapter')||{}).value || '全部';
+    var stat = ($('dueFilterStatus')||{}).value || '全部';
+    var type = ($('dueFilterType')||{}).value || '全部';
+    var search = ($('dueFilterSearch')||{}).value || '';
+    search = search.trim().toLowerCase();
+
+    var due = items.filter(function(i){ return i.status!=='归档' && i.next<=simDate; });
+    if(subj!=='全部') due = due.filter(function(i){ return i.subject===subj; });
+    if(chap!=='全部') due = due.filter(function(i){ return i.chapter===chap; });
+    if(stat!=='全部') due = due.filter(function(i){ return i.status===stat; });
+    if(type==='补救') due = due.filter(function(i){ return i.isRemedy; });
+    if(type==='常规') due = due.filter(function(i){ return !i.isRemedy; });
+    if(search){
+      due = due.filter(function(i){
+        var page = (i.page||'').toLowerCase();
+        var no = (i.no||'').toLowerCase();
+        return page.indexOf(search) !== -1 || no.indexOf(search) !== -1;
+      });
+    }
+    due.sort(function(a,b){
+      var order = {'红':0,'黄':1,'绿':2};
+      if(order[a.status]!==order[b.status]) return order[a.status]-order[b.status];
+      return a.next.localeCompare(b.next);
+    });
+    return due;
+  }
+
+  function renderDue(){
+    var label = $('todayLabel');
+    var countEl = $('dueCount');
+    var container = $('dueList');
+    if(!container) return;
+    if(label) label.textContent = '模拟：' + fmtDateWk(simDate);
+
+    var allDue = items.filter(function(i){ return i.status!=='归档' && i.next<=simDate; });
+    var due = getDueFiltered();
+
+    if(countEl){
+      if(due.length === allDue.length){
+        countEl.textContent = '共 ' + due.length + ' 条';
+      }else{
+        countEl.textContent = '筛选出 ' + due.length + ' / 共 ' + allDue.length + ' 条';
+      }
+    }
+
+    if(allDue.length===0){
+      container.innerHTML = '<div class="empty">该模拟日期没有到期任务。</div>';
+      return;
+    }
+    if(due.length===0){
+      container.innerHTML = '<div class="empty">没有符合当前筛选条件的到期任务。</div>';
+      return;
+    }
+
+    var html = '';
+    due.forEach(function(it){
+      var remedyTag = it.isRemedy ? ' <span class="tag t-remedy">补救·' + ((it.reviewCount||0)===0?'首刷':'复刷') + '</span>' : '';
+      html += '<div class="due-item '+borderClass(it.status)+'">' +
+        '<div class="head">' +
+          '<div class="meta">' +
+            '<span class="tag '+statusClass(it.status)+'">'+it.status+'</span>' + remedyTag + ' ' +
+            '<b>'+it.subject+'</b> · '+it.chapter+' · '+it.source+' · '+it.page+' · '+it.no +
+            '<div class="mini">首次：'+fmtDateWk(it.first)+' · 下次：'+fmtDateWk(it.next)+' · 已复习 '+(it.reviewCount||0)+' 次</div>' +
+            (it.errReason?'<div class="err-reason">错因：'+escapeHtml(it.errReason)+'</div>':'') +
+          '</div>' +
+          '<div class="actions">' +
+            '<button class="btn btn-sm btn-bad" data-act="不会" data-id="'+it.id+'">不会 → 红</button>' +
+            '<button class="btn btn-sm btn-ok" data-act="卡" data-id="'+it.id+'">卡 → 黄</button>' +
+            '<button class="btn btn-sm btn-good" data-act="会" data-id="'+it.id+'">会 → 绿</button>' +
+            '<button class="btn btn-sm btn-sat" data-postpone="'+it.id+'">延到周六</button>' +
+          '</div>' +
+        '</div>' +
+      '</div>';
+    });
+    container.innerHTML = html;
+  }
+
+  function renderAllTable(){
+    var tbody = $('allTbody');
+    if(!tbody) return;
+    var subj = ($('filterSubject')||{}).value || '全部';
+    var chap = ($('filterChapter')||{}).value || '全部';
+    var stat = ($('filterStatus')||{}).value || '全部';
+    var src = ($('filterSource')||{}).value || '全部';
+
+    var list = items.slice();
+    if(subj!=='全部') list = list.filter(function(i){return i.subject===subj;});
+    if(chap!=='全部') list = list.filter(function(i){return i.chapter===chap;});
+    if(stat!=='全部') list = list.filter(function(i){return i.status===stat;});
+    if(src==='补救') list = list.filter(function(i){return i.isRemedy;});
+    if(src==='常规') list = list.filter(function(i){return !i.isRemedy;});
+
+    list.sort(function(a,b){
+      if(a.next!==b.next) return a.next.localeCompare(b.next);
+      var order = {'红':0,'黄':1,'绿':2,'归档':3};
+      return order[a.status]-order[b.status];
+    });
+
+    if(list.length===0){
+      tbody.innerHTML = '<tr><td colspan="12" style="text-align:center;color:#6b7280;padding:24px;">没有匹配的题目</td></tr>';
+      return;
+    }
+
+    var html = '';
+    list.forEach(function(it){
+      var typeTag = it.isRemedy ? '<span class="tag t-remedy">补救</span>' : '<span class="mini">常规</span>';
+      var stateTag = '';
+      if(it.isRemedy){
+        if((it.reviewCount||0) === 0){
+          stateTag = '<span class="tag t-wait">待首次复习</span>';
+        }else{
+          stateTag = '<span class="tag t-new">已可抽题</span>';
+        }
+      }else{
+        stateTag = '<span class="mini">—</span>';
+      }
+      html += '<tr>' +
+        '<td>'+it.subject+'</td>' +
+        '<td>'+it.chapter+'</td>' +
+        '<td>'+it.source+'</td>' +
+        '<td>'+it.page+'</td>' +
+        '<td>'+it.no+'</td>' +
+        '<td><span class="tag '+statusClass(it.status)+'">'+it.status+'</span></td>' +
+        '<td>'+typeTag+'</td>' +
+        '<td>'+stateTag+'</td>' +
+        '<td>'+fmtDateWk(it.first)+'</td>' +
+        '<td>'+fmtDateWk(it.next)+'</td>' +
+        '<td>'+(it.reviewCount||0)+'</td>' +
+        '<td style="white-space:nowrap;">' +
+          '<button class="btn btn-sm" data-act="不会" data-id="'+it.id+'">红</button> ' +
+          '<button class="btn btn-sm" data-act="卡" data-id="'+it.id+'">黄</button> ' +
+          '<button class="btn btn-sm" data-act="会" data-id="'+it.id+'">绿</button> ' +
+          '<button class="btn btn-sm btn-danger" data-del="'+it.id+'">删</button>' +
+        '</td>' +
+      '</tr>';
+    });
+    tbody.innerHTML = html;
+  }
+
+  function renderRemedyStatus(){
+    var poolCount = remedyPool.length;
+    var waitingCount = items.filter(function(i){ return i.isRemedy && (i.reviewCount||0)===0; }).length;
+    var activeCount = items.filter(function(i){ return i.isRemedy && (i.reviewCount||0)>0; }).length;
+    var el1 = $('rmPoolCount'); if(el1) el1.textContent = poolCount;
+    var el2 = $('rmWaitingCount'); if(el2) el2.textContent = waitingCount;
+    var el3 = $('rmActiveCount'); if(el3) el3.textContent = activeCount;
+  }
+
+  function renderRemedyQueue(){
+    var container = $('rmQueueList');
+    var countEl = $('rmQueueCount');
+    if(!container) return;
+    if(countEl) countEl.textContent = '（共 ' + remedyPool.length + ' 条）';
+
+    if(remedyPool.length === 0){
+      container.innerHTML = '<div class="empty">待排池为空，请在上方录入历史题。</div>';
+      return;
+    }
+
+    var html = '';
+    remedyPool.forEach(function(it, idx){
+      html += '<div class="remedy-queue-item">' +
+        '<div class="info">' +
+          '<span class="tag '+statusClass(it.status)+'">'+it.status+'</span> ' +
+          '<b>'+it.subject+'</b> · '+it.chapter+' · '+it.source+' · '+it.page+' · '+it.no +
+          (it.errReason?'<div class="mini" style="margin-top:2px;">错因：'+escapeHtml(it.errReason)+'</div>':'') +
+        '</div>' +
+        '<button class="btn btn-sm btn-danger" data-rm-del="'+idx+'">删除</button>' +
+      '</div>';
+    });
+    container.innerHTML = html;
+  }
+
+  function renderRemedyScheduled(){
+    var container = $('rmScheduledList');
+    if(!container) return;
+    var filter = ($('rmScheduledFilter')||{}).value || 'all';
+
+    var list = items.filter(function(i){ return i.isRemedy; });
+    if(filter === 'waiting'){
+      list = list.filter(function(i){ return (i.reviewCount||0) === 0; });
+    }else if(filter === 'active'){
+      list = list.filter(function(i){ return (i.reviewCount||0) > 0; });
+    }
+
+    list.sort(function(a,b){
+      if(a.next!==b.next) return a.next.localeCompare(b.next);
+      return (a.subject||'').localeCompare(b.subject||'');
+    });
+
+    if(list.length === 0){
+      container.innerHTML = '<div class="empty">暂无已排程的补救题。</div>';
+      return;
+    }
+
+    var html = '<div style="overflow-x:auto;"><table><thead><tr>' +
+      '<th>科目</th><th>章节</th><th>来源</th><th>页码</th><th>题号</th><th>标记</th><th>状态</th><th>首次</th><th>下次</th><th>次数</th>' +
+      '</tr></thead><tbody>';
+    list.forEach(function(it){
+      var stateTag = (it.reviewCount||0) === 0
+        ? '<span class="tag t-wait">待首次复习</span>'
+        : '<span class="tag t-new">已可抽题</span>';
+      html += '<tr>' +
+        '<td>'+it.subject+'</td>' +
+        '<td>'+it.chapter+'</td>' +
+        '<td>'+it.source+'</td>' +
+        '<td>'+it.page+'</td>' +
+        '<td>'+it.no+'</td>' +
+        '<td><span class="tag '+statusClass(it.status)+'">'+it.status+'</span></td>' +
+        '<td>'+stateTag+'</td>' +
+        '<td>'+fmtDateWk(it.first)+'</td>' +
+        '<td>'+fmtDateWk(it.next)+'</td>' +
+        '<td>'+(it.reviewCount||0)+'</td>' +
+      '</tr>';
+    });
+    html += '</tbody></table></div>';
+    container.innerHTML = html;
+  }
+
+  function renderAll(){
+    renderSimDisplay();
+    renderStats();
+    renderDue();
+    renderAllTable();
+    renderSubjectStat('wkMathStat', '数学', 'weekly');
+    renderSubjectStat('wkCircStat', '电路', 'weekly');
+    renderChapterInputs('wkMathChapterInputs', '数学', 'weekly');
+    renderChapterInputs('wkCircChapterInputs', '电路', 'weekly');
+    renderSubjectStat('moMathStat', '数学', 'monthly');
+    renderSubjectStat('moCircStat', '电路', 'monthly');
+    renderChapterInputs('moMathChapterInputs', '数学', 'monthly');
+    renderChapterInputs('moCircChapterInputs', '电路', 'monthly');
+    renderRemedyStatus();
+    renderRemedyQueue();
+    renderRemedyScheduled();
+  }
+
+  function addItem(){
+    clearError();
+    var subject = $('inSubject').value;
+    var chapter = $('inChapter').value;
+    var source = $('inSource').value;
+    var page = $('inPage').value.trim();
+    var no = $('inNo').value.trim();
+    var status = $('inStatus').value;
+    var errReason = $('inErr').value.trim();
+
+    if(!page && !no){ showError('至少填写页码或题号'); return; }
+    if(!chapter){ showError('请选择章节'); return; }
+
+    var first = simDate;
+    var next = scheduleNext(status, null, first);
+
+    items.push({
+      id:uid(), subject:subject, chapter:chapter, source:source,
+      page:page, no:no, status:status, errReason:errReason,
+      first:first, next:next, reviewCount:0, lastReview:'', greenStreak:0,
+      isRemedy:false
+    });
+
+    saveItems();
+    $('inPage').value=''; $('inNo').value=''; $('inErr').value='';
+    var hint = $('addHint');
+    if(hint) hint.textContent = '✓ 已添加，下次复习：' + fmtDateWk(next);
+    renderAll();
+  }
+
+  function addToRemedyPool(){
+    var subject = $('rmSubject').value;
+    var chapter = $('rmChapter').value;
+    var source = $('rmSource').value;
+    var page = $('rmPage').value.trim();
+    var no = $('rmNo').value.trim();
+    var status = $('rmStatus').value;
+    var errReason = $('rmErr').value.trim();
+
+    if(!page && !no){ showError('补救录入：至少填写页码或题号'); return; }
+    if(!chapter){ showError('补救录入：请选择章节'); return; }
+
+    remedyPool.push({
+      id: uid(),
+      subject: subject,
+      chapter: chapter,
+      source: source,
+      page: page,
+      no: no,
+      status: status,
+      errReason: errReason
+    });
+    saveRemedyPool();
+    $('rmPage').value=''; $('rmNo').value=''; $('rmErr').value='';
+    var hint = $('rmAddHint');
+    if(hint) hint.textContent = '✓ 已加入待排池，当前 ' + remedyPool.length + ' 条';
+    renderAll();
+  }
+
+  function deleteRemedyQueueItem(idx){
+    remedyPool.splice(idx, 1);
+    saveRemedyPool();
+    renderAll();
+  }
+
+  function clearRemedyQueue(){
+    if(remedyPool.length === 0){ alert('待排池已经是空的。'); return; }
+    if(!confirm('确定清空待排池？共 ' + remedyPool.length + ' 条。')) return;
+    remedyPool = [];
+    saveRemedyPool();
+    $('rmPreview').innerHTML = '';
+    renderAll();
+  }
+
+  function buildRemedySchedule(){
+    var startDate = $('rmStartDate').value || simDate;
+    var days = parseInt($('rmDays').value, 10) || 14;
+    var mathLimit = parseInt($('rmMathLimit').value, 10) || 15;
+    var circLimit = parseInt($('rmCircLimit').value, 10) || 10;
+    var sortBy = $('rmSortBy').value;
+
+    var statusOrder = {'红':0,'黄':1,'绿':2,'归档':3};
+    function sortFn(a, b){
+      if(sortBy === 'status'){
+        if(statusOrder[a.status] !== statusOrder[b.status]) return statusOrder[a.status] - statusOrder[b.status];
+        return a.chapter.localeCompare(b.chapter);
+      }else{
+        if(a.chapter !== b.chapter) return a.chapter.localeCompare(b.chapter);
+        return statusOrder[a.status] - statusOrder[b.status];
+      }
+    }
+
+    var mathPool = remedyPool.filter(function(it){ return it.subject === '数学'; }).sort(sortFn);
+    var circPool = remedyPool.filter(function(it){ return it.subject === '电路'; }).sort(sortFn);
+
+    var assignments = [];
+    var mathIdx = 0, circIdx = 0;
+    var dayCursor = 0;
+    var safety = 0;
+
+    while((mathIdx < mathPool.length || circIdx < circPool.length) && safety < 1000){
+      var date = addDays(startDate, dayCursor);
+      var mathCount = 0, circCount = 0;
+
+      while(mathIdx < mathPool.length && mathCount < mathLimit){
+        assignments.push({ item: mathPool[mathIdx], date: date });
+        mathIdx++; mathCount++;
+      }
+      while(circIdx < circPool.length && circCount < circLimit){
+        assignments.push({ item: circPool[circIdx], date: date });
+        circIdx++; circCount++;
+      }
+      dayCursor++;
+      safety++;
+    }
+
+    return { assignments: assignments, startDate: startDate, days: days };
+  }
+
+  function previewRemedySchedule(){
+    if(remedyPool.length === 0){
+      $('rmPreview').innerHTML = '<div class="empty">待排池为空，请先录入历史题。</div>';
+      return;
+    }
+    var result = buildRemedySchedule();
+    var byDate = {};
+    result.assignments.forEach(function(a){
+      if(!byDate[a.date]) byDate[a.date] = { math: 0, circ: 0, items: [] };
+      if(a.item.subject === '数学') byDate[a.date].math++;
+      else byDate[a.date].circ++;
+      byDate[a.date].items.push(a.item);
+    });
+
+    var dates = Object.keys(byDate).sort();
+    var html = '<div class="key key-remedy" style="margin-bottom:12px;"><b>排程预览：</b>共 '+result.assignments.length+' 条，分布在 '+dates.length+' 天。</div>';
+
+    dates.forEach(function(d){
+      var info = byDate[d];
+      html += '<div class="schedule-preview">' +
+        '<div class="head">'+fmtDateWk(d)+'　数学 '+info.math+' 题 · 电路 '+info.circ+' 题</div>' +
+        '<div class="chips">';
+      info.items.slice(0, 12).forEach(function(it){
+        html += '<span class="chip chip-remedy">'+it.subject.slice(0,1)+'·'+it.chapter+'·'+it.status+'</span>';
+      });
+      if(info.items.length > 12){
+        html += '<span class="chip">…还有 '+(info.items.length-12)+' 条</span>';
+      }
+      html += '</div></div>';
+    });
+
+    $('rmPreview').innerHTML = html;
+  }
+
+  function generateRemedySchedule(){
+    if(remedyPool.length === 0){
+      alert('待排池为空，请先录入历史题。');
+      return;
+    }
+    var result = buildRemedySchedule();
+    if(!confirm('即将把 '+remedyPool.length+' 条历史题按排程加入系统，确定继续？\n（首次复习后立即可被周测/月测抽到）')){
+      return;
+    }
+    result.assignments.forEach(function(a){
+      var it = a.item;
+      items.push({
+        id: uid(),
+        subject: it.subject,
+        chapter: it.chapter,
+        source: it.source,
+        page: it.page,
+        no: it.no,
+        status: it.status,
+        errReason: it.errReason,
+        first: a.date,
+        next: a.date,
+        reviewCount: 0,
+        lastReview: '',
+        greenStreak: 0,
+        isRemedy: true
+      });
+    });
+    remedyPool = [];
+    saveRemedyPool();
+    saveItems();
+    $('rmPreview').innerHTML = '<div class="key key-remedy"><b>✓ 已生成：</b>'+result.assignments.length+' 条历史题已加入系统，首轮复习从 '+result.startDate+' 开始。</div>';
+    renderAll();
+  }
+
+  function postponeOne(id){
+    var sat = getThisSaturday();
+    for(var i=0;i<items.length;i++){
+      if(items[i].id===id){ items[i].next = sat; break; }
+    }
+    saveItems(); renderAll();
+  }
+
+  function postponeAll(){
+    var sat = getThisSaturday();
+    var due = getDueFiltered();
+    if(due.length === 0){
+      alert('当前没有可延期的筛选结果。');
+      return;
+    }
+    if(!confirm('即将把 ' + due.length + ' 条筛选结果延至本周六（' + fmtDateWk(sat) + '）。\n确定继续？')) return;
+    due.forEach(function(it){
+      it.next = sat;
+    });
+    saveItems();
+    renderAll();
+  }
+
+  function deleteItem(id){
+    if(!confirm('确定删除这道题？')) return;
+    items = items.filter(function(i){return i.id!==id;});
+    saveItems();
+    renderAll();
+  }
+
+  function exportExcel(){
+    if(items.length===0){ alert('没有数据可导出。'); return; }
+    var sorted = items.slice().sort(function(a,b){
+      if(a.subject!==b.subject) return a.subject.localeCompare(b.subject);
+      if(a.chapter!==b.chapter) return a.chapter.localeCompare(b.chapter);
+      return a.next.localeCompare(b.next);
+    });
+
+    var headers = ['科目','章节','来源','页码','题号','标记','类型','状态','首次复习','下次复习','复习次数','绿连击','错因/备注'];
+    var rowsHtml = '';
+    sorted.forEach(function(it){
+      var typeStr = it.isRemedy ? '补救' : '常规';
+      var stateStr = '';
+      if(it.isRemedy){
+        stateStr = (it.reviewCount||0) === 0 ? '待首次复习' : '已可抽题';
+      }else{
+        stateStr = '—';
+      }
+      rowsHtml += '<tr>' +
+        '<td>'+escapeHtml(it.subject)+'</td>' +
+        '<td>'+escapeHtml(it.chapter)+'</td>' +
+        '<td>'+escapeHtml(it.source)+'</td>' +
+        '<td>'+escapeHtml(it.page)+'</td>' +
+        '<td>'+escapeHtml(it.no)+'</td>' +
+        '<td>'+escapeHtml(it.status)+'</td>' +
+        '<td>'+typeStr+'</td>' +
+        '<td>'+stateStr+'</td>' +
+        '<td>'+escapeHtml(fmtDateWk(it.first))+'</td>' +
+        '<td>'+escapeHtml(fmtDateWk(it.next))+'</td>' +
+        '<td>'+(it.reviewCount||0)+'</td>' +
+        '<td>'+(it.greenStreak||0)+'</td>' +
+        '<td>'+escapeHtml(it.errReason||'')+'</td>' +
+      '</tr>';
+    });
+
+    var headHtml = headers.map(function(h){ return '<th>'+h+'</th>'; }).join('');
+    var html = '<html xmlns:x="urn:schemas-microsoft-com:office:excel"><head><meta charset="UTF-8"></head><body>' +
+      '<table border="1" cellpadding="4" cellspacing="0" style="font-family:微软雅黑;font-size:12px;">' +
+      '<thead><tr>'+headHtml+'</tr></thead>' +
+      '<tbody>'+rowsHtml+'</tbody>' +
+      '</table></body></html>';
+
+    var blob = new Blob(['\ufeff'+html], {type:'application/vnd.ms-excel;charset=utf-8'});
+    var url = URL.createObjectURL(blob);
+    var a = document.createElement('a');
+    a.href = url;
+    a.download = '题目复习数据_'+todayStr()+'.xls';
+    a.click();
+    URL.revokeObjectURL(url);
+  }
+
+  function bindEvents(){
+    document.querySelectorAll('.tab').forEach(function(tab){
+      tab.addEventListener('click', function(){
+        document.querySelectorAll('.tab').forEach(function(t){ t.classList.remove('active'); });
+        document.querySelectorAll('.panel').forEach(function(p){ p.classList.remove('active'); });
+        tab.classList.add('active');
+        var panel = $('panel-'+tab.getAttribute('data-tab'));
+        if(panel) panel.classList.add('active');
+      });
+    });
+
+    var simInput = $('simDate');
+    if(simInput){
+      simInput.value = simDate;
+      simInput.addEventListener('change', function(){
+        simDate = simInput.value || todayStr();
+        saveSim();
+        renderAll();
+      });
+    }
+
+    var inSubj = $('inSubject');
+    if(inSubj) inSubj.addEventListener('change', fillChapterSelect);
+    var addBtn = $('addBtn');
+    if(addBtn) addBtn.addEventListener('click', addItem);
+
+    // 补救板块
+    var rmSubj = $('rmSubject');
+    if(rmSubj) rmSubj.addEventListener('change', fillRemedyChapterSelect);
+    var rmAddBtn = $('rmAddBtn');
+    if(rmAddBtn) rmAddBtn.addEventListener('click', addToRemedyPool);
+    var rmClearQueue = $('rmClearQueue');
+    if(rmClearQueue) rmClearQueue.addEventListener('click', clearRemedyQueue);
+    var rmQueueList = $('rmQueueList');
+    if(rmQueueList){
+      rmQueueList.addEventListener('click', function(e){
+        var btn = e.target.closest('button[data-rm-del]');
+        if(!btn) return;
+        deleteRemedyQueueItem(parseInt(btn.getAttribute('data-rm-del'), 10));
+      });
+    }
+    var rmPreviewBtn = $('rmPreviewBtn');
+    if(rmPreviewBtn) rmPreviewBtn.addEventListener('click', previewRemedySchedule);
+    var rmGenerateBtn = $('rmGenerateBtn');
+    if(rmGenerateBtn) rmGenerateBtn.addEventListener('click', generateRemedySchedule);
+    var rmScheduledFilter = $('rmScheduledFilter');
+    if(rmScheduledFilter) rmScheduledFilter.addEventListener('change', renderRemedyScheduled);
+
+    // 今日到期筛选
+    var dueFilterSubject = $('dueFilterSubject');
+    if(dueFilterSubject) dueFilterSubject.addEventListener('change', function(){
+      fillDueFilterChapter();
+      renderDue();
+    });
+    var dueFilterChapter = $('dueFilterChapter');
+    if(dueFilterChapter) dueFilterChapter.addEventListener('change', renderDue);
+    var dueFilterStatus = $('dueFilterStatus');
+    if(dueFilterStatus) dueFilterStatus.addEventListener('change', renderDue);
+    var dueFilterType = $('dueFilterType');
+    if(dueFilterType) dueFilterType.addEventListener('change', renderDue);
+    var dueFilterSearch = $('dueFilterSearch');
+    if(dueFilterSearch) dueFilterSearch.addEventListener('input', renderDue);
+    var dueResetFilterBtn = $('dueResetFilterBtn');
+    if(dueResetFilterBtn) dueResetFilterBtn.addEventListener('click', function(){
+      $('dueFilterSubject').value = '全部';
+      fillDueFilterChapter();
+      $('dueFilterChapter').value = '全部';
+      $('dueFilterStatus').value = '全部';
+      $('dueFilterType').value = '全部';
+      $('dueFilterSearch').value = '';
+      renderDue();
+    });
+
+    // 今日到期操作
+    var dueList = $('dueList');
+    if(dueList){
+      dueList.addEventListener('click', function(e){
+        var btn = e.target.closest('button');
+        if(!btn) return;
+        if(btn.getAttribute('data-act')){
+          applyResult(btn.getAttribute('data-id'), btn.getAttribute('data-act'));
+        }else if(btn.getAttribute('data-postpone')){
+          postponeOne(btn.getAttribute('data-postpone'));
+        }
+      });
+    }
+    var postponeAllBtn = $('postponeAllBtn');
+    if(postponeAllBtn) postponeAllBtn.addEventListener('click', postponeAll);
+
+    // 全部题目
+    var allTbody = $('allTbody');
+    if(allTbody){
+      allTbody.addEventListener('click', function(e){
+        var btn = e.target.closest('button');
+        if(!btn) return;
+        if(btn.getAttribute('data-act')){
+          applyResult(btn.getAttribute('data-id'), btn.getAttribute('data-act'));
+        }else if(btn.getAttribute('data-del')){
+          deleteItem(btn.getAttribute('data-del'));
+        }
+      });
+    }
+    var fSubj = $('filterSubject');
+    if(fSubj) fSubj.addEventListener('change', function(){ fillFilterChapter(); renderAllTable(); });
+    var fChap = $('filterChapter');
+    if(fChap) fChap.addEventListener('change', renderAllTable);
+    var fStat = $('filterStatus');
+    if(fStat) fStat.addEventListener('change', renderAllTable);
+    var fSrc = $('filterSource');
+    if(fSrc) fSrc.addEventListener('change', renderAllTable);
+
+    // 周测
+    var wkMathBtn = $('wkMathBtn');
+    if(wkMathBtn) wkMathBtn.addEventListener('click', function(){ doPick('数学', $('wkMathScope').value, 'wkMathChapterInputs', 'wkMathResult', 'weekly'); });
+    var wkMathReBtn = $('wkMathReBtn');
+    if(wkMathReBtn) wkMathReBtn.addEventListener('click', function(){ doPick('数学', $('wkMathScope').value, 'wkMathChapterInputs', 'wkMathResult', 'weekly'); });
+    var wkMathFillOne = $('wkMathFillOne');
+    if(wkMathFillOne) wkMathFillOne.addEventListener('click', function(){ fillAllOne('wkMathChapterInputs'); });
+    var wkMathClear = $('wkMathClear');
+    if(wkMathClear) wkMathClear.addEventListener('click', function(){ clearInputs('wkMathChapterInputs'); });
+    var wkMathResult = $('wkMathResult');
+    if(wkMathResult) wkMathResult.addEventListener('click', pickResultClickHandler);
+
+    var wkCircBtn = $('wkCircBtn');
+    if(wkCircBtn) wkCircBtn.addEventListener('click', function(){ doPick('电路', $('wkCircScope').value, 'wkCircChapterInputs', 'wkCircResult', 'weekly'); });
+    var wkCircReBtn = $('wkCircReBtn');
+    if(wkCircReBtn) wkCircReBtn.addEventListener('click', function(){ doPick('电路', $('wkCircScope').value, 'wkCircChapterInputs', 'wkCircResult', 'weekly'); });
+    var wkCircFillOne = $('wkCircFillOne');
+    if(wkCircFillOne) wkCircFillOne.addEventListener('click', function(){ fillAllOne('wkCircChapterInputs'); });
+    var wkCircClear = $('wkCircClear');
+    if(wkCircClear) wkCircClear.addEventListener('click', function(){ clearInputs('wkCircChapterInputs'); });
+    var wkCircResult = $('wkCircResult');
+    if(wkCircResult) wkCircResult.addEventListener('click', pickResultClickHandler);
+
+    // 月测
+    var moMathBtn = $('moMathBtn');
+    if(moMathBtn) moMathBtn.addEventListener('click', function(){ doPick('数学', $('moMathScope').value, 'moMathChapterInputs', 'moMathResult', 'monthly'); });
+    var moMathReBtn = $('moMathReBtn');
+    if(moMathReBtn) moMathReBtn.addEventListener('click', function(){ doPick('数学', $('moMathScope').value, 'moMathChapterInputs', 'moMathResult', 'monthly'); });
+    var moMathFillOne = $('moMathFillOne');
+    if(moMathFillOne) moMathFillOne.addEventListener('click', function(){ fillAllOne('moMathChapterInputs'); });
+    var moMathClear = $('moMathClear');
+    if(moMathClear) moMathClear.addEventListener('click', function(){ clearInputs('moMathChapterInputs'); });
+    var moMathResult = $('moMathResult');
+    if(moMathResult) moMathResult.addEventListener('click', pickResultClickHandler);
+
+    var moCircBtn = $('moCircBtn');
+    if(moCircBtn) moCircBtn.addEventListener('click', function(){ doPick('电路', $('moCircScope').value, 'moCircChapterInputs', 'moCircResult', 'monthly'); });
+    var moCircReBtn = $('moCircReBtn');
+    if(moCircReBtn) moCircReBtn.addEventListener('click', function(){ doPick('电路', $('moCircScope').value, 'moCircChapterInputs', 'moCircResult', 'monthly'); });
+    var moCircFillOne = $('moCircFillOne');
+    if(moCircFillOne) moCircFillOne.addEventListener('click', function(){ fillAllOne('moCircChapterInputs'); });
+    var moCircClear = $('moCircClear');
+    if(moCircClear) moCircClear.addEventListener('click', function(){ clearInputs('moCircChapterInputs'); });
+    var moCircResult = $('moCircResult');
+    if(moCircResult) moCircResult.addEventListener('click', pickResultClickHandler);
+
+    var excelBtn = $('excelBtn');
+    if(excelBtn) excelBtn.addEventListener('click', exportExcel);
+
+    var exportBtn = $('exportBtn');
+    if(exportBtn){
+      exportBtn.addEventListener('click', function(){
+        var payload = { items: items, simDate: simDate, remedyPool: remedyPool };
+        var blob = new Blob([JSON.stringify(payload, null, 2)], {type:'application/json'});
+        var url = URL.createObjectURL(blob);
+        var a = document.createElement('a');
+        a.href = url;
+        a.download = '题目复习备份_'+todayStr()+'.json';
+        a.click();
+        URL.revokeObjectURL(url);
+      });
+    }
+    var importBtn = $('importBtn');
+    if(importBtn) importBtn.addEventListener('click', function(){ $('importFile').click(); });
+    var importFile = $('importFile');
+    if(importFile){
+      importFile.addEventListener('change', function(e){
+        var f = e.target.files[0];
+        if(!f) return;
+        var reader = new FileReader();
+        reader.onload = function(ev){
+          try{
+            var obj = JSON.parse(ev.target.result);
+            var newItems = null, newSim = null, newPool = null;
+            if(Array.isArray(obj)) newItems = obj;
+            else if(obj && Array.isArray(obj.items)){
+              newItems = obj.items; newSim = obj.simDate; newPool = obj.remedyPool;
+            }else{ alert('文件格式错误'); return; }
+            if(!confirm('导入将覆盖当前所有数据，确定继续？')) return;
+            items = newItems;
+            items.forEach(function(it){
+              if(!it.id) it.id = uid();
+              if(!it.chapter) it.chapter = '第1章';
+              if(typeof it.reviewCount!=='number') it.reviewCount = 0;
+              if(typeof it.greenStreak!=='number') it.greenStreak = 0;
+              if(typeof it.isRemedy!=='boolean') it.isRemedy = false;
+              if(!it.lastReview) it.lastReview = '';
+            });
+            if(Array.isArray(newPool)) remedyPool = newPool;
+            if(newSim){ simDate = newSim; if(simInput) simInput.value = simDate; saveSim(); }
+            saveItems(); saveRemedyPool(); renderAll();
+            alert('导入成功，共 '+items.length+' 道题，待排池 '+remedyPool.length+' 条。');
+          }catch(err){ alert('文件解析失败：'+err.message); }
+        };
+        reader.readAsText(f);
+        e.target.value = '';
+      });
+    }
+    var resetBtn = $('resetBtn');
+    if(resetBtn){
+      resetBtn.addEventListener('click', function(){
+        if(confirm('确定清空所有数据（含待排池）？此操作不可恢复。')){
+          items = []; remedyPool = [];
+          saveItems(); saveRemedyPool(); renderAll();
+        }
+      });
+    }
+  }
+
+  function init(){
+    try{
+      items = loadItems();
+      simDate = localStorage.getItem(SIM_KEY) || todayStr();
+      remedyPool = loadRemedyPool();
+
+      fillChapterSelect();
+      fillRemedyChapterSelect();
+      fillFilterChapter();
+      fillDueFilterChapter();
+      $('rmStartDate').value = simDate;
+
+      bindEvents();
+      renderAll();
+      clearError();
+    }catch(e){
+      console.error('init error:', e);
+      showError('系统初始化失败：'+e.message+'。请刷新页面重试，或清空数据。');
+    }
+  }
+
+  if(document.readyState==='loading'){
+    document.addEventListener('DOMContentLoaded', init);
+  }else{
+    init();
+  }
+})();
+</script>
+</body>
+</html>
