@@ -71,6 +71,11 @@
   .btn-warn:hover{background:#d97706;}
   .btn-good{background:#0891b2;color:#fff;border-color:#0891b2;}
   .btn-good:hover{background:#0e7490;}
+  /* 全部题目里的小按钮：加入好题 / 移出好题 */
+  .btn-good-add{background:#ecfeff;color:#0891b2;border:1px solid #a5f3fc;padding:1px 6px;font-size:10px;border-radius:10px;cursor:pointer;font-weight:600;font-family:inherit;margin-left:4px;vertical-align:middle;}
+  .btn-good-add:hover{background:#cffafe;}
+  .btn-good-remove{background:#f1f5f9;color:#64748b;border:1px solid #e2e8f0;padding:1px 6px;font-size:10px;border-radius:10px;cursor:pointer;font-weight:600;font-family:inherit;margin-left:4px;vertical-align:middle;}
+  .btn-good-remove:hover{background:#e2e8f0;color:#475569;}
   .tag{display:inline-block;padding:2px 8px;border-radius:20px;font-size:11px;font-weight:700;vertical-align:middle;}
   .t-red{background:var(--red-bg);color:var(--red);}
   .t-yellow{background:var(--yellow-bg);color:var(--yellow);}
@@ -86,7 +91,6 @@
   tbody tr:nth-child(even){background:#fafbfc;}
   tbody tr:hover{background:var(--blue-bg);}
 
-  /* 红黄绿处理对照表 */
   .method-table{width:100%;border-collapse:collapse;font-size:13px;margin-bottom:14px;border:1px solid var(--line);border-radius:8px;overflow:hidden;}
   .method-table thead th{background:#f8fafc;color:#0f172a;font-size:12px;padding:9px 12px;border-bottom:1px solid var(--line);}
   .method-table td{padding:10px 12px;vertical-align:top;border-bottom:1px solid var(--line);}
@@ -116,10 +120,8 @@
   .btn-bad:hover{background:#b91c1c;}
   .btn-ok{background:var(--yellow);color:#fff;border-color:var(--yellow);}
   .btn-ok:hover{background:#92400e;}
-  .btn-good{background:var(--green);color:#fff;border-color:var(--green);}
-  .btn-good:hover{background:#166534;}
-  .btn-sun{background:#fff;color:#b45309;border-color:#fcd34d;}
-  .btn-sun:hover{background:#fffbeb;}
+  .btn-green{background:var(--green);color:#fff;border-color:var(--green);}
+  .btn-green:hover{background:#166534;}
   .empty{color:var(--sub);font-size:13px;padding:20px;text-align:center;background:#fff;border:1px dashed var(--line);border-radius:8px;}
   .mini{font-size:12px;color:var(--sub);}
   .err-reason{color:#6b7280;font-size:12px;margin-top:3px;}
@@ -405,6 +407,9 @@
           <select id="filterSource"><option value="全部">全部</option><option value="补救">仅补救题</option><option value="常规">仅常规题</option></select>
         </div>
       </div>
+      <div class="key key-good">
+        <b>好题按钮：</b>每题颜色标记旁边的「加入好题」按钮，可将该题同步到好题板块。再次点击「移出好题」即可取消，不影响颜色标签和复习安排。
+      </div>
       <div style="overflow-x:auto;">
         <table>
           <thead>
@@ -640,7 +645,7 @@
     <div class="card">
       <h2 style="border-left-color:#0891b2;">好题板块</h2>
       <div class="key key-good">
-        <b>好题说明：</b>这里显示所有被标记为「好题」的题目。你可以在录入时勾选「加入好题板块」，或在其他板块中给题目贴上「好题」标签。<br>
+        <b>好题说明：</b>这里显示所有被标记为「好题」的题目。你可以在录入时勾选「加入好题板块」，或在「全部题目」中点击每题标记旁的「加入好题」按钮。<br>
         <b>操作限制：</b>好题板块仅展示题目信息，只能执行「移出好题」操作，不能在这里修改颜色标记或复习状态。移出后，其他板块的「好题」标签也会同步消失。
       </div>
       <div id="goodList"></div>
@@ -761,18 +766,15 @@
     return '';
   }
 
-  // 获取可延期的日期列表（从明天到本周日，如果今天是周日则返回下周日）
   function getPostponeOptions(){
     var today = simDate;
     var d = new Date(today+'T00:00:00');
     var day = d.getDay(); // 0=周日
     var options = [];
     if(day === 0){
-      // 今天是周日，只能延到下周日
       options.push(addDays(today, 7));
     } else {
-      // 从明天到本周日
-      var daysToSunday = 7 - day; // 如果day=1(周一)，到周日还有6天
+      var daysToSunday = 7 - day;
       for(var i=1; i<=daysToSunday; i++){
         options.push(addDays(today, i));
       }
@@ -1344,14 +1346,21 @@
       }else{
         stateTag = '<span class="mini">—</span>';
       }
-      var goodTag = it.isGood ? '<span class="tag t-good">好题</span>' : '';
+      // 颜色标签 + 好题切换按钮
+      var markCell = '<span class="tag '+statusClass(it.status)+'">'+it.status+'</span>';
+      if(it.isGood){
+        markCell += ' <span class="tag t-good">好题</span>';
+        markCell += '<button class="btn-good-remove" data-good-toggle="'+it.id+'" title="移出好题">移出好题</button>';
+      }else{
+        markCell += '<button class="btn-good-add" data-good-toggle="'+it.id+'" title="加入好题">+ 好题</button>';
+      }
       html += '<tr>' +
         '<td>'+it.subject+'</td>' +
         '<td>'+it.chapter+'</td>' +
         '<td>'+it.source+'</td>' +
         '<td>'+it.page+'</td>' +
         '<td>'+it.no+'</td>' +
-        '<td><span class="tag '+statusClass(it.status)+'">'+it.status+'</span> '+goodTag+'</td>' +
+        '<td>'+markCell+'</td>' +
         '<td>'+typeTag+'</td>' +
         '<td>'+stateTag+'</td>' +
         '<td>'+fmtDateWk(it.first)+'</td>' +
@@ -1499,7 +1508,7 @@
     if(!container) return;
     var goodItems = items.filter(function(i){ return i.isGood; });
     if(goodItems.length === 0){
-      container.innerHTML = '<div class="empty">暂无好题。在录入新题时勾选「加入好题板块」，即可在此显示。</div>';
+      container.innerHTML = '<div class="empty">暂无好题。在录入新题时勾选「加入好题板块」，或在「全部题目」中点击每题标记旁的「+ 好题」按钮。</div>';
       return;
     }
     goodItems.sort(function(a,b){
@@ -1784,6 +1793,18 @@
     renderAll();
   }
 
+  // 切换好题状态（加入或移出），不影响颜色标签和复习安排
+  function toggleGood(id){
+    for(var i=0;i<items.length;i++){
+      if(items[i].id===id){
+        items[i].isGood = !items[i].isGood;
+        break;
+      }
+    }
+    saveItems();
+    renderAll();
+  }
+
   function removeGood(id){
     for(var i=0;i<items.length;i++){
       if(items[i].id===id){ items[i].isGood = false; break; }
@@ -1957,7 +1978,9 @@
       allTbody.addEventListener('click', function(e){
         var btn = e.target.closest('button');
         if(!btn) return;
-        if(btn.getAttribute('data-act')){
+        if(btn.getAttribute('data-good-toggle')){
+          toggleGood(btn.getAttribute('data-good-toggle'));
+        }else if(btn.getAttribute('data-act')){
           applyResult(btn.getAttribute('data-id'), btn.getAttribute('data-act'));
         }else if(btn.getAttribute('data-del')){
           deleteItem(btn.getAttribute('data-del'));
@@ -2090,7 +2113,6 @@
     }
   }
 
-  // 更新批量延期下拉选项
   function updatePostponeOptions(){
     var sel = $('bulkPostponeSelect');
     if(!sel) return;
