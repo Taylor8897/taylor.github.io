@@ -26,6 +26,9 @@
   .sim-bar .sat-display{font-size:12px;color:#fbbf24;font-weight:600;}
   .sim-bar .btn-today{background:#2563eb;color:#fff;border:1px solid #2563eb;padding:7px 12px;border-radius:7px;font-size:12px;font-weight:600;cursor:pointer;font-family:inherit;}
   .sim-bar .btn-today:hover{background:#1d4ed8;}
+  .sim-bar .btn-undo{background:#475569;color:#fff;border:1px solid #475569;padding:7px 12px;border-radius:7px;font-size:12px;font-weight:600;cursor:pointer;font-family:inherit;}
+  .sim-bar .btn-undo:hover:not(:disabled){background:#334155;}
+  .sim-bar .btn-undo:disabled{opacity:.4;cursor:not-allowed;}
   .sim-bar .manual-flag{font-size:11px;color:#fbbf24;font-weight:600;padding:2px 8px;background:#422006;border-radius:10px;}
   .error-box{display:none;background:#fef2f2;border:1px solid #fecaca;border-left:4px solid #dc2626;border-radius:8px;padding:10px 14px;font-size:13px;color:#b91c1c;margin-bottom:14px;}
   .stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(98px,1fr));gap:10px;margin-bottom:16px;}
@@ -71,7 +74,6 @@
   .btn-warn:hover{background:#d97706;}
   .btn-good{background:#0891b2;color:#fff;border-color:#0891b2;}
   .btn-good:hover{background:#0e7490;}
-  /* 全部题目里的小按钮：加入好题 / 移出好题 */
   .btn-good-add{background:#ecfeff;color:#0891b2;border:1px solid #a5f3fc;padding:1px 6px;font-size:10px;border-radius:10px;cursor:pointer;font-weight:600;font-family:inherit;margin-left:4px;vertical-align:middle;}
   .btn-good-add:hover{background:#cffafe;}
   .btn-good-remove{background:#f1f5f9;color:#64748b;border:1px solid #e2e8f0;padding:1px 6px;font-size:10px;border-radius:10px;cursor:pointer;font-weight:600;font-family:inherit;margin-left:4px;vertical-align:middle;}
@@ -204,6 +206,7 @@
     <label>当前日期：</label>
     <input type="date" id="simDate">
     <button class="btn-today" id="backToTodayBtn">回到今天</button>
+    <button class="btn-undo" id="undoBtn" disabled>↩ 撤回</button>
     <span id="manualFlag" class="manual-flag" style="display:none;">手动日期中</span>
     <span class="sat-display" id="satDisplay"></span>
     <span class="today-display" id="simDisplay"></span>
@@ -688,6 +691,51 @@
   var simDate = '';
   var remedyPool = [];
 
+  // ============ 撤回栈（内存中，刷新页面后清空） ============
+  var undoStack = [];
+  var UNDO_MAX = 30;
+
+  function pushUndo(desc){
+    try{
+      undoStack.push({
+        desc: desc,
+        items: JSON.parse(JSON.stringify(items)),
+        remedyPool: JSON.parse(JSON.stringify(remedyPool))
+      });
+      if(undoStack.length > UNDO_MAX) undoStack.shift();
+      updateUndoBtn();
+    }catch(e){
+      console.error('pushUndo error:', e);
+    }
+  }
+
+  function doUndo(){
+    if(undoStack.length === 0){
+      alert('没有可撤回的操作。');
+      return;
+    }
+    var state = undoStack.pop();
+    items = state.items;
+    remedyPool = state.remedyPool;
+    saveItems();
+    saveRemedyPool();
+    renderAll();
+    updateUndoBtn();
+    alert('已撤回：' + state.desc);
+  }
+
+  function updateUndoBtn(){
+    var btn = $('undoBtn');
+    if(!btn) return;
+    if(undoStack.length === 0){
+      btn.disabled = true;
+      btn.textContent = '↩ 撤回';
+    }else{
+      btn.disabled = false;
+      btn.textContent = '↩ 撤回(' + undoStack.length + ')';
+    }
+  }
+
   function $(id){ return document.getElementById(id); }
   function showError(msg){ var b=$('errorBox'); if(b){b.style.display='block';b.textContent='⚠ '+msg;} }
   function clearError(){ var b=$('errorBox'); if(b){b.style.display='none';b.textContent='';} }
@@ -769,7 +817,7 @@
   function getPostponeOptions(){
     var today = simDate;
     var d = new Date(today+'T00:00:00');
-    var day = d.getDay(); // 0=周日
+    var day = d.getDay();
     var options = [];
     if(day === 0){
       options.push(addDays(today, 7));
@@ -851,6 +899,8 @@
     for(var i=0;i<items.length;i++){ if(items[i].id===id){ it=items[i]; break; } }
     if(!it) return;
     var prev = it.status;
+    var prevNext = it.next;
+    pushUndo('把「' + it.subject + ' ' + it.page + ' ' + it.no + '」从「' + prev + '」标记为「' + result + '」（下次由 ' + prevNext + ' 改为新的日期）');
     it.reviewCount = (it.reviewCount||0) + 1;
     it.lastReview = simDate;
 
@@ -1294,7 +1344,6 @@
     });
     container.innerHTML = html;
 
-    // 绑定单题延期下拉事件
     container.querySelectorAll('.postpone-select').forEach(function(sel){
       sel.addEventListener('change', function(){
         var id = sel.getAttribute('data-postpone-id');
@@ -1346,7 +1395,6 @@
       }else{
         stateTag = '<span class="mini">—</span>';
       }
-      // 颜色标签 + 好题切换按钮
       var markCell = '<span class="tag '+statusClass(it.status)+'">'+it.status+'</span>';
       if(it.isGood){
         markCell += ' <span class="tag t-good">好题</span>';
@@ -1590,6 +1638,7 @@
     var first = simDate;
     var next = scheduleNext(status, null, first);
 
+    pushUndo('添加题目「' + subject + ' ' + chapter + ' ' + page + ' ' + no + '」');
     items.push({
       id:uid(), subject:subject, chapter:chapter, source:source,
       page:page, no:no, status:status, errReason:errReason,
@@ -1616,6 +1665,7 @@
     if(!page && !no){ showError('补救录入：至少填写页码或题号'); return; }
     if(!chapter){ showError('补救录入：请选择章节'); return; }
 
+    pushUndo('加入待排池「' + subject + ' ' + chapter + ' ' + page + ' ' + no + '」');
     remedyPool.push({
       id: uid(),
       subject: subject,
@@ -1634,6 +1684,9 @@
   }
 
   function deleteRemedyQueueItem(idx){
+    var it = remedyPool[idx];
+    if(!it) return;
+    pushUndo('从待排池删除「' + it.subject + ' ' + it.page + ' ' + it.no + '」');
     remedyPool.splice(idx, 1);
     saveRemedyPool();
     renderAll();
@@ -1642,6 +1695,7 @@
   function clearRemedyQueue(){
     if(remedyPool.length === 0){ alert('待排池已经是空的。'); return; }
     if(!confirm('确定清空待排池？共 ' + remedyPool.length + ' 条。')) return;
+    pushUndo('清空待排池 ' + remedyPool.length + ' 条');
     remedyPool = [];
     saveRemedyPool();
     $('rmPreview').innerHTML = '';
@@ -1736,6 +1790,7 @@
     if(!confirm('即将把 '+remedyPool.length+' 条历史题按排程加入系统，确定继续？\n（首次复习后立即可被周测/月测抽到）')){
       return;
     }
+    pushUndo('生成补救排程，把 ' + remedyPool.length + ' 条历史题加入系统');
     result.assignments.forEach(function(a){
       var it = a.item;
       items.push({
@@ -1764,10 +1819,14 @@
   }
 
   function postponeOne(id, date){
-    for(var i=0;i<items.length;i++){
-      if(items[i].id===id){ items[i].next = date; break; }
-    }
-    saveItems(); renderAll();
+    var it = null;
+    for(var i=0;i<items.length;i++){ if(items[i].id===id){ it=items[i]; break; } }
+    if(!it) return;
+    var oldNext = it.next;
+    pushUndo('把「' + it.subject + ' ' + it.page + ' ' + it.no + '」从 ' + oldNext + ' 延期到 ' + fmtDateWk(date));
+    it.next = date;
+    saveItems();
+    renderAll();
   }
 
   function postponeAll(){
@@ -1779,6 +1838,7 @@
       return;
     }
     if(!confirm('即将把 ' + due.length + ' 条筛选结果延至 ' + fmtDateWk(date) + '。\n确定继续？')) return;
+    pushUndo('批量延期 ' + due.length + ' 条到 ' + fmtDateWk(date));
     due.forEach(function(it){
       it.next = date;
     });
@@ -1787,28 +1847,33 @@
   }
 
   function deleteItem(id){
+    var it = null;
+    for(var i=0;i<items.length;i++){ if(items[i].id===id){ it=items[i]; break; } }
+    if(!it) return;
     if(!confirm('确定删除这道题？')) return;
+    pushUndo('删除题目「' + it.subject + ' ' + it.chapter + ' ' + it.page + ' ' + it.no + '」');
     items = items.filter(function(i){return i.id!==id;});
     saveItems();
     renderAll();
   }
 
-  // 切换好题状态（加入或移出），不影响颜色标签和复习安排
   function toggleGood(id){
-    for(var i=0;i<items.length;i++){
-      if(items[i].id===id){
-        items[i].isGood = !items[i].isGood;
-        break;
-      }
-    }
+    var it = null;
+    for(var i=0;i<items.length;i++){ if(items[i].id===id){ it=items[i]; break; } }
+    if(!it) return;
+    var action = it.isGood ? '移出好题' : '加入好题';
+    pushUndo('把「' + it.subject + ' ' + it.page + ' ' + it.no + '」' + action);
+    it.isGood = !it.isGood;
     saveItems();
     renderAll();
   }
 
   function removeGood(id){
-    for(var i=0;i<items.length;i++){
-      if(items[i].id===id){ items[i].isGood = false; break; }
-    }
+    var it = null;
+    for(var i=0;i<items.length;i++){ if(items[i].id===id){ it=items[i]; break; } }
+    if(!it) return;
+    pushUndo('把「' + it.subject + ' ' + it.page + ' ' + it.no + '」移出好题');
+    it.isGood = false;
     saveItems();
     renderAll();
   }
@@ -1908,6 +1973,9 @@
         }
       });
     }
+
+    var undoBtn = $('undoBtn');
+    if(undoBtn) undoBtn.addEventListener('click', doUndo);
 
     var inSubj = $('inSubject');
     if(inSubj) inSubj.addEventListener('change', fillChapterSelect);
@@ -2082,6 +2150,7 @@
               newItems = obj.items; newSim = obj.simDate; newPool = obj.remedyPool;
             }else{ alert('文件格式错误'); return; }
             if(!confirm('导入将覆盖当前所有数据，确定继续？')) return;
+            pushUndo('导入 JSON 备份（覆盖当前数据）');
             items = newItems;
             items.forEach(function(it){
               if(!it.id) it.id = uid();
@@ -2106,6 +2175,7 @@
     if(resetBtn){
       resetBtn.addEventListener('click', function(){
         if(confirm('确定清空所有数据（含待排池）？此操作不可恢复。')){
+          pushUndo('清空所有数据（含待排池）');
           items = []; remedyPool = [];
           saveItems(); saveRemedyPool(); renderAll();
         }
@@ -2144,6 +2214,7 @@
 
       bindEvents();
       renderAll();
+      updateUndoBtn();
       clearError();
 
       setInterval(function(){
