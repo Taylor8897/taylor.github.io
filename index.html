@@ -190,7 +190,7 @@
   .good-item .head{display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:10px;}
   .good-item .meta{font-size:13px;flex:1;min-width:200px;}
   .good-item .actions{display:flex;gap:6px;flex-wrap:wrap;}
-  .postpone-select{width:auto;font-size:12px;padding:4px 8px;border-radius:6px;border:1px solid var(--line);background:#fff;cursor:pointer;}
+  .postpone-select{width:auto;font-size:12px;padding:4px 8px;border-radius:6px;border:1px solid var(--line);background:#fff;cursor:pointer;min-width:150px;}
   @media (max-width:600px){.form-grid{grid-template-columns:1fr;}.method-table{font-size:12px;}.method-table td,.method-table th{padding:7px 8px;}}
 </style>
 </head>
@@ -380,15 +380,17 @@
           <span id="dueCount" class="mini" style="margin-left:8px;"></span>
         </div>
         <div style="display:flex;align-items:center;gap:8px;">
-          <label style="margin:0;font-size:12px;font-weight:600;color:var(--sub);">延筛选结果到：</label>
+          <label style="margin:0;font-size:12px;font-weight:600;color:var(--sub);">批量跳到：</label>
           <select id="bulkPostponeSelect" class="postpone-select"></select>
           <button class="btn btn-sm btn-warn" id="bulkPostponeBtn">应用</button>
           <button class="btn btn-sm" id="dueResetFilterBtn">重置筛选</button>
         </div>
       </div>
       <div class="key key-sat">
-        <b>没时间复习？</b>单题可选延期到本周内任意一天；也可用上方「延筛选结果到」批量延期。<br>
-        <b>优先级：</b>红题当天或次日必须处理，黄题可延后，绿题可顺延到周日。
+        <b>延期/提前说明：</b><br>
+        「延后」：可跳到明天到本周日任意一天。<br>
+        「提前」：可跳到过去 7 天内任意一天（如今天 9月15日，可跳到 9月8日~9月14日），用于提前解决。<br>
+        颜色标记和复习逻辑不变。
       </div>
       <div id="dueList"></div>
     </div>
@@ -671,7 +673,7 @@
   <div class="foot">
     <b>一周节奏：</b>工作日推进新课 + 处理今日到期（红题优先）；<b>周六</b>推进新课 + 清今日到期 + 看本周红题；<b>周日</b>不推新课，清理到期池 + 周测月测 + 总结 + 下周计划。<br>
     <b>核心规则：</b>红 → 明天；黄 → 3 天后；绿 → 7 天后；绿再会 → 30 天后；绿连续 3 次会 → 归档。<br>
-    <b>优先级：</b>红题当天或次日必须处理，黄题可延后，绿题可顺延到周日。
+    <b>优先级：</b>红题当天或次日必须处理，黄题可延后，绿题可顺延。
   </div>
 </div>
 
@@ -691,7 +693,7 @@
   var simDate = '';
   var remedyPool = [];
 
-  // ============ 撤回栈（内存中，刷新页面后清空） ============
+  // ============ 撤回栈 ============
   var undoStack = [];
   var UNDO_MAX = 30;
 
@@ -814,20 +816,56 @@
     return '';
   }
 
+  // ============================================================
+  // 获取可跳转的日期列表
+  //   - 提前：过去 7 天（今天-7 到 今天-1）
+  //   - 延后：明天到本周日（若今天是周日，无延后选项）
+  // 返回 [{ date, type: 'early'|'later' }]
+  // ============================================================
   function getPostponeOptions(){
-    var today = simDate;
-    var d = new Date(today+'T00:00:00');
-    var day = d.getDay();
     var options = [];
-    if(day === 0){
-      options.push(addDays(today, 7));
-    } else {
+    // 提前：过去 7 天（从最早到今天前一天，顺序从近到远或从远到近按需要显示）
+    for(var i = 1; i <= 7; i++){
+      options.push({ date: addDays(simDate, -i), type: 'early' });
+    }
+    // 延后：明天到本周日
+    var d = new Date(simDate+'T00:00:00');
+    var day = d.getDay(); // 0=周日
+    if(day !== 0){
       var daysToSunday = 7 - day;
-      for(var i=1; i<=daysToSunday; i++){
-        options.push(addDays(today, i));
+      for(var j = 1; j <= daysToSunday; j++){
+        options.push({ date: addDays(simDate, j), type: 'later' });
       }
     }
     return options;
+  }
+
+  // 生成下拉框 HTML（含 optgroup 分组）
+  function buildPostponeOptionsHtml(placeholderText){
+    var options = getPostponeOptions();
+    var earlyList = [];
+    var laterList = [];
+    options.forEach(function(o){
+      if(o.type === 'early') earlyList.push(o.date);
+      else laterList.push(o.date);
+    });
+    var html = '';
+    if(placeholderText) html += '<option value="">' + placeholderText + '</option>';
+    if(earlyList.length > 0){
+      html += '<optgroup label="提前（过去7天）">';
+      earlyList.forEach(function(d){
+        html += '<option value="'+d+'">'+fmtDateWk(d)+'</option>';
+      });
+      html += '</optgroup>';
+    }
+    if(laterList.length > 0){
+      html += '<optgroup label="延后（本周内）">';
+      laterList.forEach(function(d){
+        html += '<option value="'+d+'">'+fmtDateWk(d)+'</option>';
+      });
+      html += '</optgroup>';
+    }
+    return html;
   }
 
   function loadItems(){
@@ -1310,11 +1348,7 @@
       return;
     }
 
-    var options = getPostponeOptions();
-    var optionsHtml = '';
-    options.forEach(function(d){
-      optionsHtml += '<option value="'+d+'">'+fmtDateWk(d)+'</option>';
-    });
+    var optionsHtml = buildPostponeOptionsHtml('跳到…');
 
     var html = '';
     due.forEach(function(it){
@@ -1335,7 +1369,6 @@
             '<button class="btn btn-sm btn-ok" data-act="卡" data-id="'+it.id+'">卡 → 黄</button>' +
             '<button class="btn btn-sm btn-good" data-act="会" data-id="'+it.id+'">会 → 绿</button>' +
             '<select class="postpone-select" data-postpone-id="'+it.id+'">' +
-              '<option value="">延到...</option>' +
               optionsHtml +
             '</select>' +
           '</div>' +
@@ -1823,7 +1856,8 @@
     for(var i=0;i<items.length;i++){ if(items[i].id===id){ it=items[i]; break; } }
     if(!it) return;
     var oldNext = it.next;
-    pushUndo('把「' + it.subject + ' ' + it.page + ' ' + it.no + '」从 ' + oldNext + ' 延期到 ' + fmtDateWk(date));
+    var verb = (date > oldNext) ? '延后到' : '提前到';
+    pushUndo('把「' + it.subject + ' ' + it.page + ' ' + it.no + '」从 ' + oldNext + ' ' + verb + ' ' + fmtDateWk(date));
     it.next = date;
     saveItems();
     renderAll();
@@ -1831,14 +1865,14 @@
 
   function postponeAll(){
     var date = $('bulkPostponeSelect').value;
-    if(!date){ alert('请选择延期日期。'); return; }
+    if(!date){ alert('请选择日期。'); return; }
     var due = getDueFiltered();
     if(due.length === 0){
-      alert('当前没有可延期的筛选结果。');
+      alert('当前没有可调整的筛选结果。');
       return;
     }
-    if(!confirm('即将把 ' + due.length + ' 条筛选结果延至 ' + fmtDateWk(date) + '。\n确定继续？')) return;
-    pushUndo('批量延期 ' + due.length + ' 条到 ' + fmtDateWk(date));
+    if(!confirm('即将把 ' + due.length + ' 条筛选结果跳到 ' + fmtDateWk(date) + '。\n确定继续？')) return;
+    pushUndo('批量跳到 ' + fmtDateWk(date) + '（' + due.length + ' 条）');
     due.forEach(function(it){
       it.next = date;
     });
@@ -2186,14 +2220,7 @@
   function updatePostponeOptions(){
     var sel = $('bulkPostponeSelect');
     if(!sel) return;
-    var options = getPostponeOptions();
-    sel.innerHTML = '<option value="">选择日期</option>';
-    options.forEach(function(d){
-      var o = document.createElement('option');
-      o.value = d;
-      o.textContent = fmtDateWk(d);
-      sel.appendChild(o);
-    });
+    sel.innerHTML = buildPostponeOptionsHtml('选择日期');
   }
 
   function init(){
