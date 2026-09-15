@@ -49,6 +49,7 @@
   .tab.remedy.active{background:#7c3aed;border-color:#7c3aed;}
   .tab.weekred.active{background:var(--red);border-color:var(--red);}
   .tab.good.active{background:#0891b2;border-color:#0891b2;}
+  .tab.dashboard.active{background:#059669;border-color:#059669;}
   .tab:disabled{opacity:.4;cursor:not-allowed;background:#f1f5f9;color:#94a3b8;border-color:#e2e8f0;}
   .tab:disabled:hover{background:#f1f5f9;}
   .panel{display:none;}
@@ -142,6 +143,8 @@
   .key-remedy b{color:#7c3aed;}
   .key-good{background:#ecfeff;border:1px solid #a5f3fc;border-left:4px solid #0891b2;}
   .key-good b{color:#0891b2;}
+  .key-dashboard{background:#ecfdf5;border:1px solid #a7f3d0;border-left:4px solid #059669;}
+  .key-dashboard b{color:#059669;}
   .chapter-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:8px;margin:10px 0 14px;}
   .ch-item{background:#f8fafc;border:1px solid var(--line);border-radius:8px;padding:8px;}
   .ch-item label{font-size:11px;margin-bottom:3px;color:#0f172a;font-weight:700;display:flex;justify-content:space-between;align-items:center;gap:4px;}
@@ -191,14 +194,54 @@
   .good-item .meta{font-size:13px;flex:1;min-width:200px;}
   .good-item .actions{display:flex;gap:6px;flex-wrap:wrap;}
   .postpone-select{width:auto;font-size:12px;padding:4px 8px;border-radius:6px;border:1px solid var(--line);background:#fff;cursor:pointer;min-width:150px;}
-  @media (max-width:600px){.form-grid{grid-template-columns:1fr;}.method-table{font-size:12px;}.method-table td,.method-table th{padding:7px 8px;}}
+  .date-info-badge{display:inline-block;padding:2px 8px;border-radius:10px;background:#eff6ff;color:#1d4ed8;font-size:11px;font-weight:700;margin-left:6px;}
+
+  /* 学习看板 */
+  .calendar-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:10px;}
+  .cal-day{background:#fff;border:1px solid var(--line);border-radius:10px;padding:10px;text-align:center;transition:all .15s;}
+  .cal-day.today{border-color:var(--blue);background:var(--blue-bg);box-shadow:0 0 0 2px rgba(29,78,216,.1);}
+  .cal-day:hover{background:#f1f5f9;}
+  .cal-date{font-size:14px;font-weight:700;color:#0f172a;line-height:1.2;}
+  .cal-wk{font-size:11px;color:var(--sub);margin-bottom:6px;}
+  .cal-counts{display:flex;justify-content:center;gap:5px;flex-wrap:wrap;}
+  .cal-count{padding:2px 7px;border-radius:8px;font-size:11px;font-weight:700;line-height:1.4;}
+  .cal-red{background:#fef2f2;color:#dc2626;}
+  .cal-yellow{background:#fffbeb;color:#b45309;}
+  .cal-green{background:#f0fdf4;color:#15803d;}
+  .cal-zero{color:#94a3b8;font-size:11px;}
+  .cal-total{margin-top:5px;font-size:11px;color:var(--sub);}
+
+  .stat-range-btns{display:flex;gap:8px;margin-bottom:16px;flex-wrap:wrap;}
+  .stat-range-btns .btn.active{background:var(--blue);color:#fff;border-color:var(--blue);}
+
+  .summary-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px;margin-bottom:18px;}
+  .summary-card{background:#fff;border:1px solid var(--line);border-radius:10px;padding:14px;text-align:center;}
+  .summary-card.highlight{background:#ecfdf5;border-color:#a7f3d0;}
+  .summary-card .n{font-size:26px;font-weight:700;line-height:1.2;color:#0f172a;}
+  .summary-card.highlight .n{color:#059669;}
+  .summary-card .l{font-size:12px;color:var(--sub);margin-top:4px;}
+
+  .chart-wrap{display:flex;gap:24px;align-items:center;flex-wrap:wrap;justify-content:center;padding:16px 0;}
+  .pie-container{position:relative;}
+  .pie-center{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);text-align:center;pointer-events:none;}
+  .pie-center .pct{font-size:22px;font-weight:700;color:#0f172a;line-height:1.1;}
+  .pie-center .lbl{font-size:11px;color:var(--sub);}
+  .pie-legend{display:flex;flex-direction:column;gap:8px;min-width:160px;}
+  .legend-item{display:flex;align-items:center;gap:8px;font-size:13px;}
+  .legend-color{width:14px;height:14px;border-radius:4px;flex-shrink:0;}
+  .legend-text{flex:1;}
+  .legend-count{font-weight:700;}
+
+  .empty-chart{color:var(--sub);font-size:13px;padding:30px;text-align:center;}
+
+  @media (max-width:600px){.form-grid{grid-template-columns:1fr;}.method-table{font-size:12px;}.method-table td,.method-table th{padding:7px 8px;}.calendar-grid{grid-template-columns:repeat(2,1fr);}}
 </style>
 </head>
 <body>
 <div class="wrap">
 
   <h1>题目复习系统</h1>
-  <div class="sub">录入题目 → 自动排程 → 今日到期复习 → 周六看本周红题 → 周日周测月测总结 → 补救历史题 → 好题板块。</div>
+  <div class="sub">录入题目 → 自动排程 → 今日到期复习 → 周六看本周红题 → 周日周测月测总结 → 补救历史题 → 好题板块 → 学习看板。</div>
 
   <div class="error-box" id="errorBox"></div>
 
@@ -223,6 +266,7 @@
     <button class="tab" data-tab="monthly">月测</button>
     <button class="tab remedy" data-tab="remedy">补救板块</button>
     <button class="tab good" data-tab="good" id="goodTab">好题板块</button>
+    <button class="tab dashboard" data-tab="dashboard" id="dashboardTab">学习看板</button>
     <button class="tab" data-tab="data">数据备份</button>
   </div>
 
@@ -261,7 +305,7 @@
             <td>标记即可，不用花太多时间</td>
             <td>抽检，做对就归档</td>
             <td>保持熟练，不遗忘</td>
-            <td class="col-time"><span class="time-low">低</span><br><span class="mini">不用反复刷</span></td>
+            <td class="col-time"><span class="time-low">低</span><span class="mini">不用反复刷</span></td>
           </tr>
         </tbody>
       </table>
@@ -387,10 +431,8 @@
         </div>
       </div>
       <div class="key key-sat">
-        <b>延期/提前说明：</b><br>
-        「延后」：可跳到明天到本周日任意一天。<br>
-        「提前」：可跳到过去 7 天内任意一天（如今天 9月15日，可跳到 9月8日~9月14日），用于提前解决。<br>
-        颜色标记和复习逻辑不变。
+        <b>跳期说明：</b>跳到过去或将来，题目都<b>立即从当前日期消失</b>，只在目标日期显示，目标日期的今日到期板块会立即出现该题。点颜色后按当前日期重新排程。<br>
+        <b>延后：</b>明天到本周日。 <b>提前：</b>过去 7 天内任意一天。
       </div>
       <div id="dueList"></div>
     </div>
@@ -657,6 +699,32 @@
     </div>
   </div>
 
+  <!-- 学习看板 -->
+  <div class="panel" id="panel-dashboard">
+    <!-- 日历 -->
+    <div class="card">
+      <h2 style="border-left-color:#059669;">学习日历 · 未来 10 天</h2>
+      <div class="key key-dashboard">
+        <b>用途：</b>提前看到未来 10 天每天的复习量，便于安排学习节奏。数字为该日预计到期的红/黄/绿题目数量。
+      </div>
+      <div id="calendarContent" class="calendar-grid"></div>
+    </div>
+
+    <!-- 转化统计 -->
+    <div class="card">
+      <h2 style="border-left-color:#059669;">转化统计 · 红题 → 绿题</h2>
+      <div class="key key-dashboard">
+        <b>目标：</b>把红题逐渐变成绿题。选择时间范围，查看该范围录入的题目中，红题的转化进度。
+      </div>
+      <div class="stat-range-btns" id="statRangeBtns">
+        <button class="btn active" data-stat-range="7">近 1 周</button>
+        <button class="btn" data-stat-range="14">近 2 周</button>
+        <button class="btn" data-stat-range="30">近 1 月</button>
+      </div>
+      <div id="statsContent"></div>
+    </div>
+  </div>
+
   <!-- 数据备份 -->
   <div class="panel" id="panel-data">
     <div class="card">
@@ -693,9 +761,10 @@
   var simDate = '';
   var remedyPool = [];
 
-  // ============ 撤回栈 ============
   var undoStack = [];
   var UNDO_MAX = 30;
+
+  var currentStatRange = 7;  // 近 1 周 = 7 天
 
   function pushUndo(desc){
     try{
@@ -760,14 +829,33 @@
   }
   function fmtDateWk(dateStr){ return dateStr ? (dateStr + ' ' + weekday(dateStr)) : ''; }
 
+  function getCurrentSimDate(){
+    var el = $('simDate');
+    if(el && el.value){
+      return el.value;
+    }
+    return simDate || chinaToday();
+  }
+
+  function isDueOn(it){
+    if(it.status === '归档') return false;
+    var cur = getCurrentSimDate();
+    if(it.onlyShowOnNext){
+      return it.next === cur;
+    }
+    return it.next <= cur;
+  }
+
   function isSaturday(){
-    var d = new Date(simDate+'T00:00:00');
+    var cur = getCurrentSimDate();
+    var d = new Date(cur+'T00:00:00');
     return d.getDay() === 6;
   }
 
   function getWeekRedRange(){
-    var start = addDays(simDate, -7);
-    return { start: start, end: simDate };
+    var cur = getCurrentSimDate();
+    var start = addDays(cur, -7);
+    return { start: start, end: cur };
   }
 
   function getWeekRange(dateStr){
@@ -782,7 +870,8 @@
   }
   function isThisWeek(dateStr){
     if(!dateStr) return false;
-    var r = getWeekRange(simDate);
+    var cur = getCurrentSimDate();
+    var r = getWeekRange(cur);
     return dateStr >= r.start && dateStr <= r.end;
   }
   function getMonthRange(dateStr){
@@ -793,7 +882,8 @@
   }
   function isThisMonth(dateStr){
     if(!dateStr) return false;
-    var r = getMonthRange(simDate);
+    var cur = getCurrentSimDate();
+    var r = getMonthRange(cur);
     return dateStr >= r.start && dateStr <= r.end;
   }
 
@@ -816,31 +906,23 @@
     return '';
   }
 
-  // ============================================================
-  // 获取可跳转的日期列表
-  //   - 提前：过去 7 天（今天-7 到 今天-1）
-  //   - 延后：明天到本周日（若今天是周日，无延后选项）
-  // 返回 [{ date, type: 'early'|'later' }]
-  // ============================================================
   function getPostponeOptions(){
+    var cur = getCurrentSimDate();
     var options = [];
-    // 提前：过去 7 天（从最早到今天前一天，顺序从近到远或从远到近按需要显示）
     for(var i = 1; i <= 7; i++){
-      options.push({ date: addDays(simDate, -i), type: 'early' });
+      options.push({ date: addDays(cur, -i), type: 'early' });
     }
-    // 延后：明天到本周日
-    var d = new Date(simDate+'T00:00:00');
-    var day = d.getDay(); // 0=周日
+    var d = new Date(cur+'T00:00:00');
+    var day = d.getDay();
     if(day !== 0){
       var daysToSunday = 7 - day;
       for(var j = 1; j <= daysToSunday; j++){
-        options.push({ date: addDays(simDate, j), type: 'later' });
+        options.push({ date: addDays(cur, j), type: 'later' });
       }
     }
     return options;
   }
 
-  // 生成下拉框 HTML（含 optgroup 分组）
   function buildPostponeOptionsHtml(placeholderText){
     var options = getPostponeOptions();
     var earlyList = [];
@@ -890,6 +972,8 @@
         if(typeof it.isRemedy!=='boolean') it.isRemedy=false;
         if(typeof it.isGood!=='boolean') it.isGood=false;
         if(!it.lastReview) it.lastReview='';
+        if(typeof it.onlyShowOnNext!=='boolean') it.onlyShowOnNext=false;
+        if(!it.initialStatus) it.initialStatus = it.status; // 旧数据兼容
       });
       return arr;
     }catch(e){ return []; }
@@ -937,27 +1021,30 @@
     for(var i=0;i<items.length;i++){ if(items[i].id===id){ it=items[i]; break; } }
     if(!it) return;
     var prev = it.status;
-    var prevNext = it.next;
-    pushUndo('把「' + it.subject + ' ' + it.page + ' ' + it.no + '」从「' + prev + '」标记为「' + result + '」（下次由 ' + prevNext + ' 改为新的日期）');
+    var cur = getCurrentSimDate();
+    pushUndo('把「' + it.subject + ' ' + it.page + ' ' + it.no + '」从「' + prev + '」标记为「' + result + '」');
     it.reviewCount = (it.reviewCount||0) + 1;
-    it.lastReview = simDate;
+    it.lastReview = cur;
+    it.onlyShowOnNext = false;
+
+    it.next = scheduleNext(result, prev, cur);
 
     if(result === '不会'){
-      it.status='红'; it.greenStreak=0; it.next=addDays(simDate,1);
+      it.status='红'; it.greenStreak=0;
     }else if(result === '卡'){
-      it.status='黄'; it.greenStreak=0; it.next=addDays(simDate,3);
+      it.status='黄'; it.greenStreak=0;
     }else if(result === '会'){
       if(prev === '归档'){
-        it.status='归档'; it.next=addDays(simDate,90);
+        it.status='归档'; it.next=addDays(cur,90);
       }else if(prev === '绿'){
         it.greenStreak = (it.greenStreak||0) + 1;
         if(it.greenStreak >= 3){
-          it.status='归档'; it.next=addDays(simDate,90);
+          it.status='归档'; it.next=addDays(cur,90);
         }else{
-          it.status='绿'; it.next=addDays(simDate,30);
+          it.status='绿'; it.next=addDays(cur,30);
         }
       }else{
-        it.status='绿'; it.greenStreak=0; it.next=addDays(simDate,7);
+        it.status='绿'; it.greenStreak=0; it.next=addDays(cur,7);
       }
     }
     saveItems();
@@ -1196,7 +1283,7 @@
             '<div class="actions">' +
               '<button class="btn btn-sm btn-bad" data-pick-act="不会" data-pick-id="'+it.id+'">不会</button>' +
               '<button class="btn btn-sm btn-ok" data-pick-act="卡" data-pick-id="'+it.id+'">卡</button>' +
-              '<button class="btn btn-sm btn-good" data-pick-act="会" data-pick-id="'+it.id+'">会</button>' +
+              '<button class="btn btn-sm btn-green" data-pick-act="会" data-pick-id="'+it.id+'">会</button>' +
             '</div>' +
           '</div>';
         });
@@ -1253,8 +1340,9 @@
   }
 
   function renderSimDisplay(){
+    var cur = getCurrentSimDate();
     var el = $('simDisplay');
-    if(el) el.textContent = '当前：' + fmtDateWk(simDate);
+    if(el) el.textContent = '当前：' + fmtDateWk(cur);
     var satEl = $('satDisplay');
     if(satEl) satEl.textContent = '本周日：' + fmtDateWk(getNextSunday());
     var manualFlag = $('manualFlag');
@@ -1263,11 +1351,12 @@
   }
 
   function getNextSunday(){
-    var d = new Date(simDate+'T00:00:00');
+    var cur = getCurrentSimDate();
+    var d = new Date(cur+'T00:00:00');
     var day = d.getDay();
     var diff = 7 - day;
     if(diff <= 0) diff += 7;
-    return addDays(simDate, diff);
+    return addDays(cur, diff);
   }
 
   function renderStats(){
@@ -1278,7 +1367,7 @@
     var yellow = items.filter(function(i){return i.status==='黄';}).length;
     var green = items.filter(function(i){return i.status==='绿';}).length;
     var archive = items.filter(function(i){return i.status==='归档';}).length;
-    var due = items.filter(function(i){ return i.status!=='归档' && i.next<=simDate; }).length;
+    var due = items.filter(isDueOn).length;
     var remedyTotal = items.filter(function(i){ return i.isRemedy; }).length;
     var goodTotal = items.filter(function(i){ return i.isGood; }).length;
     el.innerHTML =
@@ -1300,7 +1389,7 @@
     var search = ($('dueFilterSearch')||{}).value || '';
     search = search.trim().toLowerCase();
 
-    var due = items.filter(function(i){ return i.status!=='归档' && i.next<=simDate; });
+    var due = items.filter(isDueOn);
     if(subj!=='全部') due = due.filter(function(i){ return i.subject===subj; });
     if(chap!=='全部') due = due.filter(function(i){ return i.chapter===chap; });
     if(stat!=='全部') due = due.filter(function(i){ return i.status===stat; });
@@ -1322,13 +1411,14 @@
   }
 
   function renderDue(){
+    var cur = getCurrentSimDate();
     var label = $('todayLabel');
     var countEl = $('dueCount');
     var container = $('dueList');
     if(!container) return;
-    if(label) label.textContent = '当前：' + fmtDateWk(simDate);
+    if(label) label.textContent = '当前：' + fmtDateWk(cur);
 
-    var allDue = items.filter(function(i){ return i.status!=='归档' && i.next<=simDate; });
+    var allDue = items.filter(isDueOn);
     var due = getDueFiltered();
 
     if(countEl){
@@ -1367,7 +1457,7 @@
           '<div class="actions">' +
             '<button class="btn btn-sm btn-bad" data-act="不会" data-id="'+it.id+'">不会 → 红</button>' +
             '<button class="btn btn-sm btn-ok" data-act="卡" data-id="'+it.id+'">卡 → 黄</button>' +
-            '<button class="btn btn-sm btn-good" data-act="会" data-id="'+it.id+'">会 → 绿</button>' +
+            '<button class="btn btn-sm btn-green" data-act="会" data-id="'+it.id+'">会 → 绿</button>' +
             '<select class="postpone-select" data-postpone-id="'+it.id+'">' +
               optionsHtml +
             '</select>' +
@@ -1435,6 +1525,7 @@
       }else{
         markCell += '<button class="btn-good-add" data-good-toggle="'+it.id+'" title="加入好题">+ 好题</button>';
       }
+      var jumpTag = it.onlyShowOnNext ? ' <span class="date-info-badge" title="已跳到指定日期，只在当天显示">📌跳到'+it.next.slice(5)+'</span>' : '';
       html += '<tr>' +
         '<td>'+it.subject+'</td>' +
         '<td>'+it.chapter+'</td>' +
@@ -1445,7 +1536,7 @@
         '<td>'+typeTag+'</td>' +
         '<td>'+stateTag+'</td>' +
         '<td>'+fmtDateWk(it.first)+'</td>' +
-        '<td>'+fmtDateWk(it.next)+'</td>' +
+        '<td>'+fmtDateWk(it.next)+jumpTag+'</td>' +
         '<td>'+(it.reviewCount||0)+'</td>' +
         '<td style="white-space:nowrap;">' +
           '<button class="btn btn-sm" data-act="不会" data-id="'+it.id+'">红</button> ' +
@@ -1633,13 +1724,201 @@
     }
   }
 
+  // ============================================================
+  // 学习看板：日历 + 转化统计
+  // ============================================================
+
+  // 未来 10 天日历
+  function renderCalendar(){
+    var container = $('calendarContent');
+    if(!container) return;
+    var cur = getCurrentSimDate();
+    var html = '';
+    for(var i = 0; i < 10; i++){
+      var date = addDays(cur, i);
+      var isToday = (date === cur);
+      var red = 0, yellow = 0, green = 0;
+      items.forEach(function(it){
+        if(it.status === '归档') return;
+        // 判断该题是否在 date 那天到期
+        var onThisDay = false;
+        if(isToday){
+          // 今天的日历用 isDueOn 统计（包含逾期）
+          onThisDay = isDueOn(it);
+        }else{
+          // 未来日期：只看 next === date 的题
+          onThisDay = (it.next === date);
+        }
+        if(!onThisDay) return;
+        if(it.status === '红') red++;
+        else if(it.status === '黄') yellow++;
+        else if(it.status === '绿') green++;
+      });
+      var total = red + yellow + green;
+      var dateShort = date.slice(5); // MM-DD
+      html += '<div class="cal-day' + (isToday ? ' today' : '') + '">' +
+        '<div class="cal-date">' + dateShort + (isToday ? ' 今天' : '') + '</div>' +
+        '<div class="cal-wk">' + weekday(date) + '</div>' +
+        '<div class="cal-counts">';
+      if(total === 0){
+        html += '<span class="cal-zero">无任务</span>';
+      }else{
+        if(red > 0) html += '<span class="cal-count cal-red">红 '+red+'</span>';
+        if(yellow > 0) html += '<span class="cal-count cal-yellow">黄 '+yellow+'</span>';
+        if(green > 0) html += '<span class="cal-count cal-green">绿 '+green+'</span>';
+      }
+      html += '</div>';
+      if(total > 0){
+        html += '<div class="cal-total">共 '+total+' 题</div>';
+      }
+      html += '</div>';
+    }
+    container.innerHTML = html;
+  }
+
+  // 饼图 SVG
+  function polarToCartesian(cx, cy, r, angleDeg){
+    var rad = (angleDeg - 90) * Math.PI / 180;
+    return { x: cx + r * Math.cos(rad), y: cy + r * Math.sin(rad) };
+  }
+
+  function renderPie(segments){
+    // segments: [{value, color, label}]
+    var total = 0;
+    segments.forEach(function(s){ total += s.value; });
+    if(total === 0){
+      return '<div class="empty-chart">该范围内暂无题目</div>';
+    }
+    // 只有一个非零段 → 画圆
+    var nonZero = segments.filter(function(s){ return s.value > 0; });
+    if(nonZero.length === 1){
+      return '<svg viewBox="0 0 200 200" width="200" height="200">' +
+        '<circle cx="100" cy="100" r="80" fill="' + nonZero[0].color + '"/>' +
+        '</svg>';
+    }
+    var cx = 100, cy = 100, r = 80;
+    var cumulative = 0;
+    var paths = '';
+    segments.forEach(function(s){
+      if(s.value === 0) return;
+      var startAngle = (cumulative / total) * 360;
+      var endAngle = ((cumulative + s.value) / total) * 360;
+      var start = polarToCartesian(cx, cy, r, startAngle);
+      var end = polarToCartesian(cx, cy, r, endAngle);
+      var largeArc = (endAngle - startAngle) > 180 ? 1 : 0;
+      var d = 'M ' + cx + ' ' + cy + ' L ' + start.x + ' ' + start.y +
+              ' A ' + r + ' ' + r + ' 0 ' + largeArc + ' 1 ' + end.x + ' ' + end.y + ' Z';
+      paths += '<path d="' + d + '" fill="' + s.color + '" stroke="#fff" stroke-width="2"/>';
+      cumulative += s.value;
+    });
+    return '<svg viewBox="0 0 200 200" width="200" height="200">' + paths + '</svg>';
+  }
+
+  function renderStatsPanel(){
+    var container = $('statsContent');
+    if(!container) return;
+
+    var cur = getCurrentSimDate();
+    var rangeStart = addDays(cur, -currentStatRange);
+    var rangeEnd = cur;
+
+    // 范围内录入的题目
+    var rangeItems = items.filter(function(it){
+      return it.first >= rangeStart && it.first <= rangeEnd;
+    });
+
+    // 初始是红题的题目
+    var initialRedItems = rangeItems.filter(function(it){
+      return it.initialStatus === '红';
+    });
+    // 初始红题中现在变成绿题的
+    var nowGreenFromRed = initialRedItems.filter(function(it){
+      return it.status === '绿';
+    });
+    // 初始红题中现在归档的也算绿（彻底掌握）
+    var nowArchiveFromRed = initialRedItems.filter(function(it){
+      return it.status === '归档';
+    });
+    var redToGreenOrArchive = nowGreenFromRed.length + nowArchiveFromRed.length;
+
+    var totalRed = initialRedItems.length;
+    var convertRate = totalRed > 0 ? Math.round((redToGreenOrArchive / totalRed) * 100) : 0;
+
+    // 当前状态分布（基于范围内的所有题目）
+    var countRed = 0, countYellow = 0, countGreen = 0, countArchive = 0;
+    rangeItems.forEach(function(it){
+      if(it.status === '红') countRed++;
+      else if(it.status === '黄') countYellow++;
+      else if(it.status === '绿') countGreen++;
+      else if(it.status === '归档') countArchive++;
+    });
+
+    var rangeLabel = currentStatRange === 7 ? '近 1 周' : (currentStatRange === 14 ? '近 2 周' : '近 1 月');
+
+    // 汇总卡片
+    var html = '';
+    html += '<div class="summary-grid">';
+    html += '<div class="summary-card highlight"><div class="n">' + convertRate + '%</div><div class="l">红题 → 绿/归档 转化率</div></div>';
+    html += '<div class="summary-card"><div class="n">' + rangeItems.length + '</div><div class="l">' + rangeLabel + '录入总数</div></div>';
+    html += '<div class="summary-card"><div class="n">' + totalRed + '</div><div class="l">其中初始为红题</div></div>';
+    html += '<div class="summary-card"><div class="n">' + redToGreenOrArchive + '</div><div class="l">已变绿或归档</div></div>';
+    html += '</div>';
+
+    // 饼图 + 图例
+    var segments = [
+      { label: '红题', value: countRed, color: '#dc2626' },
+      { label: '黄题', value: countYellow, color: '#f59e0b' },
+      { label: '绿题', value: countGreen, color: '#15803d' },
+      { label: '归档', value: countArchive, color: '#7c3aed' }
+    ];
+
+    if(rangeItems.length === 0){
+      html += '<div class="empty-chart">' + rangeLabel + '内还没有录入任何题目。继续加油！</div>';
+    }else{
+      html += '<div class="chart-wrap">';
+      html += '<div class="pie-container">';
+      html += renderPie(segments);
+      html += '<div class="pie-center"><div class="pct">' + convertRate + '%</div><div class="lbl">转化率</div></div>';
+      html += '</div>';
+      html += '<div class="pie-legend">';
+      segments.forEach(function(s){
+        var pct = rangeItems.length > 0 ? Math.round((s.value / rangeItems.length) * 100) : 0;
+        html += '<div class="legend-item">' +
+          '<div class="legend-color" style="background:' + s.color + '"></div>' +
+          '<div class="legend-text">' + s.label + '</div>' +
+          '<div class="legend-count">' + s.value + ' 题 · ' + pct + '%</div>' +
+        '</div>';
+      });
+      html += '</div>';
+      html += '</div>';
+
+      html += '<div class="key key-dashboard" style="margin-top:16px;">';
+      html += '<b>统计口径：</b>' + rangeLabel + '（' + rangeStart + ' ~ ' + rangeEnd + '）内首次录入的题目，共 ' + rangeItems.length + ' 道。';
+      html += '其中初始标记为「红」的有 <b>' + totalRed + '</b> 道，目前已经变为「绿」或「归档」的有 <b>' + redToGreenOrArchive + '</b> 道。';
+      html += '</div>';
+    }
+
+    container.innerHTML = html;
+  }
+
+  function renderDashboard(){
+    renderCalendar();
+    renderStatsPanel();
+  }
+
   function renderAll(){
+    var inputEl = $('simDate');
+    if(inputEl && inputEl.value && inputEl.value !== simDate){
+      simDate = inputEl.value;
+      saveSim();
+    }
     renderSimDisplay();
     renderStats();
     renderDue();
     renderAllTable();
     renderWeekRed();
     renderGood();
+    renderDashboard();
     renderSubjectStat('wkMathStat', '数学', 'weekly');
     renderSubjectStat('wkCircStat', '电路', 'weekly');
     renderChapterInputs('wkMathChapterInputs', '数学', 'weekly');
@@ -1668,7 +1947,8 @@
     if(!page && !no){ showError('至少填写页码或题号'); return; }
     if(!chapter){ showError('请选择章节'); return; }
 
-    var first = simDate;
+    var cur = getCurrentSimDate();
+    var first = cur;
     var next = scheduleNext(status, null, first);
 
     pushUndo('添加题目「' + subject + ' ' + chapter + ' ' + page + ' ' + no + '」');
@@ -1676,7 +1956,8 @@
       id:uid(), subject:subject, chapter:chapter, source:source,
       page:page, no:no, status:status, errReason:errReason,
       first:first, next:next, reviewCount:0, lastReview:'', greenStreak:0,
-      isRemedy:false, isGood:isGood
+      isRemedy:false, isGood:isGood, onlyShowOnNext:false,
+      initialStatus: status
     });
 
     saveItems();
@@ -1736,7 +2017,8 @@
   }
 
   function buildRemedySchedule(){
-    var startDate = $('rmStartDate').value || simDate;
+    var cur = getCurrentSimDate();
+    var startDate = $('rmStartDate').value || cur;
     var days = parseInt($('rmDays').value, 10) || 14;
     var mathLimit = parseInt($('rmMathLimit').value, 10) || 15;
     var circLimit = parseInt($('rmCircLimit').value, 10) || 10;
@@ -1841,7 +2123,9 @@
         lastReview: '',
         greenStreak: 0,
         isRemedy: true,
-        isGood: false
+        isGood: false,
+        onlyShowOnNext: false,
+        initialStatus: it.status
       });
     });
     remedyPool = [];
@@ -1857,8 +2141,9 @@
     if(!it) return;
     var oldNext = it.next;
     var verb = (date > oldNext) ? '延后到' : '提前到';
-    pushUndo('把「' + it.subject + ' ' + it.page + ' ' + it.no + '」从 ' + oldNext + ' ' + verb + ' ' + fmtDateWk(date));
+    pushUndo('把「' + it.subject + ' ' + it.page + ' ' + it.no + '」' + verb + ' ' + fmtDateWk(date));
     it.next = date;
+    it.onlyShowOnNext = true;
     saveItems();
     renderAll();
   }
@@ -1875,6 +2160,7 @@
     pushUndo('批量跳到 ' + fmtDateWk(date) + '（' + due.length + ' 条）');
     due.forEach(function(it){
       it.next = date;
+      it.onlyShowOnNext = true;
     });
     saveItems();
     renderAll();
@@ -1920,7 +2206,7 @@
       return a.next.localeCompare(b.next);
     });
 
-    var headers = ['科目','章节','来源','页码','题号','标记','类型','状态','好题','首次复习','下次复习','复习次数','绿连击','错因/备注'];
+    var headers = ['科目','章节','来源','页码','题号','标记','初始标记','类型','状态','好题','首次复习','下次复习','复习次数','绿连击','错因/备注'];
     var rowsHtml = '';
     sorted.forEach(function(it){
       var typeStr = it.isRemedy ? '补救' : '常规';
@@ -1938,6 +2224,7 @@
         '<td>'+escapeHtml(it.page)+'</td>' +
         '<td>'+escapeHtml(it.no)+'</td>' +
         '<td>'+escapeHtml(it.status)+'</td>' +
+        '<td>'+escapeHtml(it.initialStatus||it.status)+'</td>' +
         '<td>'+typeStr+'</td>' +
         '<td>'+stateStr+'</td>' +
         '<td>'+goodStr+'</td>' +
@@ -1974,8 +2261,11 @@
         tab.classList.add('active');
         var panel = $('panel-'+tab.getAttribute('data-tab'));
         if(panel) panel.classList.add('active');
-        if(tab.getAttribute('data-tab') === 'weekred'){
+        var t = tab.getAttribute('data-tab');
+        if(t === 'weekred'){
           renderWeekRed();
+        }else if(t === 'dashboard'){
+          renderDashboard();
         }
       });
     });
@@ -1983,13 +2273,22 @@
     var simInput = $('simDate');
     if(simInput){
       simInput.value = simDate;
-      simInput.addEventListener('change', function(){
-        simDate = simInput.value || chinaToday();
+      var onSimDateChange = function(){
+        var v = simInput.value;
+        if(!v) return;
+        if(v === simDate){
+          renderAll();
+          return;
+        }
+        simDate = v;
         localStorage.setItem(MANUAL_KEY, 'true');
         saveSim();
         renderAll();
         updatePostponeOptions();
-      });
+      };
+      simInput.addEventListener('change', onSimDateChange);
+      simInput.addEventListener('input', onSimDateChange);
+      simInput.addEventListener('blur', onSimDateChange);
     }
 
     var backBtn = $('backToTodayBtn');
@@ -2151,6 +2450,17 @@
       });
     }
 
+    // 转化统计时间范围按钮
+    var rangeBtns = document.querySelectorAll('#statRangeBtns .btn');
+    rangeBtns.forEach(function(btn){
+      btn.addEventListener('click', function(){
+        rangeBtns.forEach(function(b){ b.classList.remove('active'); });
+        btn.classList.add('active');
+        currentStatRange = parseInt(btn.getAttribute('data-stat-range'), 10) || 7;
+        renderStatsPanel();
+      });
+    });
+
     var excelBtn = $('excelBtn');
     if(excelBtn) excelBtn.addEventListener('click', exportExcel);
 
@@ -2194,6 +2504,8 @@
               if(typeof it.isRemedy!=='boolean') it.isRemedy = false;
               if(typeof it.isGood!=='boolean') it.isGood = false;
               if(!it.lastReview) it.lastReview = '';
+              if(typeof it.onlyShowOnNext!=='boolean') it.onlyShowOnNext = false;
+              if(!it.initialStatus) it.initialStatus = it.status;
             });
             if(Array.isArray(newPool)) remedyPool = newPool;
             if(newSim){ simDate = newSim; if(simInput) simInput.value = simDate; saveSim(); localStorage.setItem(MANUAL_KEY, 'true'); }
@@ -2244,17 +2556,31 @@
       updateUndoBtn();
       clearError();
 
+      // 每秒兜底同步 + 自动跟随中国时间
       setInterval(function(){
+        var inputEl = $('simDate');
+        if(!inputEl) return;
         var manualNow = localStorage.getItem(MANUAL_KEY) === 'true';
-        if(manualNow) return;
-        var newDate = chinaToday();
-        if(newDate !== simDate){
-          simDate = newDate;
+
+        if(!manualNow){
+          var newDate = chinaToday();
+          if(newDate !== simDate){
+            simDate = newDate;
+            inputEl.value = simDate;
+            saveSim();
+            renderAll();
+            updatePostponeOptions();
+            return;
+          }
+        }
+
+        if(inputEl.value && inputEl.value !== simDate){
+          simDate = inputEl.value;
           saveSim();
           renderAll();
           updatePostponeOptions();
         }
-      }, 60000);
+      }, 1000);
     }catch(e){
       console.error('init error:', e);
       showError('系统初始化失败：'+e.message+'。请刷新页面重试，或清空数据。');
