@@ -1,0 +1,945 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>云南省普通大中专学校毕业生就业推荐表 · 填写助手</title>
+<style>
+:root{
+  --line:#d7dee7; --head:#eef4fb; --blue:#1c4e80; --blue2:#1c6dd0;
+  --yellow:#fff7b0; --yellow-bd:#f0d000;
+}
+*{box-sizing:border-box;}
+body{
+  margin:0;padding:26px 16px 100px;background:#eef1f5;
+  font-family:"Microsoft YaHei","PingFang SC","Helvetica Neue",Arial,sans-serif;
+  color:#222;line-height:1.6;
+}
+.page{
+  max-width:1080px;margin:0 auto;background:#fff;padding:30px 34px 42px;
+  border-radius:8px;box-shadow:0 3px 22px rgba(0,0,0,.08);
+}
+h1{text-align:center;font-size:21px;letter-spacing:2px;margin:0 0 6px;color:#12395f;}
+.sub{text-align:center;color:#6b7684;font-size:13px;margin:0 0 4px;}
+.sub2{text-align:center;color:#9aa4b0;font-size:12px;margin:0 0 26px;}
+
+/* ---------- 区块 ---------- */
+.sec{margin:0 0 20px;border:1px solid #c9d2dd;border-radius:6px;overflow:hidden;}
+.sec-h{
+  background:var(--head);border-bottom:1px solid #c9d2dd;
+  padding:9px 14px;font-weight:700;font-size:14.5px;color:var(--blue);
+  letter-spacing:.5px;display:flex;justify-content:space-between;align-items:center;
+}
+.sec-h .tip{font-weight:400;font-size:12px;color:#7b8794;}
+
+table{width:100%;border-collapse:collapse;}
+td,th{border:1px solid var(--line);padding:6px 9px;font-size:14px;vertical-align:top;}
+td.lab{
+  background:#fafbfd;width:132px;font-weight:600;font-size:13.5px;
+  white-space:nowrap;color:#333;
+}
+td.lab.wide{width:170px;}
+td.lab.narrow{width:78px;}
+
+/* ---------- 控件 ---------- */
+input[type=text],select,textarea{
+  width:100%;border:1px solid #cdd7e2;border-radius:4px;
+  padding:6px 9px;font:inherit;font-size:13.5px;background:#fff;
+  outline:none;color:#1a1a1a;transition:border-color .15s,box-shadow .15s;
+}
+input[type=text]:focus,select:focus,textarea:focus{
+  border-color:#3d8bfd;box-shadow:0 0 0 2px rgba(61,139,253,.15);
+}
+input[readonly]{background:#f5f7fa;color:#5b6470;cursor:not-allowed;}
+textarea{resize:vertical;min-height:66px;line-height:1.7;}
+input::placeholder,textarea::placeholder{color:#b3bcc7;font-size:12.5px;}
+
+/* ---------- 黄色提示 ---------- */
+.hint{
+  display:block;margin:5px 0 0;padding:2px 8px;
+  background:var(--yellow);color:#8a6d00;font-size:11.5px;line-height:1.55;
+  border-radius:3px;border-left:3px solid var(--yellow-bd);
+}
+
+/* ---------- 自荐书 & 联系方式 ---------- */
+.contact-bar{
+  display:flex;align-items:center;gap:14px;
+  padding:10px 12px;background:#fafbfd;
+}
+.contact-bar .clab{
+  font-weight:600;font-size:13.5px;color:#333;white-space:nowrap;
+}
+.contact-bar input{flex:1;}
+
+/* ---------- 成绩表 ---------- */
+.score-table td{padding:4px 6px;}
+.score-table input{padding:5px 7px;font-size:13px;}
+.score-table .score-cell{width:84px;}
+.score-table .score-cell input{text-align:center;font-weight:600;color:#1c6dd0;}
+
+/* ---------- 按钮 ---------- */
+.actions{
+  position:sticky;bottom:0;margin-top:26px;padding:14px 0 4px;
+  display:flex;flex-wrap:wrap;gap:10px;justify-content:center;
+  background:linear-gradient(to top,#fff 62%,rgba(255,255,255,0));
+}
+button{
+  font:inherit;font-size:14px;padding:9px 20px;border-radius:6px;
+  border:1px solid #cdd7e2;background:#fff;color:#2c3e50;cursor:pointer;
+  transition:all .15s;white-space:nowrap;
+}
+button:hover{background:#f2f6fb;border-color:#9db6d3;}
+button.primary{background:var(--blue2);border-color:var(--blue2);color:#fff;font-weight:600;}
+button.primary:hover{background:#1558ab;}
+button.green{background:#1a9c6b;border-color:#1a9c6b;color:#fff;font-weight:600;}
+button.green:hover{background:#14815a;}
+button.ghost{color:#a33;border-color:#e6c3c3;}
+button.ghost:hover{background:#fdf3f3;}
+button.mini{padding:4px 12px;font-size:12.5px;}
+
+/* ---------- 预览区 ---------- */
+#outWrap{margin-top:26px;display:none;}
+#outWrap h2{font-size:15px;color:var(--blue);margin:0 0 10px;}
+#preview{
+  border:1px dashed #c3cfdd;border-radius:6px;padding:18px;
+  background:#fbfcfe;max-height:640px;overflow:auto;
+}
+#preview table{margin-bottom:0 !important;}
+
+/* ---------- 轻提示 ---------- */
+.toast{
+  position:fixed;left:50%;top:26px;transform:translate(-50%,-24px);
+  background:var(--blue2);color:#fff;padding:9px 22px;border-radius:20px;
+  font-size:13.5px;opacity:0;pointer-events:none;transition:all .25s;z-index:99;
+  box-shadow:0 4px 14px rgba(28,109,208,.35);
+}
+.toast.show{opacity:1;transform:translate(-50%,0);}
+
+/* ============================================================
+   ★ 新增：UFO 飞碟特效
+   ============================================================ */
+.ufo-fly{
+  position:fixed;
+  z-index:99998;
+  pointer-events:none;
+  user-select:none;
+  opacity:0;
+  filter:drop-shadow(0 0 8px rgba(130,210,255,.85));
+  animation-name:ufoFly;
+  animation-timing-function:cubic-bezier(.22,.61,.36,1);
+  animation-fill-mode:forwards;
+  will-change:transform,opacity;
+}
+@keyframes ufoFly{
+  0%   { opacity:0;   transform:translate(0,0) rotate(0deg) scale(.45); }
+  12%  { opacity:.9;  transform:translate(calc(var(--dx) * .12), calc(var(--dy) * .12)) rotate(calc(var(--rot) * .12)) scale(.85); }
+  32%  { opacity:.18; }
+  52%  { opacity:.95; }
+  74%  { opacity:.22; }
+  100% { opacity:0;   transform:translate(var(--dx), var(--dy)) rotate(var(--rot)) scale(1.18); }
+}
+
+/* ============================================================
+   ★ 新增：“已反馈至总部”提示框
+   ============================================================ */
+.feedback-toast{
+  position:fixed;
+  left:50%;top:50%;
+  transform:translate(-50%,-50%) scale(.65);
+  background:linear-gradient(135deg,#1c6dd0,#2b8cff 55%,#4aa8ff);
+  color:#fff;
+  padding:18px 44px;
+  border-radius:16px;
+  font-size:17px;
+  font-weight:700;
+  letter-spacing:5px;
+  text-align:center;
+  box-shadow:
+    0 16px 55px rgba(28,109,208,.55),
+    0 0 0 6px rgba(255,255,255,.16),
+    inset 0 1px 0 rgba(255,255,255,.35);
+  z-index:99999;
+  opacity:0;
+  pointer-events:none;
+  transition:opacity .3s ease, transform .5s cubic-bezier(.34,1.56,.64,1);
+  white-space:nowrap;
+}
+.feedback-toast.show{
+  opacity:1;
+  transform:translate(-50%,-50%) scale(1);
+}
+.feedback-toast::before{
+  content:"🛸";
+  display:block;
+  font-size:26px;
+  letter-spacing:0;
+  margin-bottom:6px;
+  animation:saucerSpin 1.6s linear infinite;
+}
+@keyframes saucerSpin{
+  0%   { transform:translateY(0) rotate(-8deg); }
+  50%  { transform:translateY(-5px) rotate(8deg); }
+  100% { transform:translateY(0) rotate(-8deg); }
+}
+
+@media (max-width:720px){
+  .page{padding:18px 12px 30px;}
+  td.lab{width:96px;font-size:12.5px;}
+  td,th{font-size:13px;padding:5px 6px;}
+  .contact-bar{flex-direction:column;align-items:stretch;gap:6px;}
+  .feedback-toast{font-size:15px;padding:15px 30px;letter-spacing:3px;}
+}
+</style>
+</head>
+<body>
+<div class="page">
+
+  <h1>云南省普通大中专学校毕业生就业推荐表</h1>
+  <p class="sub">填写助手 · 按顺序填写后导出表格即可誊抄</p>
+  <p class="sub2">黄色标签为纸质推荐表上的填写要求，请仔细阅读后再填</p>
+
+  <form id="f" autocomplete="off">
+
+    <!-- ============ 一、封面信息 ============ -->
+    <section class="sec">
+      <div class="sec-h">一、封面信息</div>
+      <table>
+        <tr>
+          <td class="lab">学校</td>
+          <td><input type="text" data-label="学校" value="云南工商学院" readonly></td>
+          <td class="lab">姓名</td>
+          <td>
+            <input type="text" data-label="姓名" placeholder="张三">
+            <span class="hint">本人姓名（与身份证一致）</span>
+          </td>
+        </tr>
+        <tr>
+          <td class="lab">专业</td>
+          <td>
+            <input type="text" data-label="专业" placeholder="如 电气工程及其自动化">
+            <span class="hint">需填专业全称，不要简称</span>
+          </td>
+          <td class="lab">学历</td>
+          <td>
+            <select data-label="学历">
+              <option value="">请选择</option>
+              <option>专科</option>
+              <option>本科</option>
+            </select>
+            <span class="hint">专科 / 本科</span>
+          </td>
+        </tr>
+        <tr>
+          <td class="lab">学制</td>
+          <td>
+            <select data-label="学制">
+              <option value="">请选择</option>
+              <option>二年</option>
+              <option>三年</option>
+              <option>四年</option>
+            </select>
+            <span class="hint">三年 / 二年 / 四年</span>
+          </td>
+          <td class="lab">培养方式</td>
+          <td><input type="text" data-label="培养方式" value="非定向" readonly></td>
+        </tr>
+        <tr>
+          <td class="lab">毕业时间</td>
+          <td><input type="text" data-label="毕业时间" value="2027年07月" readonly></td>
+          <td class="lab">填表日期</td>
+          <td>
+            <input type="text" data-label="填表日期" placeholder="如 2026年09月">
+            <span class="hint">按实际填写即可</span>
+          </td>
+        </tr>
+      </table>
+    </section>
+
+    <!-- ============ 二、自荐书 + 联系方式 ============ -->
+    <section class="sec">
+      <div class="sec-h">二、自荐书</div>
+      <table>
+        <tr>
+          <td>
+            <textarea data-label="自荐书" rows="7"
+              placeholder="介绍自己：思想品德、学习情况、实践经历、技能特长、求职意向等，可写 300～500 字"></textarea>
+            <span class="hint">根据自身情况如实填写</span>
+          </td>
+        </tr>
+        <tr>
+          <td style="padding:0;">
+            <div class="contact-bar">
+              <span class="clab">联系方式</span>
+              <input type="text" data-label="联系方式"
+                placeholder="手机号 / 邮箱均可，例如 138xxxxxxxx 或 xxxx@qq.com">
+            </div>
+          </td>
+        </tr>
+      </table>
+    </section>
+
+    <!-- ============ 三、毕业生基本情况 ============ -->
+    <section class="sec">
+      <div class="sec-h">三、毕业生基本情况</div>
+      <table>
+        <tr>
+          <td class="lab">姓名</td>
+          <td>
+            <input type="text" data-label="姓名（基本情况）" placeholder="张三">
+            <span class="hint">同身份证</span>
+          </td>
+          <td class="lab">性别</td>
+          <td>
+            <select data-label="性别">
+              <option value="">请选择</option>
+              <option>男</option>
+              <option>女</option>
+            </select>
+            <span class="hint">男 / 女</span>
+          </td>
+        </tr>
+        <tr>
+          <td class="lab">出生年月</td>
+          <td>
+            <input type="text" data-label="出生年月" placeholder="2005年06月">
+            <span class="hint">XXXX年XX月</span>
+          </td>
+          <td class="lab">籍贯</td>
+          <td>
+            <input type="text" data-label="籍贯" placeholder="云南省昆明市嵩明县">
+            <span class="hint">XX省XX县</span>
+          </td>
+        </tr>
+        <tr>
+          <td class="lab">民族</td>
+          <td>
+            <input type="text" data-label="民族" placeholder="汉族">
+            <span class="hint">同身份证</span>
+          </td>
+          <td class="lab">政治面貌</td>
+          <td>
+            <select data-label="政治面貌">
+              <option value="">请选择</option>
+              <option>共青团员</option>
+              <option>中共预备党员</option>
+              <option>中共党员</option>
+              <option>群众</option>
+            </select>
+            <span class="hint">共青团员 / 中共预备党员 / 党员 / 群众</span>
+          </td>
+        </tr>
+        <tr>
+          <td class="lab">曾任职务</td>
+          <td>
+            <input type="text" data-label="曾任职务" placeholder="如 班长 / 部长 / 无">
+            <span class="hint">例：部长、班长或无</span>
+          </td>
+          <td class="lab">身体状况</td>
+          <td>
+            <input type="text" data-label="身体状况" placeholder="健康">
+            <span class="hint">一般填「健康」</span>
+          </td>
+        </tr>
+        <tr>
+          <td class="lab">家庭住址</td>
+          <td colspan="3">
+            <input type="text" data-label="家庭住址" placeholder="云南省XX市XX县XX镇XX村XX号">
+            <span class="hint">同身份证地址</span>
+          </td>
+        </tr>
+        <tr>
+          <td class="lab">联系电话</td>
+          <td colspan="3">
+            <input type="text" data-label="联系电话" placeholder="138xxxxxxxx">
+            <span class="hint">填本人常用手机号</span>
+          </td>
+        </tr>
+      </table>
+    </section>
+
+    <!-- ============ 四、双亲情况 ============ -->
+    <section class="sec">
+      <div class="sec-h">四、双亲情况</div>
+      <table>
+        <tr>
+          <th style="width:78px;">称谓</th>
+          <th style="width:15%;">姓名</th>
+          <th>工作地区及单位</th>
+          <th style="width:20%;">联系电话</th>
+          <th style="width:16%;">备注</th>
+        </tr>
+        <tr>
+          <td class="lab narrow">父亲</td>
+          <td><input type="text" data-label="父亲 · 姓名" placeholder="张某某"></td>
+          <td><input type="text" data-label="父亲 · 工作地区及单位" placeholder="如 XX省XX市XX公司 / 务农"></td>
+          <td><input type="text" data-label="父亲 · 联系电话" placeholder="138xxxxxxxx"></td>
+          <td>
+            <input type="text" data-label="父亲 · 备注" placeholder="务农 / 职位">
+            <span class="hint">务农或职位</span>
+          </td>
+        </tr>
+        <tr>
+          <td class="lab narrow">母亲</td>
+          <td><input type="text" data-label="母亲 · 姓名" placeholder="李某某"></td>
+          <td><input type="text" data-label="母亲 · 工作地区及单位" placeholder="如 XX省XX市XX公司 / 务农"></td>
+          <td><input type="text" data-label="母亲 · 联系电话" placeholder="138xxxxxxxx"></td>
+          <td>
+            <input type="text" data-label="母亲 · 备注" placeholder="务农 / 职位">
+            <span class="hint">务农或职位</span>
+          </td>
+        </tr>
+      </table>
+    </section>
+
+    <!-- ============ 五、外语与证书 ============ -->
+    <section class="sec">
+      <div class="sec-h">五、外语水平与证书</div>
+      <table>
+        <tr>
+          <td class="lab wide">所学外语语种及水平</td>
+          <td>
+            <input type="text" data-label="所学外语语种及水平" placeholder="如 大学英语四级 / 大学英语六级">
+            <span class="hint">例：大学英语四级 / 六级</span>
+          </td>
+          <td class="lab">第二外语</td>
+          <td>
+            <input type="text" data-label="第二外语" placeholder="没有就填 无">
+            <span class="hint">一般填「无」</span>
+          </td>
+        </tr>
+        <tr>
+          <td class="lab wide">职业资格证书及其他证书获证情况</td>
+          <td colspan="3">
+            <textarea data-label="职业资格证书及其他证书获证情况" rows="4"
+              placeholder="（1）普通话二级乙等&#10;（2）计算机应用能力一级&#10;（3）全国计算机等级考试二级网络技术&#10;（4）其他证书……"></textarea>
+            <span class="hint">根据自己有的证书如实填写！没有填「无」！（示例：普通话二级乙等 / 计算机应用能力一级 / 全国计算机等级考试二级网络技术 / 护士执业证书等）</span>
+          </td>
+        </tr>
+      </table>
+    </section>
+
+    <!-- ============ 六、择业志愿与在校表现 ============ -->
+    <section class="sec">
+      <div class="sec-h">六、择业志愿与在校表现</div>
+      <table>
+        <tr>
+          <td class="lab wide">毕业生择业志愿</td>
+          <td>
+            <textarea data-label="毕业生择业志愿" rows="3"
+              placeholder="如：1. 电力系统自动化工程师&#10;2. 电气控制工程师&#10;3. 新能源技术岗"></textarea>
+            <span class="hint">根据自己的择业意愿填写，最多不超过三个</span>
+          </td>
+        </tr>
+        <tr>
+          <td class="lab wide">在校期间曾辅修过何种专业或课程，参加过何种技能培训，有何特长</td>
+          <td>
+            <textarea data-label="在校期间曾辅修专业/课程、技能培训、特长" rows="4"
+              placeholder="（1）选修课程：图像处理、AUTOCAD(计算机辅助设计)&#10;（2）技能培训：计算机网络技术培训、计算机高级办公软件培训、商务英语翻译培训&#10;（3）特长：……"></textarea>
+            <span class="hint">根据自己情况如实填写！没有填「无」！（示例：选修课程 / 技能培训 / 特长 分条写）</span>
+          </td>
+        </tr>
+        <tr>
+          <td class="lab wide">在校期间担任过何种职务，参加过何种社会活动</td>
+          <td>
+            <textarea data-label="在校期间担任职务及参加社会活动" rows="4"
+              placeholder="（1）担任班级班长&#10;（2）曾担任校学生会学习宣传部代理部长&#10;（3）曾担任文理学部学生会学习宣传部干事"></textarea>
+            <span class="hint">根据自己情况如实填写！没有填「无」！（示例：班级职务 / 学生会职务 / 社会活动 分条写）</span>
+          </td>
+        </tr>
+        <tr>
+          <td class="lab wide">何时何地因何原因受过何种奖励或处分</td>
+          <td>
+            <textarea data-label="何时何地因何原因受过何种奖励或处分" rows="3"
+              placeholder="如：2025年11月 在云南工商学院 获校级「三好学生」；处分无。"></textarea>
+            <span class="hint">有奖励就填，处分不要填，无则填「无」！格式可参考毕业登记表奖状中的写法</span>
+          </td>
+        </tr>
+      </table>
+    </section>
+
+    <!-- ============ 七、主要学业成绩 ============ -->
+    <section class="sec" data-special="scores">
+      <div class="sec-h">
+        七、主要学业成绩
+        <button type="button" class="mini" id="btnAddRow">+ 添加一行</button>
+      </div>
+      <table class="score-table">
+        <thead>
+          <tr>
+            <th>课程名称</th><th class="score-cell">成绩</th>
+            <th>课程名称</th><th class="score-cell">成绩</th>
+            <th>课程名称</th><th class="score-cell">成绩</th>
+          </tr>
+        </thead>
+        <tbody id="scoreBody"></tbody>
+        <tfoot>
+          <tr>
+            <td colspan="6" style="padding:8px 10px;">
+              <span class="hint" style="margin:0;">
+                选自己从大一至今学习成绩优秀的填写，包括选修课，至少填满 2/3，具体成绩必须参照教务系统中的成绩如实填写，建议按时间先后填写。此栏填写完毕后需加盖教务处成绩专用章。
+              </span>
+            </td>
+          </tr>
+        </tfoot>
+      </table>
+    </section>
+
+    <!-- ============ 八、德智体综合测评 ============ -->
+    <section class="sec">
+      <div class="sec-h">八、德智体综合测评成绩</div>
+      <table>
+        <tr>
+          <td class="lab wide">德智体综合测评成绩</td>
+          <td>
+            <select data-label="德智体综合测评成绩">
+              <option value="">请选择</option>
+              <option>优</option>
+              <option>良</option>
+              <option>中</option>
+              <option>差</option>
+            </select>
+            <span class="hint">优 / 良 / 中 / 差</span>
+          </td>
+        </tr>
+      </table>
+    </section>
+
+  </form>
+
+  <!-- ============ 操作按钮 ============ -->
+  <div class="actions">
+    <button type="button" class="primary" id="btnExport">📋 导出表格</button>
+    <button type="button" class="green" id="btnExcel">⬇ 下载 Excel</button>
+    <button type="button" id="btnPrint">🖨 打印 / 存 PDF</button>
+    <button type="button" id="btnCopy">📄 复制文字清单</button>
+    <button type="button" class="ghost" id="btnClear">清空表单</button>
+  </div>
+
+  <!-- ============ 导出预览 ============ -->
+  <div id="outWrap">
+    <h2>导出预览（可直接对照誊抄到纸质推荐表）</h2>
+    <div id="preview"></div>
+  </div>
+
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+/* ============================================================
+   1. 预置的 14 门课程成绩（按时间顺序，兼顾专业性与高分）
+   ============================================================ */
+const SCORES_INIT = [
+  ['军事理论',            '95'],
+  ['劳动教育(1)',         '93'],
+  ['大学物理',            '87'],
+  ['思想道德与法治',       '87'],
+  ['C语言程序设计',        '89'],
+  ['线性代数',            '88'],
+  ['劳动教育(2)',         '89'],
+  ['高等数学(2)',         '83'],
+  ['发电厂变电所电气部分',  '98'],
+  ['电器控制及PLC应用',    '90'],
+  ['电力系统自动化',       '88'],
+  ['光伏发电工程技术',     '86'],
+  ['模拟电子技术',         '81'],
+  ['概率论与数理统计',     '72']
+];
+
+/* ============================================================
+   2. 工具函数
+   ============================================================ */
+function esc(s){
+  return String(s == null ? '' : s).replace(/[&<>"']/g, m => ({
+    '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'
+  }[m]));
+}
+
+/* ============================================================
+   3. 成绩表：渲染 / 收集 / 添加
+   ============================================================ */
+const scoreBody = document.getElementById('scoreBody');
+
+function makeCell(pair, isScore){
+  const td = document.createElement('td');
+  if(isScore) td.className = 'score-cell';
+  const inp = document.createElement('input');
+  inp.type = 'text';
+  inp.value = pair || '';
+  inp.placeholder = isScore ? '成绩' : '课程名称';
+  inp.className = isScore ? 's-score' : 's-name';
+  inp.addEventListener('input', saveLocal);
+  td.appendChild(inp);
+  return td;
+}
+
+function renderScoreRows(rows){
+  scoreBody.innerHTML = '';
+  rows.forEach(r => {
+    const tr = document.createElement('tr');
+    for(let c = 0; c < 3; c++){
+      const pair = r[c] || ['', ''];
+      tr.appendChild(makeCell(pair[0], false));
+      tr.appendChild(makeCell(pair[1], true));
+    }
+    scoreBody.appendChild(tr);
+  });
+}
+
+function collectScoreRows(){
+  const rows = [];
+  scoreBody.querySelectorAll('tr').forEach(tr => {
+    const inps = tr.querySelectorAll('input');
+    const row = [];
+    for(let i = 0; i < inps.length; i += 2){
+      row.push([inps[i].value.trim(), (inps[i+1] ? inps[i+1].value.trim() : '')]);
+    }
+    rows.push(row);
+  });
+  return rows;
+}
+
+/* 初始：把 14 门课分三列填入 */
+(function initScores(){
+  const rows = [];
+  for(let i = 0; i < SCORES_INIT.length; i += 3){
+    const chunk = SCORES_INIT.slice(i, i + 3);
+    while(chunk.length < 3) chunk.push(['', '']);
+    rows.push(chunk);
+  }
+  renderScoreRows(rows);
+})();
+
+/* 添加一行 */
+document.getElementById('btnAddRow').addEventListener('click', () => {
+  const rows = collectScoreRows();
+  rows.push([['',''], ['',''], ['','']]);
+  renderScoreRows(rows);
+  saveLocal();
+  scoreBody.lastElementChild.scrollIntoView({behavior:'smooth', block:'center'});
+});
+
+/* ============================================================
+   4. 本地缓存
+   ============================================================ */
+const KEY = 'ynjyb_form_v2';
+
+function saveLocal(){
+  const fields = [];
+  document.querySelectorAll('[data-label]').forEach(el => {
+    fields.push({k: el.dataset.label, v: el.value});
+  });
+  const data = {fields, scores: collectScoreRows()};
+  try{ localStorage.setItem(KEY, JSON.stringify(data)); }catch(e){}
+}
+
+function loadLocal(){
+  let data = null;
+  try{ data = JSON.parse(localStorage.getItem(KEY) || 'null'); }catch(e){}
+  if(!data) return;
+
+  document.querySelectorAll('[data-label]').forEach(el => {
+    const f = (data.fields || []).find(x => x.k === el.dataset.label);
+    if(f) el.value = f.v;
+  });
+
+  if(Array.isArray(data.scores) && data.scores.length){
+    renderScoreRows(data.scores);
+  }
+}
+
+document.getElementById('f').addEventListener('input', saveLocal);
+document.getElementById('f').addEventListener('change', saveLocal);
+loadLocal();
+
+/* ============================================================
+   5. 构建导出 HTML 表格
+   ============================================================ */
+function buildScoreExport(title){
+  const rows = collectScoreRows();
+  const TD  = 'padding:6px 8px;border:1px solid #d7dee7;vertical-align:top;';
+  const TH  = 'background:#f3f6fa;padding:6px 8px;border:1px solid #d7dee7;font-size:12px;color:#44546a;';
+  let h = `<table border="1" cellspacing="0" cellpadding="0" style="border-collapse:collapse;width:100%;margin-bottom:12px;font-size:12px;">`;
+  h += `<tr><td colspan="6" style="background:#e8f0fa;color:#1c4e80;font-weight:700;padding:8px 10px;font-size:13px;border:1px solid #b9cbe0;">${esc(title)}</td></tr>`;
+  h += `<tr>
+    <th style="${TH}">课程名称</th><th style="${TH}width:70px;text-align:center;">成绩</th>
+    <th style="${TH}">课程名称</th><th style="${TH}width:70px;text-align:center;">成绩</th>
+    <th style="${TH}">课程名称</th><th style="${TH}width:70px;text-align:center;">成绩</th>
+  </tr>`;
+  rows.forEach(r => {
+    h += '<tr>';
+    for(let c = 0; c < 3; c++){
+      const p = r[c] || ['', ''];
+      h += `<td style="${TD}">${esc(p[0] || '')}</td>`;
+      h += `<td style="${TD}text-align:center;font-weight:700;color:#1c6dd0;">${esc(p[1] || '')}</td>`;
+    }
+    h += '</tr>';
+  });
+  h += '</table>';
+  return h;
+}
+
+function buildExportHTML(){
+  const parts = [];
+  parts.push('<div style="font-family:Microsoft YaHei,SimSun,sans-serif;font-size:12px;color:#222;">');
+  parts.push('<h2 style="text-align:center;font-size:17px;color:#1c4e80;margin:0 0 4px;letter-spacing:1px;">云南省普通大中专学校毕业生就业推荐表 · 填写数据</h2>');
+  parts.push('<p style="text-align:center;font-size:11px;color:#999;margin:0 0 14px;">导出时间：' + new Date().toLocaleString('zh-CN') + '</p>');
+
+  document.querySelectorAll('section.sec').forEach(sec => {
+    const title = sec.querySelector('.sec-h').textContent.trim().replace(/\s*\+\s*添加一行\s*$/, '');
+
+    /* —— 成绩表特殊处理 —— */
+    if(sec.dataset.special === 'scores'){
+      parts.push(buildScoreExport(title));
+      return;
+    }
+
+    const fields = sec.querySelectorAll('[data-label]');
+    if(!fields.length) return;
+
+    let t = `<table border="1" cellspacing="0" cellpadding="0" style="border-collapse:collapse;width:100%;margin-bottom:12px;font-size:12px;">`;
+    t += `<tr><td colspan="2" style="background:#e8f0fa;color:#1c4e80;font-weight:700;padding:8px 10px;font-size:13px;border:1px solid #b9cbe0;">${esc(title)}</td></tr>`;
+
+    fields.forEach(el => {
+      const lab = el.dataset.label;
+      let val = (el.value || '').trim() || '（未填写）';
+      val = esc(val).replace(/\n/g, '<br>');
+      t += `<tr>
+        <td style="background:#fafbfd;width:190px;font-weight:600;padding:7px 10px;border:1px solid #d7dee7;vertical-align:top;">${esc(lab)}</td>
+        <td style="padding:7px 10px;border:1px solid #d7dee7;vertical-align:top;line-height:1.7;">${val}</td>
+      </tr>`;
+    });
+
+    t += '</table>';
+    parts.push(t);
+  });
+
+  parts.push('</div>');
+  return parts.join('');
+}
+
+/* ============================================================
+   6. 文字清单（备用）
+   ============================================================ */
+function buildTextList(){
+  const out = [];
+  out.push('====== 云南省普通大中专学校毕业生就业推荐表 · 填写数据 ======');
+  out.push('导出时间：' + new Date().toLocaleString('zh-CN'));
+  out.push('');
+
+  document.querySelectorAll('section.sec').forEach(sec => {
+    const title = sec.querySelector('.sec-h').textContent.trim().replace(/\s*\+\s*添加一行\s*$/, '');
+    const lines = [];
+
+    if(sec.dataset.special === 'scores'){
+      collectScoreRows().forEach(r => {
+        r.forEach(p => {
+          if((p[0] || '').trim() || (p[1] || '').trim()){
+            lines.push('  · ' + (p[0] || '—') + ' ： ' + (p[1] || '—'));
+          }
+        });
+      });
+    }else{
+      sec.querySelectorAll('[data-label]').forEach(el => {
+        let v = (el.value || '').trim() || '（未填写）';
+        lines.push('  · ' + el.dataset.label + '：' + v);
+      });
+    }
+
+    if(lines.length){
+      out.push('■ ' + title);
+      out.push(...lines);
+      out.push('');
+    }
+  });
+
+  out.push('====== 以上内容请按顺序誊写到纸质推荐表 ======');
+  return out.join('\n');
+}
+
+/* ============================================================
+   7. 按钮事件
+   ============================================================ */
+const outWrap = document.getElementById('outWrap');
+const preview = document.getElementById('preview');
+
+/* 导出表格 —— 页面内预览 */
+document.getElementById('btnExport').addEventListener('click', () => {
+  preview.innerHTML = buildExportHTML();
+  outWrap.style.display = 'block';
+  outWrap.scrollIntoView({behavior:'smooth', block:'start'});
+  toast('✅ 表格已生成，可对照填写');
+});
+
+/* ============================================================
+   ★ 下载 Excel + “已反馈至总部”特效
+   ============================================================ */
+document.getElementById('btnExcel').addEventListener('click', () => {
+  /* ---- 原有下载逻辑 ---- */
+  const body = buildExportHTML();
+  const html =
+    '<html xmlns:x="urn:schemas-microsoft-com:office:excel"><head><meta charset="utf-8">' +
+    '<!--[if gte mso 9]><xml><x:ExcelWorkbook><x:ExcelWorksheets><x:ExcelWorksheet>' +
+    '<x:Name>推荐表填写数据</x:Name><x:WorksheetOptions><x:DisplayGridlines/>' +
+    '</x:WorksheetOptions></x:ExcelWorksheet></x:ExcelWorksheets></x:ExcelWorkbook></xml><![endif]-->' +
+    '<style>td,th{font-family:"Microsoft YaHei",SimSun;font-size:12px;}</style>' +
+    '</head><body>' + body + '</body></html>';
+
+  const blob = new Blob(['\ufeff' + html], {type:'application/vnd.ms-excel;charset=utf-8'});
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = '就业推荐表填写数据_' +
+    new Date().toLocaleDateString('zh-CN').replace(/\//g, '-') + '.xls';
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  setTimeout(() => URL.revokeObjectURL(a.href), 2000);
+
+  /* ---- ★ 新增：反馈提示 + 飞碟特效 ---- */
+  showFeedbackToast();
+  launchUFOs(14);
+});
+
+/* ============================================================
+   ★ 新增：显示“已反馈至总部”提示框
+   ============================================================ */
+let feedbackTimer = null;
+function showFeedbackToast(){
+  let t = document.getElementById('feedbackToast');
+  if(!t){
+    t = document.createElement('div');
+    t.id = 'feedbackToast';
+    t.className = 'feedback-toast';
+    t.textContent = '已反馈至总部';
+    document.body.appendChild(t);
+  }
+  /* 重置动画 */
+  t.classList.remove('show');
+  void t.offsetWidth;
+  t.classList.add('show');
+
+  clearTimeout(feedbackTimer);
+  feedbackTimer = setTimeout(() => t.classList.remove('show'), 2800);
+}
+
+/* ============================================================
+   ★ 新增：释放 UFO 飞碟（若隐若现飞出）
+   ============================================================ */
+function launchUFOs(count){
+  const total = count || 12;
+  for(let i = 0; i < total; i++){
+    const ufo = document.createElement('div');
+    ufo.className = 'ufo-fly';
+    ufo.textContent = '🛸';
+
+    /* 起始位置：屏幕下半部分随机 */
+    const startX = Math.random() * window.innerWidth;
+    const startY = window.innerHeight * (0.62 + Math.random() * 0.38);
+
+    /* 终点偏移：向四面八方飞出，整体向上 */
+    const dx = (Math.random() - 0.5) * window.innerWidth * 0.95;
+    const dy = -(window.innerHeight * (0.55 + Math.random() * 0.65));
+    const rot = (Math.random() - 0.5) * 90;
+    const size = 22 + Math.random() * 26;
+
+    const delay = i * 0.07 + Math.random() * 0.3;
+    const dur   = 2.5 + Math.random() * 1.6;
+
+    ufo.style.left = startX + 'px';
+    ufo.style.top  = startY + 'px';
+    ufo.style.fontSize = size + 'px';
+    ufo.style.setProperty('--dx', dx + 'px');
+    ufo.style.setProperty('--dy', dy + 'px');
+    ufo.style.setProperty('--rot', rot + 'deg');
+    ufo.style.animationDelay = delay + 's';
+    ufo.style.animationDuration = dur + 's';
+
+    document.body.appendChild(ufo);
+
+    /* 动画结束后移除，避免节点堆积 */
+    setTimeout(() => {
+      if(ufo.parentNode) ufo.parentNode.removeChild(ufo);
+    }, (delay + dur) * 1000 + 300);
+  }
+}
+
+/* 打印 / 存 PDF */
+document.getElementById('btnPrint').addEventListener('click', () => {
+  const w = window.open('', '_blank', 'width=900,height=760');
+  w.document.write(
+    '<!DOCTYPE html><html><head><meta charset="utf-8"><title>就业推荐表填写数据</title>' +
+    '<style>' +
+    'body{font-family:"Microsoft YaHei",SimSun,sans-serif;padding:20px;color:#222;}' +
+    '@page{margin:14mm;}' +
+    'h2{font-size:17px;color:#1c4e80;text-align:center;margin:0 0 6px;}' +
+    'table{page-break-inside:auto;}' +
+    'tr{page-break-inside:avoid;}' +
+    '</style></head><body>' +
+    buildExportHTML() +
+    '<script>window.onload=function(){setTimeout(function(){window.print();},260);};<\/script>' +
+    '</body></html>'
+  );
+  w.document.close();
+});
+
+/* 复制文字清单 */
+document.getElementById('btnCopy').addEventListener('click', async () => {
+  const txt = buildTextList();
+  try{
+    await navigator.clipboard.writeText(txt);
+    toast('✅ 已复制到剪贴板');
+  }catch(e){
+    const ta = document.createElement('textarea');
+    ta.value = txt;
+    ta.style.position = 'fixed';
+    ta.style.opacity = '0';
+    document.body.appendChild(ta);
+    ta.select();
+    try{ document.execCommand('copy'); toast('✅ 已复制到剪贴板'); }
+    catch(err){ toast('❌ 复制失败，请手动选中'); }
+    document.body.removeChild(ta);
+  }
+});
+
+/* 清空表单 */
+document.getElementById('btnClear').addEventListener('click', () => {
+  if(!confirm('确定要清空所有填写内容吗？（预填的学校信息与 14 门课程会恢复默认）')) return;
+
+  const keep = {
+    '学校':'云南工商学院',
+    '培养方式':'非定向',
+    '毕业时间':'2027年07月'
+  };
+  document.querySelectorAll('[data-label]').forEach(el => {
+    el.value = (keep[el.dataset.label] !== undefined) ? keep[el.dataset.label] : '';
+  });
+
+  /* 恢复 14 门课程 */
+  const rows = [];
+  for(let i = 0; i < SCORES_INIT.length; i += 3){
+    const chunk = SCORES_INIT.slice(i, i + 3);
+    while(chunk.length < 3) chunk.push(['', '']);
+    rows.push(chunk);
+  }
+  renderScoreRows(rows);
+
+  localStorage.removeItem(KEY);
+  outWrap.style.display = 'none';
+  preview.innerHTML = '';
+  toast('已清空');
+});
+
+/* ============================================================
+   8. 轻提示
+   ============================================================ */
+let toastTimer = null;
+function toast(msg){
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => t.classList.remove('show'), 1900);
+}
+</script>
+</body>
+</html>
