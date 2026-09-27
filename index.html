@@ -75,6 +75,8 @@
   .btn-warn:hover{background:#d97706;}
   .btn-good{background:#0891b2;color:#fff;border-color:#0891b2;}
   .btn-good:hover{background:#0e7490;}
+  .btn-emerald{background:#059669;color:#fff;border-color:#059669;}
+  .btn-emerald:hover{background:#047857;}
   .btn-good-add{background:#ecfeff;color:#0891b2;border:1px solid #a5f3fc;padding:1px 6px;font-size:10px;border-radius:10px;cursor:pointer;font-weight:600;font-family:inherit;margin-left:4px;vertical-align:middle;}
   .btn-good-add:hover{background:#cffafe;}
   .btn-good-remove{background:#f1f5f9;color:#64748b;border:1px solid #e2e8f0;padding:1px 6px;font-size:10px;border-radius:10px;cursor:pointer;font-weight:600;font-family:inherit;margin-left:4px;vertical-align:middle;}
@@ -88,6 +90,7 @@
   .t-new{background:#dcfce7;color:#15803d;}
   .t-wait{background:#fef3c7;color:#b45309;}
   .t-good{background:#cffafe;color:#0891b2;}
+  .tag-backup{background:#d1fae5;color:#059669;}
   table{width:100%;border-collapse:collapse;font-size:13px;}
   th{background:var(--head);color:#fff;text-align:left;padding:8px 10px;font-size:12px;white-space:nowrap;}
   td{padding:8px 10px;border-top:1px solid var(--line);vertical-align:middle;}
@@ -145,6 +148,8 @@
   .key-good b{color:#0891b2;}
   .key-dashboard{background:#ecfdf5;border:1px solid #a7f3d0;border-left:4px solid #059669;}
   .key-dashboard b{color:#059669;}
+  .key-backup{background:#ecfdf5;border:1px solid #a7f3d0;border-left:4px solid #059669;}
+  .key-backup b{color:#059669;}
   .chapter-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:8px;margin:10px 0 14px;}
   .ch-item{background:#f8fafc;border:1px solid var(--line);border-radius:8px;padding:8px;}
   .ch-item label{font-size:11px;margin-bottom:3px;color:#0f172a;font-weight:700;display:flex;justify-content:space-between;align-items:center;gap:4px;}
@@ -196,7 +201,6 @@
   .postpone-select{width:auto;font-size:12px;padding:4px 8px;border-radius:6px;border:1px solid var(--line);background:#fff;cursor:pointer;min-width:150px;}
   .date-info-badge{display:inline-block;padding:2px 8px;border-radius:10px;background:#eff6ff;color:#1d4ed8;font-size:11px;font-weight:700;margin-left:6px;}
 
-  /* 学习看板 */
   .calendar-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:10px;}
   .cal-day{background:#fff;border:1px solid var(--line);border-radius:10px;padding:10px;text-align:center;transition:all .15s;}
   .cal-day.today{border-color:var(--blue);background:var(--blue-bg);box-shadow:0 0 0 2px rgba(29,78,216,.1);}
@@ -231,8 +235,15 @@
   .legend-color{width:14px;height:14px;border-radius:4px;flex-shrink:0;}
   .legend-text{flex:1;}
   .legend-count{font-weight:700;}
-
   .empty-chart{color:var(--sub);font-size:13px;padding:30px;text-align:center;}
+
+  /* 自动备份样式 */
+  .backup-status{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:10px;margin-bottom:14px;}
+  .backup-status-box{background:#f8fafc;border:1px solid var(--line);border-radius:8px;padding:12px;text-align:center;}
+  .backup-status-box .n{font-size:15px;font-weight:700;color:#0f172a;line-height:1.3;word-break:break-all;}
+  .backup-status-box .l{font-size:12px;color:var(--sub);margin-top:4px;}
+  .backup-status-box.ok .n{color:#059669;}
+  .backup-status-box.warn .n{color:#b45309;}
 
   @media (max-width:600px){.form-grid{grid-template-columns:1fr;}.method-table{font-size:12px;}.method-table td,.method-table th{padding:7px 8px;}.calendar-grid{grid-template-columns:repeat(2,1fr);}}
 </style>
@@ -241,7 +252,7 @@
 <div class="wrap">
 
   <h1>题目复习系统</h1>
-  <div class="sub">录入题目 → 自动排程 → 今日到期复习 → 周六看本周红题 → 周日周测月测总结 → 补救历史题 → 好题板块 → 学习看板。</div>
+  <div class="sub">录入题目 → 自动排程 → 今日到期复习 → 周六看本周红题 → 周日周测月测总结 → 补救历史题 → 好题板块 → 学习看板 → 自动备份。</div>
 
   <div class="error-box" id="errorBox"></div>
 
@@ -267,7 +278,7 @@
     <button class="tab remedy" data-tab="remedy">补救板块</button>
     <button class="tab good" data-tab="good" id="goodTab">好题板块</button>
     <button class="tab dashboard" data-tab="dashboard" id="dashboardTab">学习看板</button>
-    <button class="tab" data-tab="data">数据备份</button>
+    <button class="tab" data-tab="data">数据与备份</button>
   </div>
 
   <!-- 录入 -->
@@ -305,7 +316,7 @@
             <td>标记即可，不用花太多时间</td>
             <td>抽检，做对就归档</td>
             <td>保持熟练，不遗忘</td>
-            <td class="col-time"><span class="time-low">低</span><span class="mini">不用反复刷</span></td>
+            <td class="col-time"><span class="time-low">低</span><br><span class="mini">不用反复刷</span></td>
           </tr>
         </tbody>
       </table>
@@ -701,7 +712,6 @@
 
   <!-- 学习看板 -->
   <div class="panel" id="panel-dashboard">
-    <!-- 日历 -->
     <div class="card">
       <h2 style="border-left-color:#059669;">学习日历 · 未来 10 天</h2>
       <div class="key key-dashboard">
@@ -710,7 +720,6 @@
       <div id="calendarContent" class="calendar-grid"></div>
     </div>
 
-    <!-- 转化统计 -->
     <div class="card">
       <h2 style="border-left-color:#059669;">转化统计 · 红题 → 绿题</h2>
       <div class="key key-dashboard">
@@ -725,11 +734,80 @@
     </div>
   </div>
 
-  <!-- 数据备份 -->
+  <!-- 数据与备份 -->
   <div class="panel" id="panel-data">
+    <!-- 自动备份 -->
     <div class="card">
-      <h2>数据备份</h2>
-      <p class="mini" style="margin-bottom:12px;">数据保存在本机浏览器 localStorage。换设备或清理浏览器会丢失，建议定期导出备份。</p>
+      <h2 style="border-left-color:#059669;">自动备份 · 防数据丢失</h2>
+      <div class="key key-backup">
+        <b>为什么要备份：</b>浏览器数据可能因清理缓存、隐私模式、系统故障、误操作而丢失。<br>
+        <b>本系统做三层防护：</b><br>
+        ① <b>IndexedDB 冗余</b>（所有浏览器）：每次数据变动后自动在浏览器内多存一份，即使 localStorage 被清空，仍可能恢复。<br>
+        ② <b>自动写入文件夹</b>（Chrome/Edge）：选择文件夹后定时把 JSON 备份写入，浏览器数据丢了也能从文件夹恢复。<br>
+        ③ <b>定时下载备份</b>（iPad 等不支持文件夹的浏览器）：定时下载 JSON 文件到下载目录。
+      </div>
+
+      <div class="backup-status" id="backupStatus">
+        <div class="backup-status-box" id="backupStatusA">
+          <div class="n" id="statusIdb">检查中…</div>
+          <div class="l">IndexedDB 冗余</div>
+        </div>
+        <div class="backup-status-box" id="backupStatusB">
+          <div class="n" id="statusFolder">未配置</div>
+          <div class="l">备份文件夹</div>
+        </div>
+        <div class="backup-status-box" id="backupStatusC">
+          <div class="n" id="statusLast">从未</div>
+          <div class="l">上次自动备份</div>
+        </div>
+        <div class="backup-status-box" id="backupStatusD">
+          <div class="n" id="statusNext">—</div>
+          <div class="l">下次自动备份</div>
+        </div>
+      </div>
+
+      <div class="form-grid">
+        <div>
+          <label>自动备份频率</label>
+          <select id="backupInterval">
+            <option value="0">关闭自动备份</option>
+            <option value="5">每 5 分钟</option>
+            <option value="15" selected>每 15 分钟</option>
+            <option value="30">每 30 分钟</option>
+            <option value="60">每 1 小时</option>
+            <option value="180">每 3 小时</option>
+          </select>
+        </div>
+        <div>
+          <label>保留最近备份份数</label>
+          <select id="backupKeepCount">
+            <option value="10">10 份</option>
+            <option value="20" selected>20 份</option>
+            <option value="30">30 份</option>
+            <option value="50">50 份</option>
+          </select>
+        </div>
+      </div>
+
+      <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:14px;">
+        <button class="btn btn-emerald" id="chooseBackupFolderBtn">选择备份文件夹</button>
+        <button class="btn btn-primary" id="manualBackupBtn">立即备份一次</button>
+        <button class="btn" id="restoreFromIdbBtn">从 IndexedDB 恢复</button>
+        <button class="btn" id="importFromFolderBtn">从文件夹恢复</button>
+      </div>
+      <input type="file" id="importFromFolderFile" accept=".json" style="display:none">
+
+      <div class="key key-sat" style="margin-bottom:0;">
+        <b>浏览器支持情况：</b><br>
+        • <b>Chrome / Edge（电脑或安卓）</b>：支持「选择备份文件夹」，可实现真正的文件夹自动备份。<br>
+        • <b>Safari（iPad/iPhone）</b>：不支持文件夹写入，系统会降级为「定时下载备份文件」到下载目录，请把下载目录设置为 iCloud 云盘以防丢失。
+      </div>
+    </div>
+
+    <!-- 手动备份与恢复 -->
+    <div class="card">
+      <h2>手动备份与恢复</h2>
+      <p class="mini" style="margin-bottom:12px;">数据保存在本机浏览器 localStorage 与 IndexedDB。换设备或清理浏览器会丢失，建议定期导出备份。</p>
       <button class="btn btn-primary" id="excelBtn">导出 Excel（含日期+星期）</button>
       <button class="btn" id="exportBtn">导出 JSON 备份</button>
       <button class="btn" id="importBtn">导入 JSON 备份</button>
@@ -753,6 +831,7 @@
   var SIM_KEY  = 'tiqu_final_simdate';
   var MANUAL_KEY = 'tiqu_final_manual_date';
   var REMEDY_KEY = 'tiqu_final_remedypool';
+  var BACKUP_CONFIG_KEY = 'tiqu_backup_config';
 
   var MATH_CH = ['第1章','第2章','第3章','第4章','第5章','第6章','第7章','第8章','第9章'];
   var CIRC_CH = ['第1章','第2章','第3章','第4章','第5章','第6章','第7章','第8章','第9章','第10章','第11章','第12章','第13章','第14章'];
@@ -764,7 +843,306 @@
   var undoStack = [];
   var UNDO_MAX = 30;
 
-  var currentStatRange = 7;  // 近 1 周 = 7 天
+  var currentStatRange = 7;
+
+  // 自动备份状态
+  var backupConfig = {
+    intervalMinutes: 15,
+    keepCount: 20,
+    enabled: true
+  };
+  var backupDirHandle = null;
+  var backupTimer = null;
+  var lastBackupTime = null;
+  var nextBackupTime = null;
+  var autoDownloadFallback = false;
+
+  // ============ IDB 工具 ============
+  function openBackupDB(){
+    return new Promise(function(resolve, reject){
+      var req = indexedDB.open('tiqu_backup_db', 1);
+      req.onupgradeneeded = function(e){
+        var db = e.target.result;
+        if(!db.objectStoreNames.contains('snapshots')) db.createObjectStore('snapshots');
+        if(!db.objectStoreNames.contains('handles')) db.createObjectStore('handles');
+        if(!db.objectStoreNames.contains('meta')) db.createObjectStore('meta');
+      };
+      req.onsuccess = function(e){ resolve(e.target.result); };
+      req.onerror = function(e){ reject(e.target.error); };
+    });
+  }
+  function idbPut(store, key, value){
+    return openBackupDB().then(function(db){
+      return new Promise(function(resolve, reject){
+        var tx = db.transaction(store, 'readwrite');
+        tx.objectStore(store).put(value, key);
+        tx.oncomplete = function(){ resolve(); };
+        tx.onerror = function(){ reject(tx.error); };
+      });
+    });
+  }
+  function idbGet(store, key){
+    return openBackupDB().then(function(db){
+      return new Promise(function(resolve, reject){
+        var tx = db.transaction(store, 'readonly');
+        var req = tx.objectStore(store).get(key);
+        req.onsuccess = function(){ resolve(req.result); };
+        req.onerror = function(){ reject(req.error); };
+      });
+    });
+  }
+  function idbDel(store, key){
+    return openBackupDB().then(function(db){
+      return new Promise(function(resolve, reject){
+        var tx = db.transaction(store, 'readwrite');
+        tx.objectStore(store).delete(key);
+        tx.oncomplete = function(){ resolve(); };
+        tx.onerror = function(){ reject(tx.error); };
+      });
+    });
+  }
+
+  // ============ 备份核心逻辑 ============
+  function buildBackupPayload(){
+    return {
+      version: 'backup_v1',
+      exportedAt: new Date().toISOString(),
+      simDate: simDate,
+      items: items,
+      remedyPool: remedyPool
+    };
+  }
+
+  function backupFilename(){
+    var d = new Date();
+    var y = d.getFullYear();
+    var m = String(d.getMonth()+1).padStart(2,'0');
+    var day = String(d.getDate()).padStart(2,'0');
+    var hh = String(d.getHours()).padStart(2,'0');
+    var mm = String(d.getMinutes()).padStart(2,'0');
+    var ss = String(d.getSeconds()).padStart(2,'0');
+    return '题目复习备份_' + y + m + day + '_' + hh + mm + ss + '.json';
+  }
+
+  // 写入 IDB 冗余快照（不同 key，只保留最近几份）
+  function writeIdbSnapshot(){
+    var payload = buildBackupPayload();
+    var ts = Date.now();
+    var key = 'snap_' + ts;
+    return idbPut('snapshots', key, payload).then(function(){
+      return idbPut('meta', 'lastSnapshot', { key: key, ts: ts, count: items.length });
+    });
+  }
+
+  // 清理 IDB 旧快照，保留最近 N 份
+  function cleanIdbSnapshots(){
+    return openBackupDB().then(function(db){
+      return new Promise(function(resolve, reject){
+        var tx = db.transaction('snapshots', 'readwrite');
+        var store = tx.objectStore('snapshots');
+        var allKeys = [];
+        var req = store.openCursor();
+        req.onsuccess = function(e){
+          var cursor = e.target.result;
+          if(cursor){
+            allKeys.push(cursor.key);
+            cursor.continue();
+          }else{
+            allKeys.sort();
+            // 多保留一些：keepCount * 3（因为 IDB 冗余快照比文件夹更密集）
+            var keep = backupConfig.keepCount * 3;
+            if(allKeys.length > keep){
+              var toDelete = allKeys.slice(0, allKeys.length - keep);
+              toDelete.forEach(function(k){ store.delete(k); });
+            }
+          }
+        };
+        tx.oncomplete = function(){ resolve(); };
+        tx.onerror = function(){ reject(tx.error); };
+      });
+    });
+  }
+
+  // 写入文件夹
+  function writeFolderBackup(){
+    if(!backupDirHandle){
+      return Promise.reject(new Error('未选择备份文件夹'));
+    }
+    return backupDirHandle.queryPermission({ mode: 'readwrite' }).then(function(perm){
+      if(perm !== 'granted'){
+        return backupDirHandle.requestPermission({ mode: 'readwrite' });
+      }
+      return perm;
+    }).then(function(perm){
+      if(perm !== 'granted'){
+        throw new Error('文件夹权限未授予');
+      }
+      var payload = buildBackupPayload();
+      var content = JSON.stringify(payload, null, 2);
+      var fname = backupFilename();
+      return backupDirHandle.getFileHandle(fname, { create: true }).then(function(fh){
+        return fh.createWritable();
+      }).then(function(writable){
+        return writable.write(content).then(function(){
+          return writable.close();
+        });
+      }).then(function(){
+        // 清理旧文件
+        return cleanFolderBackups();
+      });
+    });
+  }
+
+  // 清理文件夹中旧备份，保留最近 keepCount 份
+  function cleanFolderBackups(){
+    if(!backupDirHandle) return Promise.resolve();
+    var files = [];
+    return backupDirHandle.values().then(function(){
+      // 使用异步迭代
+      return new Promise(function(resolve){
+        var iterator = backupDirHandle.values();
+        function step(){
+          iterator.next().then(function(result){
+            if(result.done){ resolve(files); return; }
+            var entry = result.value;
+            if(entry.kind === 'file' && /^题目复习备份_.*\.json$/.test(entry.name)){
+              files.push(entry.name);
+            }
+            step();
+          }).catch(function(){ resolve(files); });
+        }
+        step();
+      });
+    }).then(function(list){
+      list.sort();
+      if(list.length > backupConfig.keepCount){
+        var toDelete = list.slice(0, list.length - backupConfig.keepCount);
+        return Promise.all(toDelete.map(function(name){
+          return backupDirHandle.removeEntry(name).catch(function(){});
+        }));
+      }
+    });
+  }
+
+  // 降级：下载备份文件
+  function downloadBackup(){
+    var payload = buildBackupPayload();
+    var blob = new Blob([JSON.stringify(payload, null, 2)], {type:'application/json'});
+    var url = URL.createObjectURL(blob);
+    var a = document.createElement('a');
+    a.href = url;
+    a.download = backupFilename();
+    a.click();
+    setTimeout(function(){ URL.revokeObjectURL(url); }, 3000);
+  }
+
+  // 执行备份（IDB 冗余 + 文件夹或下载）
+  function performBackup(manual){
+    var tasks = [];
+    // IDB 冗余
+    tasks.push(
+      writeIdbSnapshot().then(function(){
+        return cleanIdbSnapshots();
+      }).catch(function(e){ console.warn('IDB snapshot failed', e); })
+    );
+
+    // 文件夹或下载
+    if(backupDirHandle){
+      tasks.push(
+        writeFolderBackup().catch(function(e){
+          console.warn('Folder backup failed', e);
+          // 降级下载
+          if(manual) downloadBackup();
+        })
+      );
+    }else if(autoDownloadFallback && backupConfig.enabled){
+      downloadBackup();
+    }
+
+    return Promise.all(tasks).then(function(){
+      lastBackupTime = new Date();
+      updateBackupStatusUI();
+      if(manual){
+        alert('已备份：\n• 浏览器内 IndexedDB 冗余\n' +
+          (backupDirHandle ? '• 文件夹：' + (backupDirHandle.name || '已选择') : '') +
+          (autoDownloadFallback && !backupDirHandle ? '• 已下载 JSON 到下载目录' : ''));
+      }
+    });
+  }
+
+  // 定时器
+  function scheduleBackup(){
+    if(backupTimer){ clearInterval(backupTimer); backupTimer = null; }
+    if(!backupConfig.enabled || backupConfig.intervalMinutes <= 0) return;
+    var ms = backupConfig.intervalMinutes * 60 * 1000;
+    nextBackupTime = new Date(Date.now() + ms);
+    backupTimer = setInterval(function(){
+      performBackup(false);
+      nextBackupTime = new Date(Date.now() + ms);
+      updateBackupStatusUI();
+    }, ms);
+    updateBackupStatusUI();
+  }
+
+  // 配置保存与加载
+  function saveBackupConfig(){
+    try{ localStorage.setItem(BACKUP_CONFIG_KEY, JSON.stringify(backupConfig)); }catch(e){}
+  }
+  function loadBackupConfig(){
+    try{
+      var raw = localStorage.getItem(BACKUP_CONFIG_KEY);
+      if(!raw) return;
+      var obj = JSON.parse(raw);
+      if(obj && typeof obj === 'object'){
+        if(typeof obj.intervalMinutes === 'number') backupConfig.intervalMinutes = obj.intervalMinutes;
+        if(typeof obj.keepCount === 'number') backupConfig.keepCount = obj.keepCount;
+        if(typeof obj.enabled === 'boolean') backupConfig.enabled = obj.enabled;
+      }
+    }catch(e){}
+  }
+
+  // 更新备份状态 UI
+  function updateBackupStatusUI(){
+    var elA = $('statusIdb');
+    var elB = $('statusFolder');
+    var elC = $('statusLast');
+    var elD = $('statusNext');
+    if(elA) elA.textContent = '已启用';
+    if(elB){
+      if(backupDirHandle){
+        elB.textContent = backupDirHandle.name || '已选择';
+        $('backupStatusB').classList.add('ok');
+        $('backupStatusB').classList.remove('warn');
+      }else if(autoDownloadFallback){
+        elB.textContent = '定时下载';
+        $('backupStatusB').classList.add('warn');
+        $('backupStatusB').classList.remove('ok');
+      }else{
+        elB.textContent = '未配置';
+        $('backupStatusB').classList.remove('ok');
+        $('backupStatusB').classList.add('warn');
+      }
+    }
+    if(elC){
+      if(lastBackupTime){
+        elC.textContent = lastBackupTime.getFullYear() + '-' +
+          String(lastBackupTime.getMonth()+1).padStart(2,'0') + '-' +
+          String(lastBackupTime.getDate()).padStart(2,'0') + ' ' +
+          String(lastBackupTime.getHours()).padStart(2,'0') + ':' +
+          String(lastBackupTime.getMinutes()).padStart(2,'0');
+      }else{
+        elC.textContent = '从未';
+      }
+    }
+    if(elD){
+      if(backupConfig.enabled && backupConfig.intervalMinutes > 0){
+        var nt = new Date(Date.now() + backupConfig.intervalMinutes * 60 * 1000);
+        elD.textContent = '约 ' + backupConfig.intervalMinutes + ' 分钟后';
+      }else{
+        elD.textContent = '已关闭';
+      }
+    }
+  }
 
   function pushUndo(desc){
     try{
@@ -973,12 +1351,14 @@
         if(typeof it.isGood!=='boolean') it.isGood=false;
         if(!it.lastReview) it.lastReview='';
         if(typeof it.onlyShowOnNext!=='boolean') it.onlyShowOnNext=false;
-        if(!it.initialStatus) it.initialStatus = it.status; // 旧数据兼容
+        if(!it.initialStatus) it.initialStatus = it.status;
       });
       return arr;
     }catch(e){ return []; }
   }
-  function saveItems(){ try{ localStorage.setItem(ITEM_KEY,JSON.stringify(items)); }catch(e){ showError('保存失败：'+e.message); } }
+  function saveItems(){
+    try{ localStorage.setItem(ITEM_KEY,JSON.stringify(items)); }catch(e){ showError('保存失败：'+e.message); }
+  }
   function saveSim(){ try{ localStorage.setItem(SIM_KEY,simDate); }catch(e){} }
 
   function loadRemedyPool(){
@@ -1048,6 +1428,7 @@
       }
     }
     saveItems();
+    scheduleIdleBackup();
     renderAll();
   }
 
@@ -1724,11 +2105,7 @@
     }
   }
 
-  // ============================================================
-  // 学习看板：日历 + 转化统计
-  // ============================================================
-
-  // 未来 10 天日历
+  // 学习看板
   function renderCalendar(){
     var container = $('calendarContent');
     if(!container) return;
@@ -1740,13 +2117,10 @@
       var red = 0, yellow = 0, green = 0;
       items.forEach(function(it){
         if(it.status === '归档') return;
-        // 判断该题是否在 date 那天到期
         var onThisDay = false;
         if(isToday){
-          // 今天的日历用 isDueOn 统计（包含逾期）
           onThisDay = isDueOn(it);
         }else{
-          // 未来日期：只看 next === date 的题
           onThisDay = (it.next === date);
         }
         if(!onThisDay) return;
@@ -1755,7 +2129,7 @@
         else if(it.status === '绿') green++;
       });
       var total = red + yellow + green;
-      var dateShort = date.slice(5); // MM-DD
+      var dateShort = date.slice(5);
       html += '<div class="cal-day' + (isToday ? ' today' : '') + '">' +
         '<div class="cal-date">' + dateShort + (isToday ? ' 今天' : '') + '</div>' +
         '<div class="cal-wk">' + weekday(date) + '</div>' +
@@ -1776,20 +2150,17 @@
     container.innerHTML = html;
   }
 
-  // 饼图 SVG
   function polarToCartesian(cx, cy, r, angleDeg){
     var rad = (angleDeg - 90) * Math.PI / 180;
     return { x: cx + r * Math.cos(rad), y: cy + r * Math.sin(rad) };
   }
 
   function renderPie(segments){
-    // segments: [{value, color, label}]
     var total = 0;
     segments.forEach(function(s){ total += s.value; });
     if(total === 0){
       return '<div class="empty-chart">该范围内暂无题目</div>';
     }
-    // 只有一个非零段 → 画圆
     var nonZero = segments.filter(function(s){ return s.value > 0; });
     if(nonZero.length === 1){
       return '<svg viewBox="0 0 200 200" width="200" height="200">' +
@@ -1822,20 +2193,16 @@
     var rangeStart = addDays(cur, -currentStatRange);
     var rangeEnd = cur;
 
-    // 范围内录入的题目
     var rangeItems = items.filter(function(it){
       return it.first >= rangeStart && it.first <= rangeEnd;
     });
 
-    // 初始是红题的题目
     var initialRedItems = rangeItems.filter(function(it){
       return it.initialStatus === '红';
     });
-    // 初始红题中现在变成绿题的
     var nowGreenFromRed = initialRedItems.filter(function(it){
       return it.status === '绿';
     });
-    // 初始红题中现在归档的也算绿（彻底掌握）
     var nowArchiveFromRed = initialRedItems.filter(function(it){
       return it.status === '归档';
     });
@@ -1844,7 +2211,6 @@
     var totalRed = initialRedItems.length;
     var convertRate = totalRed > 0 ? Math.round((redToGreenOrArchive / totalRed) * 100) : 0;
 
-    // 当前状态分布（基于范围内的所有题目）
     var countRed = 0, countYellow = 0, countGreen = 0, countArchive = 0;
     rangeItems.forEach(function(it){
       if(it.status === '红') countRed++;
@@ -1855,7 +2221,6 @@
 
     var rangeLabel = currentStatRange === 7 ? '近 1 周' : (currentStatRange === 14 ? '近 2 周' : '近 1 月');
 
-    // 汇总卡片
     var html = '';
     html += '<div class="summary-grid">';
     html += '<div class="summary-card highlight"><div class="n">' + convertRate + '%</div><div class="l">红题 → 绿/归档 转化率</div></div>';
@@ -1864,7 +2229,6 @@
     html += '<div class="summary-card"><div class="n">' + redToGreenOrArchive + '</div><div class="l">已变绿或归档</div></div>';
     html += '</div>';
 
-    // 饼图 + 图例
     var segments = [
       { label: '红题', value: countRed, color: '#dc2626' },
       { label: '黄题', value: countYellow, color: '#f59e0b' },
@@ -1933,6 +2297,18 @@
     updateWeekRedTab();
   }
 
+  // 延迟备份：数据变更后 5 秒触发一次，避免频繁写入
+  var idleBackupTimer = null;
+  function scheduleIdleBackup(){
+    if(idleBackupTimer) clearTimeout(idleBackupTimer);
+    idleBackupTimer = setTimeout(function(){
+      // 只写 IDB 冗余，不写文件夹（文件夹由定时器负责）
+      writeIdbSnapshot().then(function(){
+        return cleanIdbSnapshots();
+      }).catch(function(e){ console.warn('idle IDB snapshot failed', e); });
+    }, 5000);
+  }
+
   function addItem(){
     clearError();
     var subject = $('inSubject').value;
@@ -1961,6 +2337,7 @@
     });
 
     saveItems();
+    scheduleIdleBackup();
     $('inPage').value=''; $('inNo').value=''; $('inErr').value=''; $('inGood').checked=false;
     var hint = $('addHint');
     if(hint) hint.textContent = '✓ 已添加，下次复习：' + fmtDateWk(next);
@@ -1991,6 +2368,7 @@
       errReason: errReason
     });
     saveRemedyPool();
+    scheduleIdleBackup();
     $('rmPage').value=''; $('rmNo').value=''; $('rmErr').value='';
     var hint = $('rmAddHint');
     if(hint) hint.textContent = '✓ 已加入待排池，当前 ' + remedyPool.length + ' 条';
@@ -2003,6 +2381,7 @@
     pushUndo('从待排池删除「' + it.subject + ' ' + it.page + ' ' + it.no + '」');
     remedyPool.splice(idx, 1);
     saveRemedyPool();
+    scheduleIdleBackup();
     renderAll();
   }
 
@@ -2012,6 +2391,7 @@
     pushUndo('清空待排池 ' + remedyPool.length + ' 条');
     remedyPool = [];
     saveRemedyPool();
+    scheduleIdleBackup();
     $('rmPreview').innerHTML = '';
     renderAll();
   }
@@ -2131,6 +2511,7 @@
     remedyPool = [];
     saveRemedyPool();
     saveItems();
+    scheduleIdleBackup();
     $('rmPreview').innerHTML = '<div class="key key-remedy"><b>✓ 已生成：</b>'+result.assignments.length+' 条历史题已加入系统，首轮复习从 '+result.startDate+' 开始。</div>';
     renderAll();
   }
@@ -2145,6 +2526,7 @@
     it.next = date;
     it.onlyShowOnNext = true;
     saveItems();
+    scheduleIdleBackup();
     renderAll();
   }
 
@@ -2163,6 +2545,7 @@
       it.onlyShowOnNext = true;
     });
     saveItems();
+    scheduleIdleBackup();
     renderAll();
   }
 
@@ -2174,6 +2557,7 @@
     pushUndo('删除题目「' + it.subject + ' ' + it.chapter + ' ' + it.page + ' ' + it.no + '」');
     items = items.filter(function(i){return i.id!==id;});
     saveItems();
+    scheduleIdleBackup();
     renderAll();
   }
 
@@ -2185,6 +2569,7 @@
     pushUndo('把「' + it.subject + ' ' + it.page + ' ' + it.no + '」' + action);
     it.isGood = !it.isGood;
     saveItems();
+    scheduleIdleBackup();
     renderAll();
   }
 
@@ -2195,6 +2580,7 @@
     pushUndo('把「' + it.subject + ' ' + it.page + ' ' + it.no + '」移出好题');
     it.isGood = false;
     saveItems();
+    scheduleIdleBackup();
     renderAll();
   }
 
@@ -2252,6 +2638,64 @@
     URL.revokeObjectURL(url);
   }
 
+  // 从 IDB 最新快照恢复
+  function restoreFromIdb(){
+    openBackupDB().then(function(db){
+      return new Promise(function(resolve, reject){
+        var tx = db.transaction('snapshots', 'readonly');
+        var store = tx.objectStore('snapshots');
+        var allKeys = [];
+        var req = store.openKeyCursor();
+        req.onsuccess = function(e){
+          var cursor = e.target.result;
+          if(cursor){
+            allKeys.push(cursor.key);
+            cursor.continue();
+          }else{
+            allKeys.sort();
+            resolve(allKeys);
+          }
+        };
+        req.onerror = function(){ reject(req.error); };
+      });
+    }).then(function(keys){
+      if(!keys || keys.length === 0){
+        alert('IndexedDB 中还没有备份快照。');
+        return null;
+      }
+      // 取最新快照
+      var latestKey = keys[keys.length - 1];
+      return idbGet('snapshots', latestKey);
+    }).then(function(snapshot){
+      if(!snapshot) return;
+      var ok = confirm('将从 IndexedDB 最新快照恢复：\n' +
+        '• 快照时间：' + (snapshot.exportedAt || '未知') + '\n' +
+        '• 题目数：' + (snapshot.items ? snapshot.items.length : 0) + '\n' +
+        '• 待排池：' + (snapshot.remedyPool ? snapshot.remedyPool.length : 0) + '\n\n' +
+        '当前数据将被覆盖，确定继续？');
+      if(!ok) return;
+      pushUndo('从 IndexedDB 快照恢复');
+      if(snapshot.items) items = snapshot.items;
+      if(snapshot.remedyPool) remedyPool = snapshot.remedyPool;
+      if(snapshot.simDate){ simDate = snapshot.simDate; var simEl = $('simDate'); if(simEl) simEl.value = simDate; saveSim(); }
+      items.forEach(function(it){
+        if(!it.id) it.id = uid();
+        if(!it.chapter) it.chapter = '第1章';
+        if(typeof it.reviewCount!=='number') it.reviewCount = 0;
+        if(typeof it.greenStreak!=='number') it.greenStreak = 0;
+        if(typeof it.isRemedy!=='boolean') it.isRemedy = false;
+        if(typeof it.isGood!=='boolean') it.isGood = false;
+        if(!it.lastReview) it.lastReview = '';
+        if(typeof it.onlyShowOnNext!=='boolean') it.onlyShowOnNext = false;
+        if(!it.initialStatus) it.initialStatus = it.status;
+      });
+      saveItems(); saveRemedyPool(); renderAll();
+      alert('已从 IDB 快照恢复：' + items.length + ' 道题，待排池 ' + remedyPool.length + ' 条。');
+    }).catch(function(e){
+      alert('恢复失败：' + e.message);
+    });
+  }
+
   function bindEvents(){
     document.querySelectorAll('.tab').forEach(function(tab){
       tab.addEventListener('click', function(){
@@ -2266,6 +2710,8 @@
           renderWeekRed();
         }else if(t === 'dashboard'){
           renderDashboard();
+        }else if(t === 'data'){
+          updateBackupStatusUI();
         }
       });
     });
@@ -2450,7 +2896,6 @@
       });
     }
 
-    // 转化统计时间范围按钮
     var rangeBtns = document.querySelectorAll('#statRangeBtns .btn');
     rangeBtns.forEach(function(btn){
       btn.addEventListener('click', function(){
@@ -2461,18 +2906,123 @@
       });
     });
 
+    // 自动备份相关
+    var intervalEl = $('backupInterval');
+    if(intervalEl){
+      intervalEl.value = String(backupConfig.intervalMinutes);
+      intervalEl.addEventListener('change', function(){
+        var v = parseInt(intervalEl.value, 10);
+        if(isNaN(v)) v = 15;
+        backupConfig.intervalMinutes = v;
+        backupConfig.enabled = v > 0;
+        saveBackupConfig();
+        scheduleBackup();
+        updateBackupStatusUI();
+      });
+    }
+    var keepEl = $('backupKeepCount');
+    if(keepEl){
+      keepEl.value = String(backupConfig.keepCount);
+      keepEl.addEventListener('change', function(){
+        var v = parseInt(keepEl.value, 10);
+        if(isNaN(v)) v = 20;
+        backupConfig.keepCount = v;
+        saveBackupConfig();
+        updateBackupStatusUI();
+      });
+    }
+
+    var chooseFolderBtn = $('chooseBackupFolderBtn');
+    if(chooseFolderBtn){
+      if(!window.showDirectoryPicker){
+        chooseFolderBtn.disabled = true;
+        chooseFolderBtn.textContent = '当前浏览器不支持选文件夹';
+        chooseFolderBtn.title = '请使用 Chrome 或 Edge；Safari/iPad 会自动降级为定时下载备份';
+        autoDownloadFallback = true;
+      }else{
+        chooseFolderBtn.addEventListener('click', function(){
+          window.showDirectoryPicker({ mode: 'readwrite' }).then(function(handle){
+            backupDirHandle = handle;
+            return idbPut('handles', 'backupDir', handle).then(function(){
+              updateBackupStatusUI();
+              alert('已选择备份文件夹：' + (handle.name || '已选择') + '\n系统会按设定频率自动写入备份。');
+            });
+          }).catch(function(e){
+            if(e && e.name === 'AbortError') return;
+            alert('选择文件夹失败：' + (e.message || e));
+          });
+        });
+      }
+    }
+
+    var manualBackupBtn = $('manualBackupBtn');
+    if(manualBackupBtn){
+      manualBackupBtn.addEventListener('click', function(){
+        performBackup(true);
+      });
+    }
+
+    var restoreIdbBtn = $('restoreFromIdbBtn');
+    if(restoreIdbBtn){
+      restoreIdbBtn.addEventListener('click', restoreFromIdb);
+    }
+
+    var importFromFolderBtn = $('importFromFolderBtn');
+    var importFromFolderFile = $('importFromFolderFile');
+    if(importFromFolderBtn && importFromFolderFile){
+      importFromFolderBtn.addEventListener('click', function(){
+        importFromFolderFile.click();
+      });
+      importFromFolderFile.addEventListener('change', function(e){
+        var f = e.target.files[0];
+        if(!f) return;
+        var reader = new FileReader();
+        reader.onload = function(ev){
+          try{
+            var obj = JSON.parse(ev.target.result);
+            var newItems = null, newSim = null, newPool = null;
+            if(Array.isArray(obj)) newItems = obj;
+            else if(obj && Array.isArray(obj.items)){
+              newItems = obj.items; newSim = obj.simDate; newPool = obj.remedyPool;
+            }else{ alert('文件格式错误'); return; }
+            if(!confirm('导入将覆盖当前所有数据，确定继续？')) return;
+            pushUndo('从备份文件恢复');
+            items = newItems;
+            items.forEach(function(it){
+              if(!it.id) it.id = uid();
+              if(!it.chapter) it.chapter = '第1章';
+              if(typeof it.reviewCount!=='number') it.reviewCount = 0;
+              if(typeof it.greenStreak!=='number') it.greenStreak = 0;
+              if(typeof it.isRemedy!=='boolean') it.isRemedy = false;
+              if(typeof it.isGood!=='boolean') it.isGood = false;
+              if(!it.lastReview) it.lastReview = '';
+              if(typeof it.onlyShowOnNext!=='boolean') it.onlyShowOnNext = false;
+              if(!it.initialStatus) it.initialStatus = it.status;
+            });
+            if(Array.isArray(newPool)) remedyPool = newPool;
+            if(newSim){ simDate = newSim; if(simInput) simInput.value = simDate; saveSim(); localStorage.setItem(MANUAL_KEY, 'true'); }
+            saveItems(); saveRemedyPool(); renderAll();
+            scheduleIdleBackup();
+            alert('恢复成功：' + items.length + ' 道题，待排池 ' + remedyPool.length + ' 条。');
+          }catch(err){ alert('文件解析失败：'+err.message); }
+        };
+        reader.readAsText(f);
+        e.target.value = '';
+      });
+    }
+
     var excelBtn = $('excelBtn');
     if(excelBtn) excelBtn.addEventListener('click', exportExcel);
 
     var exportBtn = $('exportBtn');
     if(exportBtn){
       exportBtn.addEventListener('click', function(){
-        var payload = { items: items, simDate: simDate, remedyPool: remedyPool };
+        var payload = buildBackupPayload();
         var blob = new Blob([JSON.stringify(payload, null, 2)], {type:'application/json'});
         var url = URL.createObjectURL(blob);
         var a = document.createElement('a');
         a.href = url;
-        a.download = '题目复习备份_'+todayStr()+'.json';
+        a.download = backupFilename();
         a.click();
         URL.revokeObjectURL(url);
       });
@@ -2510,6 +3060,7 @@
             if(Array.isArray(newPool)) remedyPool = newPool;
             if(newSim){ simDate = newSim; if(simInput) simInput.value = simDate; saveSim(); localStorage.setItem(MANUAL_KEY, 'true'); }
             saveItems(); saveRemedyPool(); renderAll();
+            scheduleIdleBackup();
             alert('导入成功，共 '+items.length+' 道题，待排池 '+remedyPool.length+' 条。');
           }catch(err){ alert('文件解析失败：'+err.message); }
         };
@@ -2523,10 +3074,20 @@
         if(confirm('确定清空所有数据（含待排池）？此操作不可恢复。')){
           pushUndo('清空所有数据（含待排池）');
           items = []; remedyPool = [];
-          saveItems(); saveRemedyPool(); renderAll();
+          saveItems(); saveRemedyPool();
+          scheduleIdleBackup();
+          renderAll();
         }
       });
     }
+
+    // 关闭页面时尝试写入一次 IDB
+    window.addEventListener('beforeunload', function(){
+      try{
+        // 同步 + 异步 IDB 写入不可靠，此处只做尽力而为
+        writeIdbSnapshot();
+      }catch(e){}
+    });
   }
 
   function updatePostponeOptions(){
@@ -2537,6 +3098,7 @@
 
   function init(){
     try{
+      loadBackupConfig();
       items = loadItems();
       remedyPool = loadRemedyPool();
 
@@ -2554,7 +3116,46 @@
       bindEvents();
       renderAll();
       updateUndoBtn();
+      updateBackupStatusUI();
       clearError();
+
+      // 尝试恢复 backupDirHandle
+      idbGet('handles', 'backupDir').then(function(handle){
+        if(handle){
+          backupDirHandle = handle;
+          updateBackupStatusUI();
+        }else{
+          // 没有文件夹 handle，若支持就提示用户；若支持但用户没选，则先降级为定时下载
+          if(!window.showDirectoryPicker){
+            autoDownloadFallback = true;
+          }else{
+            autoDownloadFallback = true; // 默认也启用下载兜底
+          }
+          updateBackupStatusUI();
+        }
+      }).catch(function(){ /* ignore */ });
+
+      // 启动时写一次 IDB 快照
+      writeIdbSnapshot().then(function(){
+        return cleanIdbSnapshots();
+      }).catch(function(){ /* ignore */ });
+
+      // 启动时检查 IDB 是否有比 localStorage 更多的数据
+      idbGet('meta', 'lastSnapshot').then(function(meta){
+        if(!meta) return;
+        var localCount = items.length;
+        var idbCount = meta.count || 0;
+        if(localCount === 0 && idbCount > 0){
+          setTimeout(function(){
+            if(confirm('检测到浏览器本地数据为空，但 IndexedDB 中保存着 ' + idbCount + ' 道题的备份快照。\n是否从备份恢复？')){
+              restoreFromIdb();
+            }
+          }, 500);
+        }
+      }).catch(function(){ /* ignore */ });
+
+      // 启动定时器
+      scheduleBackup();
 
       // 每秒兜底同步 + 自动跟随中国时间
       setInterval(function(){
@@ -2581,6 +3182,9 @@
           updatePostponeOptions();
         }
       }, 1000);
+
+      // 每 15 秒更新一次备份状态（倒计时）
+      setInterval(updateBackupStatusUI, 15000);
     }catch(e){
       console.error('init error:', e);
       showError('系统初始化失败：'+e.message+'。请刷新页面重试，或清空数据。');
