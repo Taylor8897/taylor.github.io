@@ -202,6 +202,8 @@
   .good-item .meta{font-size:13px;flex:1;min-width:200px;}
   .good-item .actions{display:flex;gap:6px;flex-wrap:wrap;}
   .postpone-select{width:auto;font-size:12px;padding:4px 8px;border-radius:6px;border:1px solid var(--line);background:#fff;cursor:pointer;min-width:150px;}
+  .due-note-input{padding:4px 8px;font-size:12px;border:1px solid var(--line);border-radius:6px;width:130px;font-family:inherit;background:#fffbeb;color:#1f2937;}
+  .due-note-input:focus{outline:2px solid #f59e0b;}
   .date-info-badge{display:inline-block;padding:2px 8px;border-radius:10px;background:#eff6ff;color:#1d4ed8;font-size:11px;font-weight:700;margin-left:6px;}
 
   .calendar-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:10px;}
@@ -452,6 +454,7 @@
         </div>
       </div>
       <div class="key key-sat">
+        <b>备注说明：</b>做题前，先在题目左侧的小输入框里写原因（如“计算难”“公式记错”），再点颜色。备注会保存到题目的错因里。<br>
         <b>跳期说明：</b>跳到过去或将来，题目都<b>立即从当前日期消失</b>，只在目标日期显示，目标日期的今日到期板块会立即出现该题。点颜色后按当前日期重新排程。<br>
         <b>延后：</b>明天到本周日。 <b>提前：</b>过去 7 天内任意一天。
       </div>
@@ -871,7 +874,6 @@
 (function(){
   'use strict';
 
-  // ================= Supabase 配置 =================
   var SUPABASE_URL = 'https://fbwwylbqovbzjhgcolzd.supabase.co';
   var SUPABASE_KEY = 'sb_publishable_P2OU9SAOhwSSoqZMytqsKw_Z55B4CK0';
   var SYNC_ID_KEY = 'tiqu_sync_user_id';
@@ -881,10 +883,9 @@
     localStorage.setItem(SYNC_ID_KEY, syncUserId);
   }
 
-  var CLOUD_SYNC_STATUS = 'idle'; // idle / syncing / error / ok
+  var CLOUD_SYNC_STATUS = 'idle';
   var cloudSyncTimeout = null;
 
-  // ================= 本地存储 Key =================
   var ITEM_KEY = 'tiqu_final_items';
   var SIM_KEY  = 'tiqu_final_simdate';
   var MANUAL_KEY = 'tiqu_final_manual_date';
@@ -902,14 +903,12 @@
   var UNDO_MAX = 30;
   var currentStatRange = 7;
 
-  // 自动备份状态
   var backupConfig = { intervalMinutes: 15, keepCount: 20, enabled: true };
   var backupDirHandle = null;
   var backupTimer = null;
   var lastBackupTime = null;
   var autoDownloadFallback = false;
 
-  // ================= 云端同步核心 =================
   function setSyncStatus(status, msg){
     CLOUD_SYNC_STATUS = status;
     var el = $('syncStatus');
@@ -923,14 +922,9 @@
     setSyncStatus('syncing', '正在从云端下载…');
     return fetch(SUPABASE_URL + '/rest/v1/user_data?user_id=eq.' + encodeURIComponent(syncUserId), {
       method: 'GET',
-      headers: {
-        'apikey': SUPABASE_KEY,
-        'Authorization': 'Bearer ' + SUPABASE_KEY
-      }
+      headers: { 'apikey': SUPABASE_KEY, 'Authorization': 'Bearer ' + SUPABASE_KEY }
     }).then(function(res){
-      if(!res.ok){
-        return res.text().then(function(t){ throw new Error(t); });
-      }
+      if(!res.ok) return res.text().then(function(t){ throw new Error(t); });
       return res.json();
     }).then(function(data){
       if(data && data.length > 0){
@@ -938,26 +932,14 @@
         var cloudItems = row.items || [];
         var cloudPool = row.remedy_pool || [];
         var cloudSim = row.sim_date || '';
-        // 如果云端有数据，且本地为空，或者云端更新时间更晚，则覆盖本地
         var localHasData = items.length > 0 || remedyPool.length > 0;
         var shouldOverwrite = false;
-        if(!localHasData){
-          shouldOverwrite = true;
-        } else {
-          // 比较本地和云端的数据量，粗略判断
-          if(cloudItems.length > items.length || cloudPool.length > remedyPool.length){
-            shouldOverwrite = true;
-          }
-        }
+        if(!localHasData){ shouldOverwrite = true; }
+        else { if(cloudItems.length > items.length || cloudPool.length > remedyPool.length){ shouldOverwrite = true; } }
         if(shouldOverwrite){
           items = cloudItems;
           remedyPool = cloudPool;
-          if(cloudSim){
-            simDate = cloudSim;
-            var simEl = $('simDate');
-            if(simEl) simEl.value = simDate;
-            saveSim();
-          }
+          if(cloudSim){ simDate = cloudSim; var simEl = $('simDate'); if(simEl) simEl.value = simDate; saveSim(); }
           items.forEach(function(it){
             if(!it.id) it.id = uid();
             if(!it.chapter) it.chapter = '第1章';
@@ -969,9 +951,7 @@
             if(typeof it.onlyShowOnNext!=='boolean') it.onlyShowOnNext = false;
             if(!it.initialStatus) it.initialStatus = it.status;
           });
-          saveItems();
-          saveRemedyPool();
-          renderAll();
+          saveItems(); saveRemedyPool(); renderAll();
           setSyncStatus('ok', '已从云端同步最新数据（' + items.length + ' 道题）');
           return { pulled: true };
         } else {
@@ -989,9 +969,7 @@
   }
 
   function cloudPush(silent){
-    if(!silent){
-      setSyncStatus('syncing', '正在上传到云端…');
-    }
+    if(!silent){ setSyncStatus('syncing', '正在上传到云端…'); }
     var payload = {
       user_id: syncUserId,
       items: items,
@@ -1009,37 +987,26 @@
       },
       body: JSON.stringify([payload])
     }).then(function(res){
-      if(!res.ok){
-        return res.text().then(function(t){ throw new Error(t); });
-      }
-      if(!silent){
-        setSyncStatus('ok', '已成功上传到云端（' + items.length + ' 道题）');
-      }
+      if(!res.ok) return res.text().then(function(t){ throw new Error(t); });
+      if(!silent){ setSyncStatus('ok', '已成功上传到云端（' + items.length + ' 道题）'); }
       return { ok: true };
     }).catch(function(e){
-      if(!silent){
-        setSyncStatus('error', '云端上传失败：' + (e.message || e));
-      }
+      if(!silent){ setSyncStatus('error', '云端上传失败：' + (e.message || e)); }
       return { ok: false, error: e };
     });
   }
 
-  // 数据变更后延迟 2 秒触发同步，避免频繁写云
   function scheduleCloudSync(){
     if(cloudSyncTimeout) clearTimeout(cloudSyncTimeout);
-    cloudSyncTimeout = setTimeout(function(){
-      cloudPush(true);
-    }, 2000);
+    cloudSyncTimeout = setTimeout(function(){ cloudPush(true); }, 2000);
   }
 
-  // 更新同步 UI
   function renderSyncUI(){
     var el = $('syncCodeDisplay');
     if(el) el.textContent = syncUserId;
     setSyncStatus('idle', '同步码已生成，数据变更后会自动上传');
   }
 
-  // ================= IDB 工具 =================
   function openBackupDB(){
     return new Promise(function(resolve, reject){
       var req = indexedDB.open('tiqu_backup_db', 1);
@@ -1074,15 +1041,8 @@
     });
   }
 
-  // ================= 备份核心逻辑 =================
   function buildBackupPayload(){
-    return {
-      version: 'backup_v1',
-      exportedAt: new Date().toISOString(),
-      simDate: simDate,
-      items: items,
-      remedyPool: remedyPool
-    };
+    return { version: 'backup_v1', exportedAt: new Date().toISOString(), simDate: simDate, items: items, remedyPool: remedyPool };
   }
 
   function backupFilename(){
@@ -1114,10 +1074,8 @@
         var req = store.openCursor();
         req.onsuccess = function(e){
           var cursor = e.target.result;
-          if(cursor){
-            allKeys.push(cursor.key);
-            cursor.continue();
-          }else{
+          if(cursor){ allKeys.push(cursor.key); cursor.continue(); }
+          else {
             allKeys.sort();
             var keep = backupConfig.keepCount * 3;
             if(allKeys.length > keep){
@@ -1210,9 +1168,7 @@
     if(backupTimer){ clearInterval(backupTimer); backupTimer = null; }
     if(!backupConfig.enabled || backupConfig.intervalMinutes <= 0) return;
     var ms = backupConfig.intervalMinutes * 60 * 1000;
-    backupTimer = setInterval(function(){
-      performBackup(false);
-    }, ms);
+    backupTimer = setInterval(function(){ performBackup(false); }, ms);
     updateBackupStatusUI();
   }
 
@@ -1251,7 +1207,6 @@
     }
   }
 
-  // ================= 通用工具 =================
   function pushUndo(desc){
     try{
       undoStack.push({ desc: desc, items: JSON.parse(JSON.stringify(items)), remedyPool: JSON.parse(JSON.stringify(remedyPool)) });
@@ -1321,7 +1276,6 @@
     return html;
   }
 
-  // ================= 数据加载与保存 =================
   function loadItems(){
     try{
       var raw = localStorage.getItem(ITEM_KEY); if(!raw) return [];
@@ -1352,13 +1306,23 @@
     if(mode==='weekly') return isThisWeek(it.first); if(mode==='monthly') return isThisMonth(it.first); return false;
   }
 
-  function applyResult(id, result){
+  // ============ 关键修改：applyResult 支持备注 ============
+  function applyResult(id, result, note){
     var it = null; for(var i=0;i<items.length;i++){ if(items[i].id===id){ it=items[i]; break; } }
     if(!it) return;
     var prev = it.status; var cur = getCurrentSimDate();
     pushUndo('把「' + it.subject + ' ' + it.page + ' ' + it.no + '」从「' + prev + '」标记为「' + result + '」');
-    it.reviewCount = (it.reviewCount||0) + 1; it.lastReview = cur; it.onlyShowOnNext = false;
+    it.reviewCount = (it.reviewCount||0) + 1;
+    it.lastReview = cur;
+    it.onlyShowOnNext = false;
+
+    // 如果传入了备注，就保存到 errReason
+    if(note && note.trim()){
+      it.errReason = note.trim();
+    }
+
     it.next = scheduleNext(result, prev, cur);
+
     if(result === '不会'){ it.status='红'; it.greenStreak=0; }
     else if(result === '卡'){ it.status='黄'; it.greenStreak=0; }
     else if(result === '会'){
@@ -1459,6 +1423,7 @@
     return due;
   }
 
+  // ============ 关键修改：今日到期每道题前加备注输入框 ============
   function renderDue(){
     var cur = getCurrentSimDate(); var label = $('todayLabel'); var countEl = $('dueCount'); var container = $('dueList'); if(!container) return;
     if(label) label.textContent = '当前：' + fmtDateWk(cur);
@@ -1469,7 +1434,13 @@
     var optionsHtml = buildPostponeOptionsHtml('跳到…'); var html = '';
     due.forEach(function(it){
       var remedyTag = it.isRemedy ? ' <span class="tag t-remedy">补救·' + ((it.reviewCount||0)===0?'首刷':'复刷') + '</span>' : ''; var goodTag = it.isGood ? ' <span class="tag t-good">好题</span>' : ''; var tip = methodTip(it.status); var tipHtml = tip ? '<span class="method-tip">' + tip + '</span>' : '';
-      html += '<div class="due-item '+borderClass(it.status)+'"><div class="head"><div class="meta"><span class="tag '+statusClass(it.status)+'">'+it.status+'</span>' + remedyTag + goodTag + tipHtml + ' ' + '<b>'+it.subject+'</b> · '+it.chapter+' · '+it.source+' · '+it.page+' · '+it.no + '<div class="mini">首次：'+fmtDateWk(it.first)+' · 下次：'+fmtDateWk(it.next)+' · 已复习 '+(it.reviewCount||0)+' 次</div>' + (it.errReason?'<div class="err-reason">错因：'+escapeHtml(it.errReason)+'</div>':'') + '</div><div class="actions"><button class="btn btn-sm btn-bad" data-act="不会" data-id="'+it.id+'">不会 → 红</button><button class="btn btn-sm btn-ok" data-act="卡" data-id="'+it.id+'">卡 → 黄</button><button class="btn btn-sm btn-green" data-act="会" data-id="'+it.id+'">会 → 绿</button><select class="postpone-select" data-postpone-id="'+it.id+'">' + optionsHtml + '</select></div></div></div>';
+      html += '<div class="due-item '+borderClass(it.status)+'"><div class="head"><div class="meta"><span class="tag '+statusClass(it.status)+'">'+it.status+'</span>' + remedyTag + goodTag + tipHtml + ' ' + '<b>'+it.subject+'</b> · '+it.chapter+' · '+it.source+' · '+it.page+' · '+it.no + '<div class="mini">首次：'+fmtDateWk(it.first)+' · 下次：'+fmtDateWk(it.next)+' · 已复习 '+(it.reviewCount||0)+' 次</div>' + (it.errReason?'<div class="err-reason">错因：'+escapeHtml(it.errReason)+'</div>':'') + '</div><div class="actions">' +
+        '<input type="text" class="due-note-input" data-note-id="'+it.id+'" placeholder="备注（如：计算难）" value="'+(it.errReason ? escapeHtml(it.errReason) : '')+'">' +
+        '<button class="btn btn-sm btn-bad" data-act="不会" data-id="'+it.id+'">不会 → 红</button>' +
+        '<button class="btn btn-sm btn-ok" data-act="卡" data-id="'+it.id+'">卡 → 黄</button>' +
+        '<button class="btn btn-sm btn-green" data-act="会" data-id="'+it.id+'">会 → 绿</button>' +
+        '<select class="postpone-select" data-postpone-id="'+it.id+'">' + optionsHtml + '</select>' +
+        '</div></div></div>';
     });
     container.innerHTML = html;
     container.querySelectorAll('.postpone-select').forEach(function(sel){ sel.addEventListener('change', function(){ var id = sel.getAttribute('data-postpone-id'); var date = sel.value; if(date){ postponeOne(id, date); sel.value = ''; } }); });
@@ -1750,7 +1721,21 @@
 
     var bulkBtn = $('bulkPostponeBtn'); if(bulkBtn) bulkBtn.addEventListener('click', postponeAll);
 
-    var dueList = $('dueList'); if(dueList){ dueList.addEventListener('click', function(e){ var btn = e.target.closest('button'); if(!btn) return; if(btn.getAttribute('data-act')){ applyResult(btn.getAttribute('data-id'), btn.getAttribute('data-act')); } }); }
+    // ============ 关键修改：今日到期点击时读备注输入框 ============
+    var dueList = $('dueList');
+    if(dueList){
+      dueList.addEventListener('click', function(e){
+        var btn = e.target.closest('button');
+        if(!btn) return;
+        if(btn.getAttribute('data-act')){
+          var id = btn.getAttribute('data-id');
+          var act = btn.getAttribute('data-act');
+          var noteInput = dueList.querySelector('input[data-note-id="' + id + '"]');
+          var note = noteInput ? noteInput.value : '';
+          applyResult(id, act, note);
+        }
+      });
+    }
 
     var allTbody = $('allTbody'); if(allTbody){ allTbody.addEventListener('click', function(e){ var btn = e.target.closest('button'); if(!btn) return; if(btn.getAttribute('data-good-toggle')){ toggleGood(btn.getAttribute('data-good-toggle')); } else if(btn.getAttribute('data-act')){ applyResult(btn.getAttribute('data-id'), btn.getAttribute('data-act')); } else if(btn.getAttribute('data-del')){ deleteItem(btn.getAttribute('data-del')); } }); }
     var fSubj = $('filterSubject'); if(fSubj) fSubj.addEventListener('change', function(){ fillFilterChapter(); renderAllTable(); });
@@ -1802,7 +1787,6 @@
     var importFromFolderBtn = $('importFromFolderBtn'); var importFromFolderFile = $('importFromFolderFile');
     if(importFromFolderBtn && importFromFolderFile){ importFromFolderBtn.addEventListener('click', function(){ importFromFolderFile.click(); }); importFromFolderFile.addEventListener('change', function(e){ var f = e.target.files[0]; if(!f) return; var reader = new FileReader(); reader.onload = function(ev){ try{ var obj = JSON.parse(ev.target.result); var newItems = null, newSim = null, newPool = null; if(Array.isArray(obj)) newItems = obj; else if(obj && Array.isArray(obj.items)){ newItems = obj.items; newSim = obj.simDate; newPool = obj.remedyPool; } else { alert('文件格式错误'); return; } if(!confirm('导入将覆盖当前所有数据，确定继续？')) return; pushUndo('从备份文件恢复'); items = newItems; items.forEach(function(it){ if(!it.id) it.id = uid(); if(!it.chapter) it.chapter = '第1章'; if(typeof it.reviewCount!=='number') it.reviewCount = 0; if(typeof it.greenStreak!=='number') it.greenStreak = 0; if(typeof it.isRemedy!=='boolean') it.isRemedy = false; if(typeof it.isGood!=='boolean') it.isGood = false; if(!it.lastReview) it.lastReview = ''; if(typeof it.onlyShowOnNext!=='boolean') it.onlyShowOnNext = false; if(!it.initialStatus) it.initialStatus = it.status; }); if(Array.isArray(newPool)) remedyPool = newPool; if(newSim){ simDate = newSim; if(simInput) simInput.value = simDate; saveSim(); localStorage.setItem(MANUAL_KEY, 'true'); } saveItems(); saveRemedyPool(); scheduleCloudSync(); renderAll(); alert('恢复成功：' + items.length + ' 道题，待排池 ' + remedyPool.length + ' 条。'); }catch(err){ alert('文件解析失败：'+err.message); } }; reader.readAsText(f); e.target.value = ''; }); }
 
-    // 云同步按钮
     var copySyncCodeBtn = $('copySyncCodeBtn'); if(copySyncCodeBtn) copySyncCodeBtn.addEventListener('click', function(){ var el = $('syncCodeDisplay'); if(!el) return; var text = el.textContent; if(navigator.clipboard && navigator.clipboard.writeText){ navigator.clipboard.writeText(text).then(function(){ alert('已复制同步码：' + text); }).catch(function(){ alert('复制失败，请手动长按复制：' + text); }); } else { alert('请手动复制：' + text); } });
     var pullFromCloudBtn = $('pullFromCloudBtn'); if(pullFromCloudBtn) pullFromCloudBtn.addEventListener('click', function(){ var input = $('inputSyncCode'); if(!input || !input.value.trim()){ alert('请输入同步码'); return; } var newId = input.value.trim(); if(newId === syncUserId){ alert('这与当前同步码相同'); return; } if(!confirm('即将用同步码 ' + newId + ' 的数据覆盖当前设备，确定继续？')) return; syncUserId = newId; localStorage.setItem(SYNC_ID_KEY, syncUserId); renderSyncUI(); cloudPull().then(function(){ renderAll(); alert('已切换同步码并拉取数据：' + items.length + ' 道题'); }); });
     var forcePushBtn = $('forcePushBtn'); if(forcePushBtn) forcePushBtn.addEventListener('click', function(){ cloudPush(false); });
@@ -1826,10 +1810,7 @@
       fillChapterSelect(); fillRemedyChapterSelect(); fillFilterChapter(); fillDueFilterChapter(); updatePostponeOptions(); $('rmStartDate').value = simDate;
       bindEvents(); renderAll(); updateUndoBtn(); updateBackupStatusUI(); renderSyncUI(); clearError();
 
-      // 启动时尝试从云端拉取（如果本地没有数据，或者云端有更新）
-      cloudPull().then(function(result){
-        if(result.pulled){ renderAll(); }
-      });
+      cloudPull().then(function(result){ if(result.pulled){ renderAll(); } });
 
       idbGet('handles', 'backupDir').then(function(handle){ if(handle){ backupDirHandle = handle; updateBackupStatusUI(); } else { if(!window.showDirectoryPicker){ autoDownloadFallback = true; } else { autoDownloadFallback = true; } updateBackupStatusUI(); } }).catch(function(){});
       writeIdbSnapshot().then(function(){ return cleanIdbSnapshots(); }).catch(function(){});
