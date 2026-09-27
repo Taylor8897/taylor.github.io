@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>题目复习系统</title>
+<title>题目复习系统 · 云同步版</title>
 <style>
   *{box-sizing:border-box;}
   :root{
@@ -50,6 +50,7 @@
   .tab.weekred.active{background:var(--red);border-color:var(--red);}
   .tab.good.active{background:#0891b2;border-color:#0891b2;}
   .tab.dashboard.active{background:#059669;border-color:#059669;}
+  .tab.sync.active{background:#7c3aed;border-color:#7c3aed;}
   .tab:disabled{opacity:.4;cursor:not-allowed;background:#f1f5f9;color:#94a3b8;border-color:#e2e8f0;}
   .tab:disabled:hover{background:#f1f5f9;}
   .panel{display:none;}
@@ -150,6 +151,8 @@
   .key-dashboard b{color:#059669;}
   .key-backup{background:#ecfdf5;border:1px solid #a7f3d0;border-left:4px solid #059669;}
   .key-backup b{color:#059669;}
+  .key-sync{background:#f5f3ff;border:1px solid #ddd6fe;border-left:4px solid #7c3aed;}
+  .key-sync b{color:#7c3aed;}
   .chapter-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:8px;margin:10px 0 14px;}
   .ch-item{background:#f8fafc;border:1px solid var(--line);border-radius:8px;padding:8px;}
   .ch-item label{font-size:11px;margin-bottom:3px;color:#0f172a;font-weight:700;display:flex;justify-content:space-between;align-items:center;gap:4px;}
@@ -237,7 +240,6 @@
   .legend-count{font-weight:700;}
   .empty-chart{color:var(--sub);font-size:13px;padding:30px;text-align:center;}
 
-  /* 自动备份样式 */
   .backup-status{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:10px;margin-bottom:14px;}
   .backup-status-box{background:#f8fafc;border:1px solid var(--line);border-radius:8px;padding:12px;text-align:center;}
   .backup-status-box .n{font-size:15px;font-weight:700;color:#0f172a;line-height:1.3;word-break:break-all;}
@@ -245,14 +247,21 @@
   .backup-status-box.ok .n{color:#059669;}
   .backup-status-box.warn .n{color:#b45309;}
 
+  .sync-box{background:#f5f3ff;border:1px solid #ddd6fe;border-radius:10px;padding:16px;margin-bottom:14px;}
+  .sync-code{font-family:monospace;font-size:18px;font-weight:700;color:#7c3aed;letter-spacing:1px;background:#fff;padding:8px 12px;border-radius:8px;border:1px solid #ddd6fe;display:inline-block;margin:8px 0;}
+  .sync-status{font-size:13px;margin-top:8px;}
+  .sync-status.ok{color:#059669;}
+  .sync-status.warn{color:#b45309;}
+  .sync-status.err{color:#dc2626;}
+
   @media (max-width:600px){.form-grid{grid-template-columns:1fr;}.method-table{font-size:12px;}.method-table td,.method-table th{padding:7px 8px;}.calendar-grid{grid-template-columns:repeat(2,1fr);}}
 </style>
 </head>
 <body>
 <div class="wrap">
 
-  <h1>题目复习系统</h1>
-  <div class="sub">录入题目 → 自动排程 → 今日到期复习 → 周六看本周红题 → 周日周测月测总结 → 补救历史题 → 好题板块 → 学习看板 → 自动备份。</div>
+  <h1>题目复习系统 · 云同步版</h1>
+  <div class="sub">本地存储 + IndexedDB + Supabase 云端三层防护。换设备、清缓存，数据不丢失。</div>
 
   <div class="error-box" id="errorBox"></div>
 
@@ -278,6 +287,7 @@
     <button class="tab remedy" data-tab="remedy">补救板块</button>
     <button class="tab good" data-tab="good" id="goodTab">好题板块</button>
     <button class="tab dashboard" data-tab="dashboard" id="dashboardTab">学习看板</button>
+    <button class="tab sync" data-tab="sync">云同步</button>
     <button class="tab" data-tab="data">数据与备份</button>
   </div>
 
@@ -734,9 +744,42 @@
     </div>
   </div>
 
+  <!-- 云同步 -->
+  <div class="panel" id="panel-sync">
+    <div class="card">
+      <h2 style="border-left-color:#7c3aed;">云同步 · Supabase</h2>
+      <div class="key key-sync">
+        <b>同步码说明：</b>你的数据会自动上传到云端。换设备或清缓存后，在新设备的输入框里输入同一个同步码，即可恢复所有数据。<br>
+        <b>请务必保存好你的同步码！</b>
+      </div>
+
+      <div class="sync-box">
+        <label>你的同步码（请复制并保存到安全的地方）</label>
+        <div>
+          <span class="sync-code" id="syncCodeDisplay">加载中…</span>
+          <button class="btn btn-sm btn-primary" id="copySyncCodeBtn">复制</button>
+        </div>
+        <div class="sync-status" id="syncStatus">正在连接云端…</div>
+      </div>
+
+      <div style="margin-top:20px;">
+        <label>在新设备上输入同步码（覆盖当前设备数据）</label>
+        <div style="display:flex;gap:8px;margin-top:6px;">
+          <input id="inputSyncCode" placeholder="输入同步码，如 tiqu_abc123" style="flex:1;">
+          <button class="btn btn-purple" id="pullFromCloudBtn">从云端恢复</button>
+        </div>
+        <div class="mini" style="margin-top:6px;">⚠️ 点击后会覆盖当前设备的数据，请谨慎操作。</div>
+      </div>
+
+      <div style="margin-top:20px;">
+        <button class="btn btn-emerald" id="forcePushBtn">立即上传到云端</button>
+        <button class="btn" id="forcePullBtn">立即从云端下载</button>
+      </div>
+    </div>
+  </div>
+
   <!-- 数据与备份 -->
   <div class="panel" id="panel-data">
-    <!-- 自动备份 -->
     <div class="card">
       <h2 style="border-left-color:#059669;">自动备份 · 防数据丢失</h2>
       <div class="key key-backup">
@@ -744,7 +787,8 @@
         <b>本系统做三层防护：</b><br>
         ① <b>IndexedDB 冗余</b>（所有浏览器）：每次数据变动后自动在浏览器内多存一份，即使 localStorage 被清空，仍可能恢复。<br>
         ② <b>自动写入文件夹</b>（Chrome/Edge）：选择文件夹后定时把 JSON 备份写入，浏览器数据丢了也能从文件夹恢复。<br>
-        ③ <b>定时下载备份</b>（iPad 等不支持文件夹的浏览器）：定时下载 JSON 文件到下载目录。
+        ③ <b>定时下载备份</b>（iPad 等不支持文件夹的浏览器）：定时下载 JSON 文件到下载目录。<br>
+        ④ <b>Supabase 云端同步</b>：只要记住同步码，换设备、清缓存都能恢复。
       </div>
 
       <div class="backup-status" id="backupStatus">
@@ -827,6 +871,20 @@
 (function(){
   'use strict';
 
+  // ================= Supabase 配置 =================
+  var SUPABASE_URL = 'https://fbwwylbqovbzjhgcolzd.supabase.co';
+  var SUPABASE_KEY = 'sb_publishable_P2OU9SAOhwSSoqZMytqsKw_Z55B4CK0';
+  var SYNC_ID_KEY = 'tiqu_sync_user_id';
+  var syncUserId = localStorage.getItem(SYNC_ID_KEY);
+  if(!syncUserId){
+    syncUserId = 'tiqu_' + Math.random().toString(36).substring(2, 10);
+    localStorage.setItem(SYNC_ID_KEY, syncUserId);
+  }
+
+  var CLOUD_SYNC_STATUS = 'idle'; // idle / syncing / error / ok
+  var cloudSyncTimeout = null;
+
+  // ================= 本地存储 Key =================
   var ITEM_KEY = 'tiqu_final_items';
   var SIM_KEY  = 'tiqu_final_simdate';
   var MANUAL_KEY = 'tiqu_final_manual_date';
@@ -842,22 +900,146 @@
 
   var undoStack = [];
   var UNDO_MAX = 30;
-
   var currentStatRange = 7;
 
   // 自动备份状态
-  var backupConfig = {
-    intervalMinutes: 15,
-    keepCount: 20,
-    enabled: true
-  };
+  var backupConfig = { intervalMinutes: 15, keepCount: 20, enabled: true };
   var backupDirHandle = null;
   var backupTimer = null;
   var lastBackupTime = null;
-  var nextBackupTime = null;
   var autoDownloadFallback = false;
 
-  // ============ IDB 工具 ============
+  // ================= 云端同步核心 =================
+  function setSyncStatus(status, msg){
+    CLOUD_SYNC_STATUS = status;
+    var el = $('syncStatus');
+    if(el){
+      el.textContent = msg;
+      el.className = 'sync-status ' + (status === 'ok' ? 'ok' : status === 'error' ? 'err' : 'warn');
+    }
+  }
+
+  function cloudPull(){
+    setSyncStatus('syncing', '正在从云端下载…');
+    return fetch(SUPABASE_URL + '/rest/v1/user_data?user_id=eq.' + encodeURIComponent(syncUserId), {
+      method: 'GET',
+      headers: {
+        'apikey': SUPABASE_KEY,
+        'Authorization': 'Bearer ' + SUPABASE_KEY
+      }
+    }).then(function(res){
+      if(!res.ok){
+        return res.text().then(function(t){ throw new Error(t); });
+      }
+      return res.json();
+    }).then(function(data){
+      if(data && data.length > 0){
+        var row = data[0];
+        var cloudItems = row.items || [];
+        var cloudPool = row.remedy_pool || [];
+        var cloudSim = row.sim_date || '';
+        // 如果云端有数据，且本地为空，或者云端更新时间更晚，则覆盖本地
+        var localHasData = items.length > 0 || remedyPool.length > 0;
+        var shouldOverwrite = false;
+        if(!localHasData){
+          shouldOverwrite = true;
+        } else {
+          // 比较本地和云端的数据量，粗略判断
+          if(cloudItems.length > items.length || cloudPool.length > remedyPool.length){
+            shouldOverwrite = true;
+          }
+        }
+        if(shouldOverwrite){
+          items = cloudItems;
+          remedyPool = cloudPool;
+          if(cloudSim){
+            simDate = cloudSim;
+            var simEl = $('simDate');
+            if(simEl) simEl.value = simDate;
+            saveSim();
+          }
+          items.forEach(function(it){
+            if(!it.id) it.id = uid();
+            if(!it.chapter) it.chapter = '第1章';
+            if(typeof it.reviewCount!=='number') it.reviewCount = 0;
+            if(typeof it.greenStreak!=='number') it.greenStreak = 0;
+            if(typeof it.isRemedy!=='boolean') it.isRemedy = false;
+            if(typeof it.isGood!=='boolean') it.isGood = false;
+            if(!it.lastReview) it.lastReview = '';
+            if(typeof it.onlyShowOnNext!=='boolean') it.onlyShowOnNext = false;
+            if(!it.initialStatus) it.initialStatus = it.status;
+          });
+          saveItems();
+          saveRemedyPool();
+          renderAll();
+          setSyncStatus('ok', '已从云端同步最新数据（' + items.length + ' 道题）');
+          return { pulled: true };
+        } else {
+          setSyncStatus('ok', '云端与本地数据一致');
+          return { pulled: false };
+        }
+      } else {
+        setSyncStatus('ok', '云端暂无数据，首次同步会自动创建');
+        return { pulled: false };
+      }
+    }).catch(function(e){
+      setSyncStatus('error', '云端下载失败：' + (e.message || e));
+      return { pulled: false, error: e };
+    });
+  }
+
+  function cloudPush(silent){
+    if(!silent){
+      setSyncStatus('syncing', '正在上传到云端…');
+    }
+    var payload = {
+      user_id: syncUserId,
+      items: items,
+      remedy_pool: remedyPool,
+      sim_date: simDate,
+      updated_at: new Date().toISOString()
+    };
+    return fetch(SUPABASE_URL + '/rest/v1/user_data?on_conflict=user_id', {
+      method: 'POST',
+      headers: {
+        'apikey': SUPABASE_KEY,
+        'Authorization': 'Bearer ' + SUPABASE_KEY,
+        'Content-Type': 'application/json',
+        'Prefer': 'resolution=merge-duplicates'
+      },
+      body: JSON.stringify([payload])
+    }).then(function(res){
+      if(!res.ok){
+        return res.text().then(function(t){ throw new Error(t); });
+      }
+      if(!silent){
+        setSyncStatus('ok', '已成功上传到云端（' + items.length + ' 道题）');
+      }
+      return { ok: true };
+    }).catch(function(e){
+      if(!silent){
+        setSyncStatus('error', '云端上传失败：' + (e.message || e));
+      }
+      return { ok: false, error: e };
+    });
+  }
+
+  // 数据变更后延迟 2 秒触发同步，避免频繁写云
+  function scheduleCloudSync(){
+    if(cloudSyncTimeout) clearTimeout(cloudSyncTimeout);
+    cloudSyncTimeout = setTimeout(function(){
+      cloudPush(true);
+    }, 2000);
+  }
+
+  // 更新同步 UI
+  function renderSyncUI(){
+    var el = $('syncCodeDisplay');
+    if(el) el.textContent = syncUserId;
+    setSyncStatus('idle', '同步码已生成，数据变更后会自动上传');
+  }
+
+  // ================= IDB 工具 =================
   function openBackupDB(){
     return new Promise(function(resolve, reject){
       var req = indexedDB.open('tiqu_backup_db', 1);
@@ -891,18 +1073,8 @@
       });
     });
   }
-  function idbDel(store, key){
-    return openBackupDB().then(function(db){
-      return new Promise(function(resolve, reject){
-        var tx = db.transaction(store, 'readwrite');
-        tx.objectStore(store).delete(key);
-        tx.oncomplete = function(){ resolve(); };
-        tx.onerror = function(){ reject(tx.error); };
-      });
-    });
-  }
 
-  // ============ 备份核心逻辑 ============
+  // ================= 备份核心逻辑 =================
   function buildBackupPayload(){
     return {
       version: 'backup_v1',
@@ -924,7 +1096,6 @@
     return '题目复习备份_' + y + m + day + '_' + hh + mm + ss + '.json';
   }
 
-  // 写入 IDB 冗余快照（不同 key，只保留最近几份）
   function writeIdbSnapshot(){
     var payload = buildBackupPayload();
     var ts = Date.now();
@@ -934,7 +1105,6 @@
     });
   }
 
-  // 清理 IDB 旧快照，保留最近 N 份
   function cleanIdbSnapshots(){
     return openBackupDB().then(function(db){
       return new Promise(function(resolve, reject){
@@ -949,7 +1119,6 @@
             cursor.continue();
           }else{
             allKeys.sort();
-            // 多保留一些：keepCount * 3（因为 IDB 冗余快照比文件夹更密集）
             var keep = backupConfig.keepCount * 3;
             if(allKeys.length > keep){
               var toDelete = allKeys.slice(0, allKeys.length - keep);
@@ -963,51 +1132,35 @@
     });
   }
 
-  // 写入文件夹
   function writeFolderBackup(){
-    if(!backupDirHandle){
-      return Promise.reject(new Error('未选择备份文件夹'));
-    }
+    if(!backupDirHandle) return Promise.reject(new Error('未选择备份文件夹'));
     return backupDirHandle.queryPermission({ mode: 'readwrite' }).then(function(perm){
-      if(perm !== 'granted'){
-        return backupDirHandle.requestPermission({ mode: 'readwrite' });
-      }
+      if(perm !== 'granted') return backupDirHandle.requestPermission({ mode: 'readwrite' });
       return perm;
     }).then(function(perm){
-      if(perm !== 'granted'){
-        throw new Error('文件夹权限未授予');
-      }
+      if(perm !== 'granted') throw new Error('文件夹权限未授予');
       var payload = buildBackupPayload();
       var content = JSON.stringify(payload, null, 2);
       var fname = backupFilename();
       return backupDirHandle.getFileHandle(fname, { create: true }).then(function(fh){
         return fh.createWritable();
       }).then(function(writable){
-        return writable.write(content).then(function(){
-          return writable.close();
-        });
-      }).then(function(){
-        // 清理旧文件
-        return cleanFolderBackups();
-      });
+        return writable.write(content).then(function(){ return writable.close(); });
+      }).then(function(){ return cleanFolderBackups(); });
     });
   }
 
-  // 清理文件夹中旧备份，保留最近 keepCount 份
   function cleanFolderBackups(){
     if(!backupDirHandle) return Promise.resolve();
     var files = [];
     return backupDirHandle.values().then(function(){
-      // 使用异步迭代
       return new Promise(function(resolve){
         var iterator = backupDirHandle.values();
         function step(){
           iterator.next().then(function(result){
             if(result.done){ resolve(files); return; }
             var entry = result.value;
-            if(entry.kind === 'file' && /^题目复习备份_.*\.json$/.test(entry.name)){
-              files.push(entry.name);
-            }
+            if(entry.kind === 'file' && /^题目复习备份_.*\.json$/.test(entry.name)) files.push(entry.name);
             step();
           }).catch(function(){ resolve(files); });
         }
@@ -1024,70 +1177,46 @@
     });
   }
 
-  // 降级：下载备份文件
   function downloadBackup(){
     var payload = buildBackupPayload();
     var blob = new Blob([JSON.stringify(payload, null, 2)], {type:'application/json'});
     var url = URL.createObjectURL(blob);
     var a = document.createElement('a');
-    a.href = url;
-    a.download = backupFilename();
-    a.click();
+    a.href = url; a.download = backupFilename(); a.click();
     setTimeout(function(){ URL.revokeObjectURL(url); }, 3000);
   }
 
-  // 执行备份（IDB 冗余 + 文件夹或下载）
   function performBackup(manual){
     var tasks = [];
-    // IDB 冗余
-    tasks.push(
-      writeIdbSnapshot().then(function(){
-        return cleanIdbSnapshots();
-      }).catch(function(e){ console.warn('IDB snapshot failed', e); })
-    );
-
-    // 文件夹或下载
+    tasks.push(writeIdbSnapshot().then(function(){ return cleanIdbSnapshots(); }).catch(function(e){ console.warn('IDB snapshot failed', e); }));
     if(backupDirHandle){
-      tasks.push(
-        writeFolderBackup().catch(function(e){
-          console.warn('Folder backup failed', e);
-          // 降级下载
-          if(manual) downloadBackup();
-        })
-      );
-    }else if(autoDownloadFallback && backupConfig.enabled){
+      tasks.push(writeFolderBackup().catch(function(e){
+        console.warn('Folder backup failed', e);
+        if(manual) downloadBackup();
+      }));
+    } else if(autoDownloadFallback && backupConfig.enabled){
       downloadBackup();
     }
-
     return Promise.all(tasks).then(function(){
       lastBackupTime = new Date();
       updateBackupStatusUI();
       if(manual){
-        alert('已备份：\n• 浏览器内 IndexedDB 冗余\n' +
-          (backupDirHandle ? '• 文件夹：' + (backupDirHandle.name || '已选择') : '') +
-          (autoDownloadFallback && !backupDirHandle ? '• 已下载 JSON 到下载目录' : ''));
+        alert('已备份：\n• 浏览器内 IndexedDB 冗余\n' + (backupDirHandle ? '• 文件夹：' + (backupDirHandle.name || '已选择') : '') + (autoDownloadFallback && !backupDirHandle ? '• 已下载 JSON 到下载目录' : ''));
       }
     });
   }
 
-  // 定时器
   function scheduleBackup(){
     if(backupTimer){ clearInterval(backupTimer); backupTimer = null; }
     if(!backupConfig.enabled || backupConfig.intervalMinutes <= 0) return;
     var ms = backupConfig.intervalMinutes * 60 * 1000;
-    nextBackupTime = new Date(Date.now() + ms);
     backupTimer = setInterval(function(){
       performBackup(false);
-      nextBackupTime = new Date(Date.now() + ms);
-      updateBackupStatusUI();
     }, ms);
     updateBackupStatusUI();
   }
 
-  // 配置保存与加载
-  function saveBackupConfig(){
-    try{ localStorage.setItem(BACKUP_CONFIG_KEY, JSON.stringify(backupConfig)); }catch(e){}
-  }
+  function saveBackupConfig(){ try{ localStorage.setItem(BACKUP_CONFIG_KEY, JSON.stringify(backupConfig)); }catch(e){} }
   function loadBackupConfig(){
     try{
       var raw = localStorage.getItem(BACKUP_CONFIG_KEY);
@@ -1101,272 +1230,111 @@
     }catch(e){}
   }
 
-  // 更新备份状态 UI
   function updateBackupStatusUI(){
-    var elA = $('statusIdb');
+    var elA = $('statusIdb'); if(elA) elA.textContent = '已启用';
     var elB = $('statusFolder');
-    var elC = $('statusLast');
-    var elD = $('statusNext');
-    if(elA) elA.textContent = '已启用';
     if(elB){
-      if(backupDirHandle){
-        elB.textContent = backupDirHandle.name || '已选择';
-        $('backupStatusB').classList.add('ok');
-        $('backupStatusB').classList.remove('warn');
-      }else if(autoDownloadFallback){
-        elB.textContent = '定时下载';
-        $('backupStatusB').classList.add('warn');
-        $('backupStatusB').classList.remove('ok');
-      }else{
-        elB.textContent = '未配置';
-        $('backupStatusB').classList.remove('ok');
-        $('backupStatusB').classList.add('warn');
-      }
+      if(backupDirHandle){ elB.textContent = backupDirHandle.name || '已选择'; $('backupStatusB').classList.add('ok'); $('backupStatusB').classList.remove('warn'); }
+      else if(autoDownloadFallback){ elB.textContent = '定时下载'; $('backupStatusB').classList.add('warn'); $('backupStatusB').classList.remove('ok'); }
+      else { elB.textContent = '未配置'; $('backupStatusB').classList.remove('ok'); $('backupStatusB').classList.add('warn'); }
     }
+    var elC = $('statusLast');
     if(elC){
       if(lastBackupTime){
-        elC.textContent = lastBackupTime.getFullYear() + '-' +
-          String(lastBackupTime.getMonth()+1).padStart(2,'0') + '-' +
-          String(lastBackupTime.getDate()).padStart(2,'0') + ' ' +
-          String(lastBackupTime.getHours()).padStart(2,'0') + ':' +
-          String(lastBackupTime.getMinutes()).padStart(2,'0');
-      }else{
-        elC.textContent = '从未';
-      }
+        elC.textContent = lastBackupTime.getFullYear() + '-' + String(lastBackupTime.getMonth()+1).padStart(2,'0') + '-' + String(lastBackupTime.getDate()).padStart(2,'0') + ' ' + String(lastBackupTime.getHours()).padStart(2,'0') + ':' + String(lastBackupTime.getMinutes()).padStart(2,'0');
+      } else { elC.textContent = '从未'; }
     }
+    var elD = $('statusNext');
     if(elD){
-      if(backupConfig.enabled && backupConfig.intervalMinutes > 0){
-        var nt = new Date(Date.now() + backupConfig.intervalMinutes * 60 * 1000);
-        elD.textContent = '约 ' + backupConfig.intervalMinutes + ' 分钟后';
-      }else{
-        elD.textContent = '已关闭';
-      }
+      if(backupConfig.enabled && backupConfig.intervalMinutes > 0){ elD.textContent = '约 ' + backupConfig.intervalMinutes + ' 分钟后'; }
+      else { elD.textContent = '已关闭'; }
     }
   }
 
+  // ================= 通用工具 =================
   function pushUndo(desc){
     try{
-      undoStack.push({
-        desc: desc,
-        items: JSON.parse(JSON.stringify(items)),
-        remedyPool: JSON.parse(JSON.stringify(remedyPool))
-      });
+      undoStack.push({ desc: desc, items: JSON.parse(JSON.stringify(items)), remedyPool: JSON.parse(JSON.stringify(remedyPool)) });
       if(undoStack.length > UNDO_MAX) undoStack.shift();
       updateUndoBtn();
-    }catch(e){
-      console.error('pushUndo error:', e);
-    }
+    }catch(e){ console.error('pushUndo error:', e); }
   }
-
   function doUndo(){
-    if(undoStack.length === 0){
-      alert('没有可撤回的操作。');
-      return;
-    }
+    if(undoStack.length === 0){ alert('没有可撤回的操作。'); return; }
     var state = undoStack.pop();
-    items = state.items;
-    remedyPool = state.remedyPool;
-    saveItems();
-    saveRemedyPool();
-    renderAll();
-    updateUndoBtn();
+    items = state.items; remedyPool = state.remedyPool;
+    saveItems(); saveRemedyPool(); renderAll(); updateUndoBtn();
     alert('已撤回：' + state.desc);
   }
-
   function updateUndoBtn(){
-    var btn = $('undoBtn');
-    if(!btn) return;
-    if(undoStack.length === 0){
-      btn.disabled = true;
-      btn.textContent = '↩ 撤回';
-    }else{
-      btn.disabled = false;
-      btn.textContent = '↩ 撤回(' + undoStack.length + ')';
-    }
+    var btn = $('undoBtn'); if(!btn) return;
+    if(undoStack.length === 0){ btn.disabled = true; btn.textContent = '↩ 撤回'; }
+    else { btn.disabled = false; btn.textContent = '↩ 撤回(' + undoStack.length + ')'; }
   }
-
   function $(id){ return document.getElementById(id); }
   function showError(msg){ var b=$('errorBox'); if(b){b.style.display='block';b.textContent='⚠ '+msg;} }
   function clearError(){ var b=$('errorBox'); if(b){b.style.display='none';b.textContent='';} }
   function fmt(d){ return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0'); }
-  function chinaNow(){
-    var now = new Date();
-    var utc = now.getTime() + (now.getTimezoneOffset() * 60000);
-    return new Date(utc + (3600000 * 8));
-  }
+  function chinaNow(){ var now = new Date(); var utc = now.getTime() + (now.getTimezoneOffset() * 60000); return new Date(utc + (3600000 * 8)); }
   function chinaToday(){ return fmt(chinaNow()); }
   function todayStr(){ return chinaToday(); }
   function addDays(ds,n){ var d=new Date(ds+'T00:00:00'); d.setDate(d.getDate()+n); return fmt(d); }
   function uid(){ return Date.now().toString(36)+Math.random().toString(36).slice(2,8); }
   function escapeHtml(s){ return String(s).replace(/[&<>"']/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c];}); }
-  function weekday(dateStr){
-    if(!dateStr) return '';
-    var d = new Date(dateStr+'T00:00:00');
-    var wd = ['周日','周一','周二','周三','周四','周五','周六'];
-    return wd[d.getDay()];
-  }
+  function weekday(dateStr){ if(!dateStr) return ''; var d = new Date(dateStr+'T00:00:00'); var wd = ['周日','周一','周二','周三','周四','周五','周六']; return wd[d.getDay()]; }
   function fmtDateWk(dateStr){ return dateStr ? (dateStr + ' ' + weekday(dateStr)) : ''; }
-
-  function getCurrentSimDate(){
-    var el = $('simDate');
-    if(el && el.value){
-      return el.value;
-    }
-    return simDate || chinaToday();
-  }
-
+  function getCurrentSimDate(){ var el = $('simDate'); if(el && el.value) return el.value; return simDate || chinaToday(); }
   function isDueOn(it){
     if(it.status === '归档') return false;
     var cur = getCurrentSimDate();
-    if(it.onlyShowOnNext){
-      return it.next === cur;
-    }
+    if(it.onlyShowOnNext) return it.next === cur;
     return it.next <= cur;
   }
-
-  function isSaturday(){
-    var cur = getCurrentSimDate();
-    var d = new Date(cur+'T00:00:00');
-    return d.getDay() === 6;
-  }
-
-  function getWeekRedRange(){
-    var cur = getCurrentSimDate();
-    var start = addDays(cur, -7);
-    return { start: start, end: cur };
-  }
-
+  function isSaturday(){ var cur = getCurrentSimDate(); var d = new Date(cur+'T00:00:00'); return d.getDay() === 6; }
+  function getWeekRedRange(){ var cur = getCurrentSimDate(); var start = addDays(cur, -7); return { start: start, end: cur }; }
   function getWeekRange(dateStr){
-    var d = new Date(dateStr+'T00:00:00');
-    var day = d.getDay();
+    var d = new Date(dateStr+'T00:00:00'); var day = d.getDay();
     var diff = (day === 0) ? -6 : 1 - day;
-    var monday = new Date(d);
-    monday.setDate(d.getDate() + diff);
-    var sunday = new Date(monday);
-    sunday.setDate(monday.getDate() + 6);
+    var monday = new Date(d); monday.setDate(d.getDate() + diff);
+    var sunday = new Date(monday); sunday.setDate(monday.getDate() + 6);
     return { start: fmt(monday), end: fmt(sunday) };
   }
-  function isThisWeek(dateStr){
-    if(!dateStr) return false;
-    var cur = getCurrentSimDate();
-    var r = getWeekRange(cur);
-    return dateStr >= r.start && dateStr <= r.end;
-  }
-  function getMonthRange(dateStr){
-    var d = new Date(dateStr+'T00:00:00');
-    var start = new Date(d.getFullYear(), d.getMonth(), 1);
-    var end = new Date(d.getFullYear(), d.getMonth() + 1, 0);
-    return { start: fmt(start), end: fmt(end) };
-  }
-  function isThisMonth(dateStr){
-    if(!dateStr) return false;
-    var cur = getCurrentSimDate();
-    var r = getMonthRange(cur);
-    return dateStr >= r.start && dateStr <= r.end;
-  }
-
-  function statusClass(s){
-    if(s==='红') return 't-red';
-    if(s==='黄') return 't-yellow';
-    if(s==='绿') return 't-green';
-    return 't-archive';
-  }
-  function borderClass(s){
-    if(s==='红') return 'red';
-    if(s==='黄') return 'yellow';
-    if(s==='绿') return 'green';
-    return '';
-  }
-  function methodTip(s){
-    if(s==='红') return '重做+写思路，闭卷能做对';
-    if(s==='黄') return '重做卡住的步骤';
-    if(s==='绿') return '抽检即可';
-    return '';
-  }
-
+  function isThisWeek(dateStr){ if(!dateStr) return false; var cur = getCurrentSimDate(); var r = getWeekRange(cur); return dateStr >= r.start && dateStr <= r.end; }
+  function getMonthRange(dateStr){ var d = new Date(dateStr+'T00:00:00'); var start = new Date(d.getFullYear(), d.getMonth(), 1); var end = new Date(d.getFullYear(), d.getMonth() + 1, 0); return { start: fmt(start), end: fmt(end) }; }
+  function isThisMonth(dateStr){ if(!dateStr) return false; var cur = getCurrentSimDate(); var r = getMonthRange(cur); return dateStr >= r.start && dateStr <= r.end; }
+  function statusClass(s){ if(s==='红') return 't-red'; if(s==='黄') return 't-yellow'; if(s==='绿') return 't-green'; return 't-archive'; }
+  function borderClass(s){ if(s==='红') return 'red'; if(s==='黄') return 'yellow'; if(s==='绿') return 'green'; return ''; }
+  function methodTip(s){ if(s==='红') return '重做+写思路，闭卷能做对'; if(s==='黄') return '重做卡住的步骤'; if(s==='绿') return '抽检即可'; return ''; }
   function getPostponeOptions(){
-    var cur = getCurrentSimDate();
-    var options = [];
-    for(var i = 1; i <= 7; i++){
-      options.push({ date: addDays(cur, -i), type: 'early' });
-    }
-    var d = new Date(cur+'T00:00:00');
-    var day = d.getDay();
-    if(day !== 0){
-      var daysToSunday = 7 - day;
-      for(var j = 1; j <= daysToSunday; j++){
-        options.push({ date: addDays(cur, j), type: 'later' });
-      }
-    }
+    var cur = getCurrentSimDate(); var options = [];
+    for(var i = 1; i <= 7; i++) options.push({ date: addDays(cur, -i), type: 'early' });
+    var d = new Date(cur+'T00:00:00'); var day = d.getDay();
+    if(day !== 0){ var daysToSunday = 7 - day; for(var j = 1; j <= daysToSunday; j++) options.push({ date: addDays(cur, j), type: 'later' }); }
     return options;
   }
-
   function buildPostponeOptionsHtml(placeholderText){
-    var options = getPostponeOptions();
-    var earlyList = [];
-    var laterList = [];
-    options.forEach(function(o){
-      if(o.type === 'early') earlyList.push(o.date);
-      else laterList.push(o.date);
-    });
-    var html = '';
-    if(placeholderText) html += '<option value="">' + placeholderText + '</option>';
-    if(earlyList.length > 0){
-      html += '<optgroup label="提前（过去7天）">';
-      earlyList.forEach(function(d){
-        html += '<option value="'+d+'">'+fmtDateWk(d)+'</option>';
-      });
-      html += '</optgroup>';
-    }
-    if(laterList.length > 0){
-      html += '<optgroup label="延后（本周内）">';
-      laterList.forEach(function(d){
-        html += '<option value="'+d+'">'+fmtDateWk(d)+'</option>';
-      });
-      html += '</optgroup>';
-    }
+    var options = getPostponeOptions(); var earlyList = []; var laterList = [];
+    options.forEach(function(o){ if(o.type === 'early') earlyList.push(o.date); else laterList.push(o.date); });
+    var html = ''; if(placeholderText) html += '<option value="">' + placeholderText + '</option>';
+    if(earlyList.length > 0){ html += '<optgroup label="提前（过去7天）">'; earlyList.forEach(function(d){ html += '<option value="'+d+'">'+fmtDateWk(d)+'</option>'; }); html += '</optgroup>'; }
+    if(laterList.length > 0){ html += '<optgroup label="延后（本周内）">'; laterList.forEach(function(d){ html += '<option value="'+d+'">'+fmtDateWk(d)+'</option>'; }); html += '</optgroup>'; }
     return html;
   }
 
+  // ================= 数据加载与保存 =================
   function loadItems(){
     try{
-      var raw = localStorage.getItem(ITEM_KEY);
-      if(!raw) return [];
-      var arr = JSON.parse(raw);
-      if(!Array.isArray(arr)) return [];
+      var raw = localStorage.getItem(ITEM_KEY); if(!raw) return [];
+      var arr = JSON.parse(raw); if(!Array.isArray(arr)) return [];
       arr.forEach(function(it){
-        if(!it.id) it.id = uid();
-        if(!it.subject) it.subject='数学';
-        if(!it.chapter) it.chapter='第1章';
-        if(!it.source) it.source='讲义';
-        if(!it.page) it.page='';
-        if(!it.no) it.no='';
-        if(!it.status) it.status='黄';
-        if(!it.first) it.first=todayStr();
-        if(!it.next) it.next=it.first;
-        if(typeof it.reviewCount!=='number') it.reviewCount=0;
-        if(!it.errReason) it.errReason='';
-        if(typeof it.greenStreak!=='number') it.greenStreak=0;
-        if(typeof it.isRemedy!=='boolean') it.isRemedy=false;
-        if(typeof it.isGood!=='boolean') it.isGood=false;
-        if(!it.lastReview) it.lastReview='';
-        if(typeof it.onlyShowOnNext!=='boolean') it.onlyShowOnNext=false;
-        if(!it.initialStatus) it.initialStatus = it.status;
+        if(!it.id) it.id = uid(); if(!it.subject) it.subject='数学'; if(!it.chapter) it.chapter='第1章'; if(!it.source) it.source='讲义'; if(!it.page) it.page=''; if(!it.no) it.no=''; if(!it.status) it.status='黄'; if(!it.first) it.first=todayStr(); if(!it.next) it.next=it.first; if(typeof it.reviewCount!=='number') it.reviewCount=0; if(!it.errReason) it.errReason=''; if(typeof it.greenStreak!=='number') it.greenStreak=0; if(typeof it.isRemedy!=='boolean') it.isRemedy=false; if(typeof it.isGood!=='boolean') it.isGood=false; if(!it.lastReview) it.lastReview=''; if(typeof it.onlyShowOnNext!=='boolean') it.onlyShowOnNext=false; if(!it.initialStatus) it.initialStatus = it.status;
       });
       return arr;
     }catch(e){ return []; }
   }
-  function saveItems(){
-    try{ localStorage.setItem(ITEM_KEY,JSON.stringify(items)); }catch(e){ showError('保存失败：'+e.message); }
-  }
+  function saveItems(){ try{ localStorage.setItem(ITEM_KEY,JSON.stringify(items)); }catch(e){ showError('保存失败：'+e.message); } }
   function saveSim(){ try{ localStorage.setItem(SIM_KEY,simDate); }catch(e){} }
-
-  function loadRemedyPool(){
-    try{
-      var raw = localStorage.getItem(REMEDY_KEY);
-      return raw ? JSON.parse(raw) : [];
-    }catch(e){ return []; }
-  }
+  function loadRemedyPool(){ try{ var raw = localStorage.getItem(REMEDY_KEY); return raw ? JSON.parse(raw) : []; }catch(e){ return []; } }
   function saveRemedyPool(){ try{ localStorage.setItem(REMEDY_KEY,JSON.stringify(remedyPool)); }catch(e){} }
 
   function scheduleNext(newStatus, prevStatus, fromDate){
@@ -1377,1323 +1345,364 @@
     return addDays(fromDate,3);
   }
 
-  function isPickableForExam(it){
-    if(it.isRemedy && (it.reviewCount || 0) === 0){
-      return false;
-    }
-    return true;
-  }
-
+  function isPickableForExam(it){ if(it.isRemedy && (it.reviewCount || 0) === 0) return false; return true; }
   function isNewInRange(it, mode){
     if(!isPickableForExam(it)) return false;
-    if(it.isRemedy){
-      if(mode==='weekly') return isThisWeek(it.lastReview);
-      if(mode==='monthly') return isThisMonth(it.lastReview);
-      return false;
-    }
-    if(mode==='weekly') return isThisWeek(it.first);
-    if(mode==='monthly') return isThisMonth(it.first);
-    return false;
+    if(it.isRemedy){ if(mode==='weekly') return isThisWeek(it.lastReview); if(mode==='monthly') return isThisMonth(it.lastReview); return false; }
+    if(mode==='weekly') return isThisWeek(it.first); if(mode==='monthly') return isThisMonth(it.first); return false;
   }
 
   function applyResult(id, result){
-    var it = null;
-    for(var i=0;i<items.length;i++){ if(items[i].id===id){ it=items[i]; break; } }
+    var it = null; for(var i=0;i<items.length;i++){ if(items[i].id===id){ it=items[i]; break; } }
     if(!it) return;
-    var prev = it.status;
-    var cur = getCurrentSimDate();
+    var prev = it.status; var cur = getCurrentSimDate();
     pushUndo('把「' + it.subject + ' ' + it.page + ' ' + it.no + '」从「' + prev + '」标记为「' + result + '」');
-    it.reviewCount = (it.reviewCount||0) + 1;
-    it.lastReview = cur;
-    it.onlyShowOnNext = false;
-
+    it.reviewCount = (it.reviewCount||0) + 1; it.lastReview = cur; it.onlyShowOnNext = false;
     it.next = scheduleNext(result, prev, cur);
-
-    if(result === '不会'){
-      it.status='红'; it.greenStreak=0;
-    }else if(result === '卡'){
-      it.status='黄'; it.greenStreak=0;
-    }else if(result === '会'){
-      if(prev === '归档'){
-        it.status='归档'; it.next=addDays(cur,90);
-      }else if(prev === '绿'){
-        it.greenStreak = (it.greenStreak||0) + 1;
-        if(it.greenStreak >= 3){
-          it.status='归档'; it.next=addDays(cur,90);
-        }else{
-          it.status='绿'; it.next=addDays(cur,30);
-        }
-      }else{
-        it.status='绿'; it.greenStreak=0; it.next=addDays(cur,7);
-      }
+    if(result === '不会'){ it.status='红'; it.greenStreak=0; }
+    else if(result === '卡'){ it.status='黄'; it.greenStreak=0; }
+    else if(result === '会'){
+      if(prev === '归档'){ it.status='归档'; it.next=addDays(cur,90); }
+      else if(prev === '绿'){ it.greenStreak = (it.greenStreak||0) + 1; if(it.greenStreak >= 3){ it.status='归档'; it.next=addDays(cur,90); } else { it.status='绿'; it.next=addDays(cur,30); } }
+      else { it.status='绿'; it.greenStreak=0; it.next=addDays(cur,7); }
     }
-    saveItems();
-    scheduleIdleBackup();
-    renderAll();
+    saveItems(); scheduleIdleBackup(); scheduleCloudSync(); renderAll();
   }
 
-  function fillChapterSelect(){
-    var subj = ($('inSubject')||{}).value || '数学';
-    var list = (subj==='数学')?MATH_CH:CIRC_CH;
-    var el = $('inChapter');
-    if(!el) return;
-    el.innerHTML = '';
-    list.forEach(function(ch){
-      var o = document.createElement('option'); o.value=ch; o.textContent=ch;
-      el.appendChild(o);
-    });
-  }
-
-  function fillRemedyChapterSelect(){
-    var subj = ($('rmSubject')||{}).value || '数学';
-    var list = (subj==='数学')?MATH_CH:CIRC_CH;
-    var el = $('rmChapter');
-    if(!el) return;
-    el.innerHTML = '';
-    list.forEach(function(ch){
-      var o = document.createElement('option'); o.value=ch; o.textContent=ch;
-      el.appendChild(o);
-    });
-  }
-
-  function fillFilterChapter(){
-    var subj = ($('filterSubject')||{}).value || '全部';
-    var el = $('filterChapter');
-    if(!el) return;
-    var prev = el.value;
-    el.innerHTML = '<option value="全部">全部</option>';
-    var list = [];
-    if(subj==='数学') list = MATH_CH;
-    else if(subj==='电路') list = CIRC_CH;
-    else list = MATH_CH.concat(CIRC_CH);
-    list.forEach(function(ch){
-      var o = document.createElement('option'); o.value=ch; o.textContent=ch;
-      el.appendChild(o);
-    });
-    var exists = false;
-    for(var i=0;i<el.options.length;i++){ if(el.options[i].value===prev){exists=true;break;} }
-    if(exists) el.value = prev;
-  }
-
-  function fillDueFilterChapter(){
-    var subj = ($('dueFilterSubject')||{}).value || '全部';
-    var el = $('dueFilterChapter');
-    if(!el) return;
-    var prev = el.value;
-    el.innerHTML = '<option value="全部">全部</option>';
-    var list = [];
-    if(subj==='数学') list = MATH_CH;
-    else if(subj==='电路') list = CIRC_CH;
-    else list = MATH_CH.concat(CIRC_CH);
-    list.forEach(function(ch){
-      var o = document.createElement('option'); o.value=ch; o.textContent=ch;
-      el.appendChild(o);
-    });
-    var exists = false;
-    for(var i=0;i<el.options.length;i++){ if(el.options[i].value===prev){exists=true;break;} }
-    if(exists) el.value = prev;
-  }
-
-  function countNewInRange(subject, mode){
-    var count = 0;
-    items.forEach(function(it){
-      if(it.subject !== subject) return;
-      if(isNewInRange(it, mode)) count++;
-    });
-    return count;
-  }
-  function countTotal(subject){
-    var count = 0;
-    items.forEach(function(it){ if(it.subject === subject) count++; });
-    return count;
-  }
+  function fillChapterSelect(){ var subj = ($('inSubject')||{}).value || '数学'; var list = (subj==='数学')?MATH_CH:CIRC_CH; var el = $('inChapter'); if(!el) return; el.innerHTML = ''; list.forEach(function(ch){ var o = document.createElement('option'); o.value=ch; o.textContent=ch; el.appendChild(o); }); }
+  function fillRemedyChapterSelect(){ var subj = ($('rmSubject')||{}).value || '数学'; var list = (subj==='数学')?MATH_CH:CIRC_CH; var el = $('rmChapter'); if(!el) return; el.innerHTML = ''; list.forEach(function(ch){ var o = document.createElement('option'); o.value=ch; o.textContent=ch; el.appendChild(o); }); }
+  function fillFilterChapter(){ var subj = ($('filterSubject')||{}).value || '全部'; var el = $('filterChapter'); if(!el) return; var prev = el.value; el.innerHTML = '<option value="全部">全部</option>'; var list = []; if(subj==='数学') list = MATH_CH; else if(subj==='电路') list = CIRC_CH; else list = MATH_CH.concat(CIRC_CH); list.forEach(function(ch){ var o = document.createElement('option'); o.value=ch; o.textContent=ch; el.appendChild(o); }); var exists = false; for(var i=0;i<el.options.length;i++){ if(el.options[i].value===prev){exists=true;break;} } if(exists) el.value = prev; }
+  function fillDueFilterChapter(){ var subj = ($('dueFilterSubject')||{}).value || '全部'; var el = $('dueFilterChapter'); if(!el) return; var prev = el.value; el.innerHTML = '<option value="全部">全部</option>'; var list = []; if(subj==='数学') list = MATH_CH; else if(subj==='电路') list = CIRC_CH; else list = MATH_CH.concat(CIRC_CH); list.forEach(function(ch){ var o = document.createElement('option'); o.value=ch; o.textContent=ch; el.appendChild(o); }); var exists = false; for(var i=0;i<el.options.length;i++){ if(el.options[i].value===prev){exists=true;break;} } if(exists) el.value = prev; }
+  function countNewInRange(subject, mode){ var count = 0; items.forEach(function(it){ if(it.subject !== subject) return; if(isNewInRange(it, mode)) count++; }); return count; }
+  function countTotal(subject){ var count = 0; items.forEach(function(it){ if(it.subject === subject) count++; }); return count; }
 
   function renderChapterInputs(containerId, subject, mode){
-    var container = $(containerId);
-    if(!container) return;
-    var chapters = subject === '数学' ? MATH_CH : CIRC_CH;
-    var labelNew = (mode==='weekly') ? '本周' : '本月';
-
+    var container = $(containerId); if(!container) return;
+    var chapters = subject === '数学' ? MATH_CH : CIRC_CH; var labelNew = (mode==='weekly') ? '本周' : '本月';
     var html = '<div class="chapter-grid">';
     chapters.forEach(function(ch){
       var newCount = 0, total = 0, remedyPickable = 0;
-      items.forEach(function(it){
-        if(it.subject===subject && it.chapter===ch){
-          if(mode==='weekly' && it.status!=='红' && it.status!=='黄') return;
-          total++;
-          if(isNewInRange(it, mode)) newCount++;
-          if(it.isRemedy && isPickableForExam(it)) remedyPickable++;
-        }
-      });
-      var badgeClass = 'badge-zero';
-      var badgeText = labelNew + newCount + '/总' + total;
-      if(remedyPickable > 0 && newCount === 0){
-        badgeClass = 'badge-remedy';
-        badgeText = '补救可抽' + remedyPickable + '/总' + total;
-      }else if(newCount > 0){
-        badgeClass = 'badge-new';
-      }
+      items.forEach(function(it){ if(it.subject===subject && it.chapter===ch){ if(mode==='weekly' && it.status!=='红' && it.status!=='黄') return; total++; if(isNewInRange(it, mode)) newCount++; if(it.isRemedy && isPickableForExam(it)) remedyPickable++; } });
+      var badgeClass = 'badge-zero'; var badgeText = labelNew + newCount + '/总' + total;
+      if(remedyPickable > 0 && newCount === 0){ badgeClass = 'badge-remedy'; badgeText = '补救可抽' + remedyPickable + '/总' + total; } else if(newCount > 0){ badgeClass = 'badge-new'; }
       var badge = '<span class="count-badge ' + badgeClass + '">' + badgeText + '</span>';
-      html += '<div class="ch-item">' +
-        '<label>' + ch + ' ' + badge + '</label>' +
-        '<input type="number" min="0" max="30" value="0" data-ch-name="' + ch + '">' +
-      '</div>';
+      html += '<div class="ch-item"><label>' + ch + ' ' + badge + '</label><input type="number" min="0" max="30" value="0" data-ch-name="' + ch + '"></div>';
     });
-    html += '</div>';
-    container.innerHTML = html;
+    html += '</div>'; container.innerHTML = html;
   }
-
-  function renderSubjectStat(elId, subject, mode){
-    var el = $(elId);
-    if(!el) return;
-    var newCount = countNewInRange(subject, mode);
-    var total = countTotal(subject);
-    var labelNew = (mode==='weekly') ? '本周录入' : '本月录入';
-    el.textContent = labelNew + ' ' + newCount + ' 题 / 总 ' + total + ' 题';
-  }
+  function renderSubjectStat(elId, subject, mode){ var el = $(elId); if(!el) return; var newCount = countNewInRange(subject, mode); var total = countTotal(subject); var labelNew = (mode==='weekly') ? '本周录入' : '本月录入'; el.textContent = labelNew + ' ' + newCount + ' 题 / 总 ' + total + ' 题'; }
 
   function weightedPick(pool, count, weights){
-    weights = weights || {'红':3,'黄':2,'绿':2,'归档':1};
-    var picked = [];
-    var remain = pool.slice();
+    weights = weights || {'红':3,'黄':2,'绿':2,'归档':1}; var picked = []; var remain = pool.slice();
     while(picked.length<count && remain.length>0){
-      var total = 0;
-      for(var i=0;i<remain.length;i++) total += (weights[remain[i].status]||1);
-      var r = Math.random()*total;
-      var chosen = -1;
-      for(var j=0;j<remain.length;j++){
-        r -= (weights[remain[j].status]||1);
-        if(r<=0){ chosen=j; break; }
-      }
+      var total = 0; for(var i=0;i<remain.length;i++) total += (weights[remain[i].status]||1);
+      var r = Math.random()*total; var chosen = -1;
+      for(var j=0;j<remain.length;j++){ r -= (weights[remain[j].status]||1); if(r<=0){ chosen=j; break; } }
       if(chosen===-1) chosen = remain.length-1;
-      picked.push(remain[chosen]);
-      remain.splice(chosen,1);
+      picked.push(remain[chosen]); remain.splice(chosen,1);
     }
     return picked;
   }
 
   function doPick(subject, scope, containerId, resultId, mode){
-    var allPool = items.filter(function(it){
-      return it.subject === subject && isPickableForExam(it);
-    });
-
-    var weights;
-    if(mode === 'weekly'){
-      allPool = allPool.filter(function(it){ return it.status === '红' || it.status === '黄'; });
-      weights = {'红':3,'黄':2};
-    }else{
-      weights = {'红':3,'黄':2,'绿':2,'归档':1};
-    }
-
-    var inputs = document.querySelectorAll('#'+containerId+' input[data-ch-name]');
-    var chaptersToPick = [];
-    inputs.forEach(function(inp){
-      var n = parseInt(inp.value,10) || 0;
-      if(n>0){
-        chaptersToPick.push({ chapter: inp.getAttribute('data-ch-name'), count: n });
-      }
-    });
-
-    var resultEl = $(resultId);
-    if(!resultEl) return;
-    if(chaptersToPick.length===0){
-      resultEl.innerHTML = '<div class="empty">请先为至少一个章节设置抽题数量（大于0）。</div>';
-      return;
-    }
-
-    var modeLabel = (mode==='weekly') ? '周测' : '月测';
-    var scopeLabel = (scope==='new') ? ((mode==='weekly')?'本周录入优先':'本月录入优先') : '全部题目';
-
-    var resultHtml = '';
-    var totalPicked = 0;
-    var totalNew = 0;
-    var totalOld = 0;
-
+    var allPool = items.filter(function(it){ return it.subject === subject && isPickableForExam(it); });
+    var weights; if(mode === 'weekly'){ allPool = allPool.filter(function(it){ return it.status === '红' || it.status === '黄'; }); weights = {'红':3,'黄':2}; } else { weights = {'红':3,'黄':2,'绿':2,'归档':1}; }
+    var inputs = document.querySelectorAll('#'+containerId+' input[data-ch-name]'); var chaptersToPick = [];
+    inputs.forEach(function(inp){ var n = parseInt(inp.value,10) || 0; if(n>0) chaptersToPick.push({ chapter: inp.getAttribute('data-ch-name'), count: n }); });
+    var resultEl = $(resultId); if(!resultEl) return;
+    if(chaptersToPick.length===0){ resultEl.innerHTML = '<div class="empty">请先为至少一个章节设置抽题数量（大于0）。</div>'; return; }
+    var modeLabel = (mode==='weekly') ? '周测' : '月测'; var scopeLabel = (scope==='new') ? ((mode==='weekly')?'本周录入优先':'本月录入优先') : '全部题目';
+    var resultHtml = ''; var totalPicked = 0; var totalNew = 0; var totalOld = 0;
     chaptersToPick.forEach(function(cfg){
-      var chapterPool = allPool.filter(function(it){ return it.chapter === cfg.chapter; });
-      var picked = [];
-      var newPickedCount = 0;
-      var oldPickedCount = 0;
-
+      var chapterPool = allPool.filter(function(it){ return it.chapter === cfg.chapter; }); var picked = []; var newPickedCount = 0; var oldPickedCount = 0;
       if(scope === 'new'){
-        var newPool = chapterPool.filter(function(it){ return isNewInRange(it, mode); });
-        var oldPool = chapterPool.filter(function(it){
-          return newPool.indexOf(it) === -1;
-        });
-        picked = weightedPick(newPool, cfg.count, weights);
-        newPickedCount = picked.length;
-        if(picked.length < cfg.count){
-          var need = cfg.count - picked.length;
-          var extra = weightedPick(oldPool, need, weights);
-          picked = picked.concat(extra);
-          oldPickedCount = extra.length;
-        }
-      }else{
-        picked = weightedPick(chapterPool, cfg.count, weights);
-      }
-
-      totalPicked += picked.length;
-      totalNew += newPickedCount;
-      totalOld += oldPickedCount;
-
-      var extendedTip = '';
-      if(scope === 'new' && oldPickedCount > 0){
-        extendedTip = ' <span class="mini" style="color:#b45309;">（本周/本月仅 '+newPickedCount+' 道，扩展 '+oldPickedCount+' 道）</span>';
-      }
-
-      resultHtml += '<div style="background:#fff;border:1px solid var(--line);border-radius:10px;padding:12px 14px;margin-bottom:12px;">' +
-        '<div style="font-size:13px;font-weight:700;color:#0f172a;padding-bottom:8px;margin-bottom:8px;border-bottom:1px dashed var(--line);">' +
-          cfg.chapter +
-          ' <span class="mini">（题库 '+chapterPool.length+' 道，抽 '+picked.length+' 道）</span>' + extendedTip +
-        '</div>';
-
-      if(picked.length===0){
-        resultHtml += '<div class="mini" style="padding:6px 0;">该章节没有符合条件的题目</div>';
-      }else{
-        picked.forEach(function(it, i){
-          var remedyTag = it.isRemedy ? ' <span class="tag t-remedy">补救</span>' : '';
-          var goodTag = it.isGood ? ' <span class="tag t-good">好题</span>' : '';
-          resultHtml += '<div class="result-item" data-result-id="'+it.id+'">' +
-            '<div class="info">' +
-              '<span class="pill">'+(i+1)+'</span>' +
-              '<span class="tag '+statusClass(it.status)+'">'+it.status+'</span>' + remedyTag + goodTag + ' ' +
-              it.source + ' · ' + it.page + ' · ' + it.no +
-              '<span class="mini" style="margin-left:6px;">首次：'+fmtDateWk(it.first)+'</span>' +
-              (it.errReason?'<div class="mini" style="margin-top:3px;">错因：'+escapeHtml(it.errReason)+'</div>':'') +
-            '</div>' +
-            '<div class="actions">' +
-              '<button class="btn btn-sm btn-bad" data-pick-act="不会" data-pick-id="'+it.id+'">不会</button>' +
-              '<button class="btn btn-sm btn-ok" data-pick-act="卡" data-pick-id="'+it.id+'">卡</button>' +
-              '<button class="btn btn-sm btn-green" data-pick-act="会" data-pick-id="'+it.id+'">会</button>' +
-            '</div>' +
-          '</div>';
-        });
-      }
+        var newPool = chapterPool.filter(function(it){ return isNewInRange(it, mode); }); var oldPool = chapterPool.filter(function(it){ return newPool.indexOf(it) === -1; });
+        picked = weightedPick(newPool, cfg.count, weights); newPickedCount = picked.length;
+        if(picked.length < cfg.count){ var need = cfg.count - picked.length; var extra = weightedPick(oldPool, need, weights); picked = picked.concat(extra); oldPickedCount = extra.length; }
+      } else { picked = weightedPick(chapterPool, cfg.count, weights); }
+      totalPicked += picked.length; totalNew += newPickedCount; totalOld += oldPickedCount;
+      var extendedTip = ''; if(scope === 'new' && oldPickedCount > 0){ extendedTip = ' <span class="mini" style="color:#b45309;">（本周/本月仅 '+newPickedCount+' 道，扩展 '+oldPickedCount+' 道）</span>'; }
+      resultHtml += '<div style="background:#fff;border:1px solid var(--line);border-radius:10px;padding:12px 14px;margin-bottom:12px;"><div style="font-size:13px;font-weight:700;color:#0f172a;padding-bottom:8px;margin-bottom:8px;border-bottom:1px dashed var(--line);">' + cfg.chapter + ' <span class="mini">（题库 '+chapterPool.length+' 道，抽 '+picked.length+' 道）</span>' + extendedTip + '</div>';
+      if(picked.length===0){ resultHtml += '<div class="mini" style="padding:6px 0;">该章节没有符合条件的题目</div>'; }
+      else { picked.forEach(function(it, i){ var remedyTag = it.isRemedy ? ' <span class="tag t-remedy">补救</span>' : ''; var goodTag = it.isGood ? ' <span class="tag t-good">好题</span>' : ''; resultHtml += '<div class="result-item" data-result-id="'+it.id+'"><div class="info"><span class="pill">'+(i+1)+'</span><span class="tag '+statusClass(it.status)+'">'+it.status+'</span>' + remedyTag + goodTag + ' ' + it.source + ' · ' + it.page + ' · ' + it.no + '<span class="mini" style="margin-left:6px;">首次：'+fmtDateWk(it.first)+'</span>' + (it.errReason?'<div class="mini" style="margin-top:3px;">错因：'+escapeHtml(it.errReason)+'</div>':'') + '</div><div class="actions"><button class="btn btn-sm btn-bad" data-pick-act="不会" data-pick-id="'+it.id+'">不会</button><button class="btn btn-sm btn-ok" data-pick-act="卡" data-pick-id="'+it.id+'">卡</button><button class="btn btn-sm btn-green" data-pick-act="会" data-pick-id="'+it.id+'">会</button></div></div>'; }); }
       resultHtml += '</div>';
     });
-
-    var header = '<div class="key" style="margin-bottom:12px;"><b>'+subject+' '+modeLabel+'：</b>共 '+totalPicked+' 道 · 范围 '+scopeLabel;
-    if(scope === 'new' && totalOld > 0){
-      header += ' · 新题 '+totalNew+' 道，扩展 '+totalOld+' 道';
-    }
-    header += '</div>';
+    var header = '<div class="key" style="margin-bottom:12px;"><b>'+subject+' '+modeLabel+'：</b>共 '+totalPicked+' 道 · 范围 '+scopeLabel; if(scope === 'new' && totalOld > 0){ header += ' · 新题 '+totalNew+' 道，扩展 '+totalOld+' 道'; } header += '</div>';
     resultEl.innerHTML = header + resultHtml;
   }
 
   function pickResultClickHandler(e){
-    var btn = e.target.closest('button[data-pick-act]');
-    if(!btn) return;
-    var id = btn.getAttribute('data-pick-id');
-    var act = btn.getAttribute('data-pick-act');
+    var btn = e.target.closest('button[data-pick-act]'); if(!btn) return;
+    var id = btn.getAttribute('data-pick-id'); var act = btn.getAttribute('data-pick-act');
     applyResult(id, act);
-    var row = btn.closest('.result-item');
-    if(row){
-      row.classList.add('done');
-      var info = row.querySelector('.info');
-      if(info){
-        var tag = info.querySelector('.tag');
-        if(tag){
-          for(var i=0;i<items.length;i++){
-            if(items[i].id===id){
-              tag.className = 'tag ' + statusClass(items[i].status);
-              tag.textContent = items[i].status;
-              break;
-            }
-          }
-        }
-      }
-    }
+    var row = btn.closest('.result-item'); if(row){ row.classList.add('done'); var info = row.querySelector('.info'); if(info){ var tag = info.querySelector('.tag'); if(tag){ for(var i=0;i<items.length;i++){ if(items[i].id===id){ tag.className = 'tag ' + statusClass(items[i].status); tag.textContent = items[i].status; break; } } } } }
   }
 
-  function fillAllOne(containerId){
-    var inputs = document.querySelectorAll('#'+containerId+' input[data-ch-name]');
-    inputs.forEach(function(inp){
-      var chap = inp.getAttribute('data-ch-name');
-      var has = items.some(function(it){
-        return it.chapter===chap && isPickableForExam(it) && (it.status==='红'||it.status==='黄'||it.status==='绿'||it.status==='归档');
-      });
-      inp.value = has ? 1 : 0;
-    });
-  }
-  function clearInputs(containerId){
-    var inputs = document.querySelectorAll('#'+containerId+' input[data-ch-name]');
-    inputs.forEach(function(inp){ inp.value = 0; });
-  }
+  function fillAllOne(containerId){ var inputs = document.querySelectorAll('#'+containerId+' input[data-ch-name]'); inputs.forEach(function(inp){ var chap = inp.getAttribute('data-ch-name'); var has = items.some(function(it){ return it.chapter===chap && isPickableForExam(it) && (it.status==='红'||it.status==='黄'||it.status==='绿'||it.status==='归档'); }); inp.value = has ? 1 : 0; }); }
+  function clearInputs(containerId){ var inputs = document.querySelectorAll('#'+containerId+' input[data-ch-name]'); inputs.forEach(function(inp){ inp.value = 0; }); }
 
-  function renderSimDisplay(){
-    var cur = getCurrentSimDate();
-    var el = $('simDisplay');
-    if(el) el.textContent = '当前：' + fmtDateWk(cur);
-    var satEl = $('satDisplay');
-    if(satEl) satEl.textContent = '本周日：' + fmtDateWk(getNextSunday());
-    var manualFlag = $('manualFlag');
-    var manual = localStorage.getItem(MANUAL_KEY) === 'true';
-    if(manualFlag) manualFlag.style.display = manual ? 'inline-block' : 'none';
-  }
-
-  function getNextSunday(){
-    var cur = getCurrentSimDate();
-    var d = new Date(cur+'T00:00:00');
-    var day = d.getDay();
-    var diff = 7 - day;
-    if(diff <= 0) diff += 7;
-    return addDays(cur, diff);
-  }
+  function renderSimDisplay(){ var cur = getCurrentSimDate(); var el = $('simDisplay'); if(el) el.textContent = '当前：' + fmtDateWk(cur); var satEl = $('satDisplay'); if(satEl) satEl.textContent = '本周日：' + fmtDateWk(getNextSunday()); var manualFlag = $('manualFlag'); var manual = localStorage.getItem(MANUAL_KEY) === 'true'; if(manualFlag) manualFlag.style.display = manual ? 'inline-block' : 'none'; }
+  function getNextSunday(){ var cur = getCurrentSimDate(); var d = new Date(cur+'T00:00:00'); var day = d.getDay(); var diff = 7 - day; if(diff <= 0) diff += 7; return addDays(cur, diff); }
 
   function renderStats(){
-    var el = $('stats');
-    if(!el) return;
-    var total = items.length;
-    var red = items.filter(function(i){return i.status==='红';}).length;
-    var yellow = items.filter(function(i){return i.status==='黄';}).length;
-    var green = items.filter(function(i){return i.status==='绿';}).length;
-    var archive = items.filter(function(i){return i.status==='归档';}).length;
-    var due = items.filter(isDueOn).length;
-    var remedyTotal = items.filter(function(i){ return i.isRemedy; }).length;
-    var goodTotal = items.filter(function(i){ return i.isGood; }).length;
-    el.innerHTML =
-      '<div class="stat blue"><div class="n">'+total+'</div><div class="l">总题数</div></div>' +
-      '<div class="stat red"><div class="n">'+red+'</div><div class="l">红色</div></div>' +
-      '<div class="stat yellow"><div class="n">'+yellow+'</div><div class="l">黄色</div></div>' +
-      '<div class="stat green"><div class="n">'+green+'</div><div class="l">绿色</div></div>' +
-      '<div class="stat archive"><div class="n">'+archive+'</div><div class="l">归档</div></div>' +
-      '<div class="stat remedy"><div class="n">'+remedyTotal+'</div><div class="l">补救题</div></div>' +
-      '<div class="stat good"><div class="n">'+goodTotal+'</div><div class="l">好题</div></div>' +
-      '<div class="stat"><div class="n">'+due+'</div><div class="l">今日到期</div></div>';
+    var el = $('stats'); if(!el) return;
+    var total = items.length; var red = items.filter(function(i){return i.status==='红';}).length; var yellow = items.filter(function(i){return i.status==='黄';}).length; var green = items.filter(function(i){return i.status==='绿';}).length; var archive = items.filter(function(i){return i.status==='归档';}).length; var due = items.filter(isDueOn).length; var remedyTotal = items.filter(function(i){ return i.isRemedy; }).length; var goodTotal = items.filter(function(i){ return i.isGood; }).length;
+    el.innerHTML = '<div class="stat blue"><div class="n">'+total+'</div><div class="l">总题数</div></div><div class="stat red"><div class="n">'+red+'</div><div class="l">红色</div></div><div class="stat yellow"><div class="n">'+yellow+'</div><div class="l">黄色</div></div><div class="stat green"><div class="n">'+green+'</div><div class="l">绿色</div></div><div class="stat archive"><div class="n">'+archive+'</div><div class="l">归档</div></div><div class="stat remedy"><div class="n">'+remedyTotal+'</div><div class="l">补救题</div></div><div class="stat good"><div class="n">'+goodTotal+'</div><div class="l">好题</div></div><div class="stat"><div class="n">'+due+'</div><div class="l">今日到期</div></div>';
   }
 
   function getDueFiltered(){
-    var subj = ($('dueFilterSubject')||{}).value || '全部';
-    var chap = ($('dueFilterChapter')||{}).value || '全部';
-    var stat = ($('dueFilterStatus')||{}).value || '全部';
-    var type = ($('dueFilterType')||{}).value || '全部';
-    var search = ($('dueFilterSearch')||{}).value || '';
-    search = search.trim().toLowerCase();
-
+    var subj = ($('dueFilterSubject')||{}).value || '全部'; var chap = ($('dueFilterChapter')||{}).value || '全部'; var stat = ($('dueFilterStatus')||{}).value || '全部'; var type = ($('dueFilterType')||{}).value || '全部'; var search = ($('dueFilterSearch')||{}).value || ''; search = search.trim().toLowerCase();
     var due = items.filter(isDueOn);
-    if(subj!=='全部') due = due.filter(function(i){ return i.subject===subj; });
-    if(chap!=='全部') due = due.filter(function(i){ return i.chapter===chap; });
-    if(stat!=='全部') due = due.filter(function(i){ return i.status===stat; });
-    if(type==='补救') due = due.filter(function(i){ return i.isRemedy; });
-    if(type==='常规') due = due.filter(function(i){ return !i.isRemedy; });
-    if(search){
-      due = due.filter(function(i){
-        var page = (i.page||'').toLowerCase();
-        var no = (i.no||'').toLowerCase();
-        return page.indexOf(search) !== -1 || no.indexOf(search) !== -1;
-      });
-    }
-    due.sort(function(a,b){
-      var order = {'红':0,'黄':1,'绿':2};
-      if(order[a.status]!==order[b.status]) return order[a.status]-order[b.status];
-      return a.next.localeCompare(b.next);
-    });
+    if(subj!=='全部') due = due.filter(function(i){ return i.subject===subj; }); if(chap!=='全部') due = due.filter(function(i){ return i.chapter===chap; }); if(stat!=='全部') due = due.filter(function(i){ return i.status===stat; }); if(type==='补救') due = due.filter(function(i){ return i.isRemedy; }); if(type==='常规') due = due.filter(function(i){ return !i.isRemedy; });
+    if(search){ due = due.filter(function(i){ var page = (i.page||'').toLowerCase(); var no = (i.no||'').toLowerCase(); return page.indexOf(search) !== -1 || no.indexOf(search) !== -1; }); }
+    due.sort(function(a,b){ var order = {'红':0,'黄':1,'绿':2}; if(order[a.status]!==order[b.status]) return order[a.status]-order[b.status]; return a.next.localeCompare(b.next); });
     return due;
   }
 
   function renderDue(){
-    var cur = getCurrentSimDate();
-    var label = $('todayLabel');
-    var countEl = $('dueCount');
-    var container = $('dueList');
-    if(!container) return;
+    var cur = getCurrentSimDate(); var label = $('todayLabel'); var countEl = $('dueCount'); var container = $('dueList'); if(!container) return;
     if(label) label.textContent = '当前：' + fmtDateWk(cur);
-
-    var allDue = items.filter(isDueOn);
-    var due = getDueFiltered();
-
-    if(countEl){
-      if(due.length === allDue.length){
-        countEl.textContent = '共 ' + due.length + ' 条';
-      }else{
-        countEl.textContent = '筛选出 ' + due.length + ' / 共 ' + allDue.length + ' 条';
-      }
-    }
-
-    if(allDue.length===0){
-      container.innerHTML = '<div class="empty">当前日期没有到期任务。</div>';
-      return;
-    }
-    if(due.length===0){
-      container.innerHTML = '<div class="empty">没有符合当前筛选条件的到期任务。</div>';
-      return;
-    }
-
-    var optionsHtml = buildPostponeOptionsHtml('跳到…');
-
-    var html = '';
+    var allDue = items.filter(isDueOn); var due = getDueFiltered();
+    if(countEl){ if(due.length === allDue.length){ countEl.textContent = '共 ' + due.length + ' 条'; } else { countEl.textContent = '筛选出 ' + due.length + ' / 共 ' + allDue.length + ' 条'; } }
+    if(allDue.length===0){ container.innerHTML = '<div class="empty">当前日期没有到期任务。</div>'; return; }
+    if(due.length===0){ container.innerHTML = '<div class="empty">没有符合当前筛选条件的到期任务。</div>'; return; }
+    var optionsHtml = buildPostponeOptionsHtml('跳到…'); var html = '';
     due.forEach(function(it){
-      var remedyTag = it.isRemedy ? ' <span class="tag t-remedy">补救·' + ((it.reviewCount||0)===0?'首刷':'复刷') + '</span>' : '';
-      var goodTag = it.isGood ? ' <span class="tag t-good">好题</span>' : '';
-      var tip = methodTip(it.status);
-      var tipHtml = tip ? '<span class="method-tip">' + tip + '</span>' : '';
-      html += '<div class="due-item '+borderClass(it.status)+'">' +
-        '<div class="head">' +
-          '<div class="meta">' +
-            '<span class="tag '+statusClass(it.status)+'">'+it.status+'</span>' + remedyTag + goodTag + tipHtml + ' ' +
-            '<b>'+it.subject+'</b> · '+it.chapter+' · '+it.source+' · '+it.page+' · '+it.no +
-            '<div class="mini">首次：'+fmtDateWk(it.first)+' · 下次：'+fmtDateWk(it.next)+' · 已复习 '+(it.reviewCount||0)+' 次</div>' +
-            (it.errReason?'<div class="err-reason">错因：'+escapeHtml(it.errReason)+'</div>':'') +
-          '</div>' +
-          '<div class="actions">' +
-            '<button class="btn btn-sm btn-bad" data-act="不会" data-id="'+it.id+'">不会 → 红</button>' +
-            '<button class="btn btn-sm btn-ok" data-act="卡" data-id="'+it.id+'">卡 → 黄</button>' +
-            '<button class="btn btn-sm btn-green" data-act="会" data-id="'+it.id+'">会 → 绿</button>' +
-            '<select class="postpone-select" data-postpone-id="'+it.id+'">' +
-              optionsHtml +
-            '</select>' +
-          '</div>' +
-        '</div>' +
-      '</div>';
+      var remedyTag = it.isRemedy ? ' <span class="tag t-remedy">补救·' + ((it.reviewCount||0)===0?'首刷':'复刷') + '</span>' : ''; var goodTag = it.isGood ? ' <span class="tag t-good">好题</span>' : ''; var tip = methodTip(it.status); var tipHtml = tip ? '<span class="method-tip">' + tip + '</span>' : '';
+      html += '<div class="due-item '+borderClass(it.status)+'"><div class="head"><div class="meta"><span class="tag '+statusClass(it.status)+'">'+it.status+'</span>' + remedyTag + goodTag + tipHtml + ' ' + '<b>'+it.subject+'</b> · '+it.chapter+' · '+it.source+' · '+it.page+' · '+it.no + '<div class="mini">首次：'+fmtDateWk(it.first)+' · 下次：'+fmtDateWk(it.next)+' · 已复习 '+(it.reviewCount||0)+' 次</div>' + (it.errReason?'<div class="err-reason">错因：'+escapeHtml(it.errReason)+'</div>':'') + '</div><div class="actions"><button class="btn btn-sm btn-bad" data-act="不会" data-id="'+it.id+'">不会 → 红</button><button class="btn btn-sm btn-ok" data-act="卡" data-id="'+it.id+'">卡 → 黄</button><button class="btn btn-sm btn-green" data-act="会" data-id="'+it.id+'">会 → 绿</button><select class="postpone-select" data-postpone-id="'+it.id+'">' + optionsHtml + '</select></div></div></div>';
     });
     container.innerHTML = html;
-
-    container.querySelectorAll('.postpone-select').forEach(function(sel){
-      sel.addEventListener('change', function(){
-        var id = sel.getAttribute('data-postpone-id');
-        var date = sel.value;
-        if(date){
-          postponeOne(id, date);
-          sel.value = '';
-        }
-      });
-    });
+    container.querySelectorAll('.postpone-select').forEach(function(sel){ sel.addEventListener('change', function(){ var id = sel.getAttribute('data-postpone-id'); var date = sel.value; if(date){ postponeOne(id, date); sel.value = ''; } }); });
   }
 
   function renderAllTable(){
-    var tbody = $('allTbody');
-    if(!tbody) return;
-    var subj = ($('filterSubject')||{}).value || '全部';
-    var chap = ($('filterChapter')||{}).value || '全部';
-    var stat = ($('filterStatus')||{}).value || '全部';
-    var src = ($('filterSource')||{}).value || '全部';
-
+    var tbody = $('allTbody'); if(!tbody) return;
+    var subj = ($('filterSubject')||{}).value || '全部'; var chap = ($('filterChapter')||{}).value || '全部'; var stat = ($('filterStatus')||{}).value || '全部'; var src = ($('filterSource')||{}).value || '全部';
     var list = items.slice();
-    if(subj!=='全部') list = list.filter(function(i){return i.subject===subj;});
-    if(chap!=='全部') list = list.filter(function(i){return i.chapter===chap;});
-    if(stat!=='全部') list = list.filter(function(i){return i.status===stat;});
-    if(src==='补救') list = list.filter(function(i){return i.isRemedy;});
-    if(src==='常规') list = list.filter(function(i){return !i.isRemedy;});
-
-    list.sort(function(a,b){
-      if(a.next!==b.next) return a.next.localeCompare(b.next);
-      var order = {'红':0,'黄':1,'绿':2,'归档':3};
-      return order[a.status]-order[b.status];
-    });
-
-    if(list.length===0){
-      tbody.innerHTML = '<tr><td colspan="12" style="text-align:center;color:#6b7280;padding:24px;">没有匹配的题目</td></tr>';
-      return;
-    }
-
+    if(subj!=='全部') list = list.filter(function(i){return i.subject===subj;}); if(chap!=='全部') list = list.filter(function(i){return i.chapter===chap;}); if(stat!=='全部') list = list.filter(function(i){return i.status===stat;}); if(src==='补救') list = list.filter(function(i){return i.isRemedy;}); if(src==='常规') list = list.filter(function(i){return !i.isRemedy;});
+    list.sort(function(a,b){ if(a.next!==b.next) return a.next.localeCompare(b.next); var order = {'红':0,'黄':1,'绿':2,'归档':3}; return order[a.status]-order[b.status]; });
+    if(list.length===0){ tbody.innerHTML = '<tr><td colspan="12" style="text-align:center;color:#6b7280;padding:24px;">没有匹配的题目</td></tr>'; return; }
     var html = '';
     list.forEach(function(it){
-      var typeTag = it.isRemedy ? '<span class="tag t-remedy">补救</span>' : '<span class="mini">常规</span>';
-      var stateTag = '';
-      if(it.isRemedy){
-        if((it.reviewCount||0) === 0){
-          stateTag = '<span class="tag t-wait">待首次复习</span>';
-        }else{
-          stateTag = '<span class="tag t-new">已可抽题</span>';
-        }
-      }else{
-        stateTag = '<span class="mini">—</span>';
-      }
+      var typeTag = it.isRemedy ? '<span class="tag t-remedy">补救</span>' : '<span class="mini">常规</span>'; var stateTag = '';
+      if(it.isRemedy){ if((it.reviewCount||0) === 0){ stateTag = '<span class="tag t-wait">待首次复习</span>'; } else { stateTag = '<span class="tag t-new">已可抽题</span>'; } } else { stateTag = '<span class="mini">—</span>'; }
       var markCell = '<span class="tag '+statusClass(it.status)+'">'+it.status+'</span>';
-      if(it.isGood){
-        markCell += ' <span class="tag t-good">好题</span>';
-        markCell += '<button class="btn-good-remove" data-good-toggle="'+it.id+'" title="移出好题">移出好题</button>';
-      }else{
-        markCell += '<button class="btn-good-add" data-good-toggle="'+it.id+'" title="加入好题">+ 好题</button>';
-      }
+      if(it.isGood){ markCell += ' <span class="tag t-good">好题</span>'; markCell += '<button class="btn-good-remove" data-good-toggle="'+it.id+'" title="移出好题">移出好题</button>'; } else { markCell += '<button class="btn-good-add" data-good-toggle="'+it.id+'" title="加入好题">+ 好题</button>'; }
       var jumpTag = it.onlyShowOnNext ? ' <span class="date-info-badge" title="已跳到指定日期，只在当天显示">📌跳到'+it.next.slice(5)+'</span>' : '';
-      html += '<tr>' +
-        '<td>'+it.subject+'</td>' +
-        '<td>'+it.chapter+'</td>' +
-        '<td>'+it.source+'</td>' +
-        '<td>'+it.page+'</td>' +
-        '<td>'+it.no+'</td>' +
-        '<td>'+markCell+'</td>' +
-        '<td>'+typeTag+'</td>' +
-        '<td>'+stateTag+'</td>' +
-        '<td>'+fmtDateWk(it.first)+'</td>' +
-        '<td>'+fmtDateWk(it.next)+jumpTag+'</td>' +
-        '<td>'+(it.reviewCount||0)+'</td>' +
-        '<td style="white-space:nowrap;">' +
-          '<button class="btn btn-sm" data-act="不会" data-id="'+it.id+'">红</button> ' +
-          '<button class="btn btn-sm" data-act="卡" data-id="'+it.id+'">黄</button> ' +
-          '<button class="btn btn-sm" data-act="会" data-id="'+it.id+'">绿</button> ' +
-          '<button class="btn btn-sm btn-danger" data-del="'+it.id+'">删</button>' +
-        '</td>' +
-      '</tr>';
+      html += '<tr><td>'+it.subject+'</td><td>'+it.chapter+'</td><td>'+it.source+'</td><td>'+it.page+'</td><td>'+it.no+'</td><td>'+markCell+'</td><td>'+typeTag+'</td><td>'+stateTag+'</td><td>'+fmtDateWk(it.first)+'</td><td>'+fmtDateWk(it.next)+jumpTag+'</td><td>'+(it.reviewCount||0)+'</td><td style="white-space:nowrap;"><button class="btn btn-sm" data-act="不会" data-id="'+it.id+'">红</button> <button class="btn btn-sm" data-act="卡" data-id="'+it.id+'">黄</button> <button class="btn btn-sm" data-act="会" data-id="'+it.id+'">绿</button> <button class="btn btn-sm btn-danger" data-del="'+it.id+'">删</button></td></tr>';
     });
     tbody.innerHTML = html;
   }
 
   function renderWeekRed(){
-    var container = $('weekRedList');
-    if(!container) return;
-    if(!isSaturday()){
-      container.innerHTML = '<div class="empty">本周红题板块仅周六开放。当前日期不是周六，请切换到周六查看。</div>';
-      return;
-    }
-    var range = getWeekRedRange();
-    var redItems = items.filter(function(it){
-      return it.status === '红' && it.first >= range.start && it.first <= range.end;
-    });
-    redItems.sort(function(a,b){
-      if(a.subject !== b.subject) return a.subject.localeCompare(b.subject);
-      if(a.chapter !== b.chapter) return a.chapter.localeCompare(b.chapter);
-      return a.first.localeCompare(b.first);
-    });
-
-    var headerHtml = '<div class="key key-red" style="margin-bottom:12px;">' +
-      '<b>范围：</b>' + fmtDateWk(range.start) + ' ~ ' + fmtDateWk(range.end) +
-      '　<b>红题数量：</b>' + redItems.length + ' 道' +
-      '</div>';
-
-    if(redItems.length === 0){
-      container.innerHTML = headerHtml + '<div class="empty">本周没有红题。</div>';
-      return;
-    }
-
+    var container = $('weekRedList'); if(!container) return;
+    if(!isSaturday()){ container.innerHTML = '<div class="empty">本周红题板块仅周六开放。当前日期不是周六，请切换到周六查看。</div>'; return; }
+    var range = getWeekRedRange(); var redItems = items.filter(function(it){ return it.status === '红' && it.first >= range.start && it.first <= range.end; });
+    redItems.sort(function(a,b){ if(a.subject !== b.subject) return a.subject.localeCompare(b.subject); if(a.chapter !== b.chapter) return a.chapter.localeCompare(b.chapter); return a.first.localeCompare(b.first); });
+    var headerHtml = '<div class="key key-red" style="margin-bottom:12px;"><b>范围：</b>' + fmtDateWk(range.start) + ' ~ ' + fmtDateWk(range.end) + '　<b>红题数量：</b>' + redItems.length + ' 道</div>';
+    if(redItems.length === 0){ container.innerHTML = headerHtml + '<div class="empty">本周没有红题。</div>'; return; }
     var html = headerHtml;
-    redItems.forEach(function(it){
-      var goodTag = it.isGood ? ' <span class="tag t-good">好题</span>' : '';
-      html += '<div class="weekred-item">' +
-        '<div class="head">' +
-          '<div class="meta">' +
-            '<span class="tag t-red">红</span> ' + goodTag +
-            '<b>'+it.subject+'</b> · '+it.chapter+' · '+it.source+' · '+it.page+' · '+it.no +
-            ' <span class="badge">已复习 '+(it.reviewCount||0)+' 次</span>' +
-            '<div class="mini">首次：'+fmtDateWk(it.first)+' · 下次：'+fmtDateWk(it.next)+'</div>' +
-            (it.errReason?'<div class="err-reason">错因：'+escapeHtml(it.errReason)+'</div>':'') +
-          '</div>' +
-        '</div>' +
-      '</div>';
-    });
+    redItems.forEach(function(it){ var goodTag = it.isGood ? ' <span class="tag t-good">好题</span>' : ''; html += '<div class="weekred-item"><div class="head"><div class="meta"><span class="tag t-red">红</span> ' + goodTag + '<b>'+it.subject+'</b> · '+it.chapter+' · '+it.source+' · '+it.page+' · '+it.no + ' <span class="badge">已复习 '+(it.reviewCount||0)+' 次</span><div class="mini">首次：'+fmtDateWk(it.first)+' · 下次：'+fmtDateWk(it.next)+'</div>' + (it.errReason?'<div class="err-reason">错因：'+escapeHtml(it.errReason)+'</div>':'') + '</div></div></div>'; });
     container.innerHTML = html;
   }
 
   function renderRemedyStatus(){
-    var poolCount = remedyPool.length;
-    var waitingCount = items.filter(function(i){ return i.isRemedy && (i.reviewCount||0)===0; }).length;
-    var activeCount = items.filter(function(i){ return i.isRemedy && (i.reviewCount||0)>0; }).length;
-    var el1 = $('rmPoolCount'); if(el1) el1.textContent = poolCount;
-    var el2 = $('rmWaitingCount'); if(el2) el2.textContent = waitingCount;
-    var el3 = $('rmActiveCount'); if(el3) el3.textContent = activeCount;
+    var poolCount = remedyPool.length; var waitingCount = items.filter(function(i){ return i.isRemedy && (i.reviewCount||0)===0; }).length; var activeCount = items.filter(function(i){ return i.isRemedy && (i.reviewCount||0)>0; }).length;
+    var el1 = $('rmPoolCount'); if(el1) el1.textContent = poolCount; var el2 = $('rmWaitingCount'); if(el2) el2.textContent = waitingCount; var el3 = $('rmActiveCount'); if(el3) el3.textContent = activeCount;
   }
 
   function renderRemedyQueue(){
-    var container = $('rmQueueList');
-    var countEl = $('rmQueueCount');
-    if(!container) return;
-    if(countEl) countEl.textContent = '（共 ' + remedyPool.length + ' 条）';
-
-    if(remedyPool.length === 0){
-      container.innerHTML = '<div class="empty">待排池为空，请在上方录入历史题。</div>';
-      return;
-    }
-
+    var container = $('rmQueueList'); var countEl = $('rmQueueCount'); if(!container) return; if(countEl) countEl.textContent = '（共 ' + remedyPool.length + ' 条）';
+    if(remedyPool.length === 0){ container.innerHTML = '<div class="empty">待排池为空，请在上方录入历史题。</div>'; return; }
     var html = '';
-    remedyPool.forEach(function(it, idx){
-      html += '<div class="remedy-queue-item">' +
-        '<div class="info">' +
-          '<span class="tag '+statusClass(it.status)+'">'+it.status+'</span> ' +
-          '<b>'+it.subject+'</b> · '+it.chapter+' · '+it.source+' · '+it.page+' · '+it.no +
-          (it.errReason?'<div class="mini" style="margin-top:2px;">错因：'+escapeHtml(it.errReason)+'</div>':'') +
-        '</div>' +
-        '<button class="btn btn-sm btn-danger" data-rm-del="'+idx+'">删除</button>' +
-      '</div>';
-    });
+    remedyPool.forEach(function(it, idx){ html += '<div class="remedy-queue-item"><div class="info"><span class="tag '+statusClass(it.status)+'">'+it.status+'</span> ' + '<b>'+it.subject+'</b> · '+it.chapter+' · '+it.source+' · '+it.page+' · '+it.no + (it.errReason?'<div class="mini" style="margin-top:2px;">错因：'+escapeHtml(it.errReason)+'</div>':'') + '</div><button class="btn btn-sm btn-danger" data-rm-del="'+idx+'">删除</button></div>'; });
     container.innerHTML = html;
   }
 
   function renderRemedyScheduled(){
-    var container = $('rmScheduledList');
-    if(!container) return;
-    var filter = ($('rmScheduledFilter')||{}).value || 'all';
-
-    var list = items.filter(function(i){ return i.isRemedy; });
-    if(filter === 'waiting'){
-      list = list.filter(function(i){ return (i.reviewCount||0) === 0; });
-    }else if(filter === 'active'){
-      list = list.filter(function(i){ return (i.reviewCount||0) > 0; });
-    }
-
-    list.sort(function(a,b){
-      if(a.next!==b.next) return a.next.localeCompare(b.next);
-      return (a.subject||'').localeCompare(b.subject||'');
-    });
-
-    if(list.length === 0){
-      container.innerHTML = '<div class="empty">暂无已排程的补救题。</div>';
-      return;
-    }
-
-    var html = '<div style="overflow-x:auto;"><table><thead><tr>' +
-      '<th>科目</th><th>章节</th><th>来源</th><th>页码</th><th>题号</th><th>标记</th><th>状态</th><th>首次</th><th>下次</th><th>次数</th>' +
-      '</tr></thead><tbody>';
-    list.forEach(function(it){
-      var stateTag = (it.reviewCount||0) === 0
-        ? '<span class="tag t-wait">待首次复习</span>'
-        : '<span class="tag t-new">已可抽题</span>';
-      var goodTag = it.isGood ? ' <span class="tag t-good">好题</span>' : '';
-      html += '<tr>' +
-        '<td>'+it.subject+'</td>' +
-        '<td>'+it.chapter+'</td>' +
-        '<td>'+it.source+'</td>' +
-        '<td>'+it.page+'</td>' +
-        '<td>'+it.no+'</td>' +
-        '<td><span class="tag '+statusClass(it.status)+'">'+it.status+'</span> '+goodTag+'</td>' +
-        '<td>'+stateTag+'</td>' +
-        '<td>'+fmtDateWk(it.first)+'</td>' +
-        '<td>'+fmtDateWk(it.next)+'</td>' +
-        '<td>'+(it.reviewCount||0)+'</td>' +
-      '</tr>';
-    });
-    html += '</tbody></table></div>';
-    container.innerHTML = html;
+    var container = $('rmScheduledList'); if(!container) return; var filter = ($('rmScheduledFilter')||{}).value || 'all';
+    var list = items.filter(function(i){ return i.isRemedy; }); if(filter === 'waiting'){ list = list.filter(function(i){ return (i.reviewCount||0) === 0; }); } else if(filter === 'active'){ list = list.filter(function(i){ return (i.reviewCount||0) > 0; }); }
+    list.sort(function(a,b){ if(a.next!==b.next) return a.next.localeCompare(b.next); return (a.subject||'').localeCompare(b.subject||''); });
+    if(list.length === 0){ container.innerHTML = '<div class="empty">暂无已排程的补救题。</div>'; return; }
+    var html = '<div style="overflow-x:auto;"><table><thead><tr><th>科目</th><th>章节</th><th>来源</th><th>页码</th><th>题号</th><th>标记</th><th>状态</th><th>首次</th><th>下次</th><th>次数</th></tr></thead><tbody>';
+    list.forEach(function(it){ var stateTag = (it.reviewCount||0) === 0 ? '<span class="tag t-wait">待首次复习</span>' : '<span class="tag t-new">已可抽题</span>'; var goodTag = it.isGood ? ' <span class="tag t-good">好题</span>' : ''; html += '<tr><td>'+it.subject+'</td><td>'+it.chapter+'</td><td>'+it.source+'</td><td>'+it.page+'</td><td>'+it.no+'</td><td><span class="tag '+statusClass(it.status)+'">'+it.status+'</span> '+goodTag+'</td><td>'+stateTag+'</td><td>'+fmtDateWk(it.first)+'</td><td>'+fmtDateWk(it.next)+'</td><td>'+(it.reviewCount||0)+'</td></tr>'; });
+    html += '</tbody></table></div>'; container.innerHTML = html;
   }
 
   function renderGood(){
-    var container = $('goodList');
-    if(!container) return;
-    var goodItems = items.filter(function(i){ return i.isGood; });
-    if(goodItems.length === 0){
-      container.innerHTML = '<div class="empty">暂无好题。在录入新题时勾选「加入好题板块」，或在「全部题目」中点击每题标记旁的「+ 好题」按钮。</div>';
-      return;
-    }
-    goodItems.sort(function(a,b){
-      if(a.subject !== b.subject) return a.subject.localeCompare(b.subject);
-      if(a.chapter !== b.chapter) return a.chapter.localeCompare(b.chapter);
-      return a.next.localeCompare(b.next);
-    });
-
+    var container = $('goodList'); if(!container) return; var goodItems = items.filter(function(i){ return i.isGood; });
+    if(goodItems.length === 0){ container.innerHTML = '<div class="empty">暂无好题。在录入新题时勾选「加入好题板块」，或在「全部题目」中点击每题标记旁的「+ 好题」按钮。</div>'; return; }
+    goodItems.sort(function(a,b){ if(a.subject !== b.subject) return a.subject.localeCompare(b.subject); if(a.chapter !== b.chapter) return a.chapter.localeCompare(b.chapter); return a.next.localeCompare(b.next); });
     var html = '';
-    goodItems.forEach(function(it){
-      html += '<div class="good-item">' +
-        '<div class="head">' +
-          '<div class="meta">' +
-            '<span class="tag '+statusClass(it.status)+'">'+it.status+'</span> ' +
-            '<span class="tag t-good">好题</span> ' +
-            (it.isRemedy ? '<span class="tag t-remedy">补救</span> ' : '') +
-            '<b>'+it.subject+'</b> · '+it.chapter+' · '+it.source+' · '+it.page+' · '+it.no +
-            '<div class="mini">首次：'+fmtDateWk(it.first)+' · 下次：'+fmtDateWk(it.next)+' · 已复习 '+(it.reviewCount||0)+' 次</div>' +
-            (it.errReason?'<div class="err-reason">错因：'+escapeHtml(it.errReason)+'</div>':'') +
-          '</div>' +
-          '<div class="actions">' +
-            '<button class="btn btn-sm btn-danger" data-good-remove="'+it.id+'">移出好题</button>' +
-          '</div>' +
-        '</div>' +
-      '</div>';
-    });
+    goodItems.forEach(function(it){ html += '<div class="good-item"><div class="head"><div class="meta"><span class="tag '+statusClass(it.status)+'">'+it.status+'</span> ' + '<span class="tag t-good">好题</span> ' + (it.isRemedy ? '<span class="tag t-remedy">补救</span> ' : '') + '<b>'+it.subject+'</b> · '+it.chapter+' · '+it.source+' · '+it.page+' · '+it.no + '<div class="mini">首次：'+fmtDateWk(it.first)+' · 下次：'+fmtDateWk(it.next)+' · 已复习 '+(it.reviewCount||0)+' 次</div>' + (it.errReason?'<div class="err-reason">错因：'+escapeHtml(it.errReason)+'</div>':'') + '</div><div class="actions"><button class="btn btn-sm btn-danger" data-good-remove="'+it.id+'">移出好题</button></div></div></div>'; });
     container.innerHTML = html;
   }
 
-  function updateWeekRedTab(){
-    var tab = $('weekRedTab');
-    if(!tab) return;
-    if(isSaturday()){
-      tab.disabled = false;
-    }else{
-      tab.disabled = true;
-      if(tab.classList.contains('active')){
-        var dueTab = document.querySelector('.tab[data-tab="due"]');
-        if(dueTab) dueTab.click();
-      }
-    }
-  }
+  function updateWeekRedTab(){ var tab = $('weekRedTab'); if(!tab) return; if(isSaturday()){ tab.disabled = false; } else { tab.disabled = true; if(tab.classList.contains('active')){ var dueTab = document.querySelector('.tab[data-tab="due"]'); if(dueTab) dueTab.click(); } } }
 
-  // 学习看板
   function renderCalendar(){
-    var container = $('calendarContent');
-    if(!container) return;
-    var cur = getCurrentSimDate();
-    var html = '';
+    var container = $('calendarContent'); if(!container) return; var cur = getCurrentSimDate(); var html = '';
     for(var i = 0; i < 10; i++){
-      var date = addDays(cur, i);
-      var isToday = (date === cur);
-      var red = 0, yellow = 0, green = 0;
-      items.forEach(function(it){
-        if(it.status === '归档') return;
-        var onThisDay = false;
-        if(isToday){
-          onThisDay = isDueOn(it);
-        }else{
-          onThisDay = (it.next === date);
-        }
-        if(!onThisDay) return;
-        if(it.status === '红') red++;
-        else if(it.status === '黄') yellow++;
-        else if(it.status === '绿') green++;
-      });
-      var total = red + yellow + green;
-      var dateShort = date.slice(5);
-      html += '<div class="cal-day' + (isToday ? ' today' : '') + '">' +
-        '<div class="cal-date">' + dateShort + (isToday ? ' 今天' : '') + '</div>' +
-        '<div class="cal-wk">' + weekday(date) + '</div>' +
-        '<div class="cal-counts">';
-      if(total === 0){
-        html += '<span class="cal-zero">无任务</span>';
-      }else{
-        if(red > 0) html += '<span class="cal-count cal-red">红 '+red+'</span>';
-        if(yellow > 0) html += '<span class="cal-count cal-yellow">黄 '+yellow+'</span>';
-        if(green > 0) html += '<span class="cal-count cal-green">绿 '+green+'</span>';
-      }
-      html += '</div>';
-      if(total > 0){
-        html += '<div class="cal-total">共 '+total+' 题</div>';
-      }
-      html += '</div>';
+      var date = addDays(cur, i); var isToday = (date === cur); var red = 0, yellow = 0, green = 0;
+      items.forEach(function(it){ if(it.status === '归档') return; var onThisDay = false; if(isToday){ onThisDay = isDueOn(it); } else { onThisDay = (it.next === date); } if(!onThisDay) return; if(it.status === '红') red++; else if(it.status === '黄') yellow++; else if(it.status === '绿') green++; });
+      var total = red + yellow + green; var dateShort = date.slice(5);
+      html += '<div class="cal-day' + (isToday ? ' today' : '') + '"><div class="cal-date">' + dateShort + (isToday ? ' 今天' : '') + '</div><div class="cal-wk">' + weekday(date) + '</div><div class="cal-counts">';
+      if(total === 0){ html += '<span class="cal-zero">无任务</span>'; } else { if(red > 0) html += '<span class="cal-count cal-red">红 '+red+'</span>'; if(yellow > 0) html += '<span class="cal-count cal-yellow">黄 '+yellow+'</span>'; if(green > 0) html += '<span class="cal-count cal-green">绿 '+green+'</span>'; }
+      html += '</div>'; if(total > 0){ html += '<div class="cal-total">共 '+total+' 题</div>'; } html += '</div>';
     }
     container.innerHTML = html;
   }
 
-  function polarToCartesian(cx, cy, r, angleDeg){
-    var rad = (angleDeg - 90) * Math.PI / 180;
-    return { x: cx + r * Math.cos(rad), y: cy + r * Math.sin(rad) };
-  }
-
+  function polarToCartesian(cx, cy, r, angleDeg){ var rad = (angleDeg - 90) * Math.PI / 180; return { x: cx + r * Math.cos(rad), y: cy + r * Math.sin(rad) }; }
   function renderPie(segments){
-    var total = 0;
-    segments.forEach(function(s){ total += s.value; });
-    if(total === 0){
-      return '<div class="empty-chart">该范围内暂无题目</div>';
-    }
-    var nonZero = segments.filter(function(s){ return s.value > 0; });
-    if(nonZero.length === 1){
-      return '<svg viewBox="0 0 200 200" width="200" height="200">' +
-        '<circle cx="100" cy="100" r="80" fill="' + nonZero[0].color + '"/>' +
-        '</svg>';
-    }
-    var cx = 100, cy = 100, r = 80;
-    var cumulative = 0;
-    var paths = '';
-    segments.forEach(function(s){
-      if(s.value === 0) return;
-      var startAngle = (cumulative / total) * 360;
-      var endAngle = ((cumulative + s.value) / total) * 360;
-      var start = polarToCartesian(cx, cy, r, startAngle);
-      var end = polarToCartesian(cx, cy, r, endAngle);
-      var largeArc = (endAngle - startAngle) > 180 ? 1 : 0;
-      var d = 'M ' + cx + ' ' + cy + ' L ' + start.x + ' ' + start.y +
-              ' A ' + r + ' ' + r + ' 0 ' + largeArc + ' 1 ' + end.x + ' ' + end.y + ' Z';
-      paths += '<path d="' + d + '" fill="' + s.color + '" stroke="#fff" stroke-width="2"/>';
-      cumulative += s.value;
-    });
+    var total = 0; segments.forEach(function(s){ total += s.value; }); if(total === 0){ return '<div class="empty-chart">该范围内暂无题目</div>'; }
+    var nonZero = segments.filter(function(s){ return s.value > 0; }); if(nonZero.length === 1){ return '<svg viewBox="0 0 200 200" width="200" height="200"><circle cx="100" cy="100" r="80" fill="' + nonZero[0].color + '"/></svg>'; }
+    var cx = 100, cy = 100, r = 80; var cumulative = 0; var paths = '';
+    segments.forEach(function(s){ if(s.value === 0) return; var startAngle = (cumulative / total) * 360; var endAngle = ((cumulative + s.value) / total) * 360; var start = polarToCartesian(cx, cy, r, startAngle); var end = polarToCartesian(cx, cy, r, endAngle); var largeArc = (endAngle - startAngle) > 180 ? 1 : 0; var d = 'M ' + cx + ' ' + cy + ' L ' + start.x + ' ' + start.y + ' A ' + r + ' ' + r + ' 0 ' + largeArc + ' 1 ' + end.x + ' ' + end.y + ' Z'; paths += '<path d="' + d + '" fill="' + s.color + '" stroke="#fff" stroke-width="2"/>'; cumulative += s.value; });
     return '<svg viewBox="0 0 200 200" width="200" height="200">' + paths + '</svg>';
   }
 
   function renderStatsPanel(){
-    var container = $('statsContent');
-    if(!container) return;
-
-    var cur = getCurrentSimDate();
-    var rangeStart = addDays(cur, -currentStatRange);
-    var rangeEnd = cur;
-
-    var rangeItems = items.filter(function(it){
-      return it.first >= rangeStart && it.first <= rangeEnd;
-    });
-
-    var initialRedItems = rangeItems.filter(function(it){
-      return it.initialStatus === '红';
-    });
-    var nowGreenFromRed = initialRedItems.filter(function(it){
-      return it.status === '绿';
-    });
-    var nowArchiveFromRed = initialRedItems.filter(function(it){
-      return it.status === '归档';
-    });
-    var redToGreenOrArchive = nowGreenFromRed.length + nowArchiveFromRed.length;
-
-    var totalRed = initialRedItems.length;
-    var convertRate = totalRed > 0 ? Math.round((redToGreenOrArchive / totalRed) * 100) : 0;
-
+    var container = $('statsContent'); if(!container) return; var cur = getCurrentSimDate(); var rangeStart = addDays(cur, -currentStatRange); var rangeEnd = cur;
+    var rangeItems = items.filter(function(it){ return it.first >= rangeStart && it.first <= rangeEnd; });
+    var initialRedItems = rangeItems.filter(function(it){ return it.initialStatus === '红'; }); var nowGreenFromRed = initialRedItems.filter(function(it){ return it.status === '绿'; }); var nowArchiveFromRed = initialRedItems.filter(function(it){ return it.status === '归档'; }); var redToGreenOrArchive = nowGreenFromRed.length + nowArchiveFromRed.length;
+    var totalRed = initialRedItems.length; var convertRate = totalRed > 0 ? Math.round((redToGreenOrArchive / totalRed) * 100) : 0;
     var countRed = 0, countYellow = 0, countGreen = 0, countArchive = 0;
-    rangeItems.forEach(function(it){
-      if(it.status === '红') countRed++;
-      else if(it.status === '黄') countYellow++;
-      else if(it.status === '绿') countGreen++;
-      else if(it.status === '归档') countArchive++;
-    });
-
+    rangeItems.forEach(function(it){ if(it.status === '红') countRed++; else if(it.status === '黄') countYellow++; else if(it.status === '绿') countGreen++; else if(it.status === '归档') countArchive++; });
     var rangeLabel = currentStatRange === 7 ? '近 1 周' : (currentStatRange === 14 ? '近 2 周' : '近 1 月');
-
     var html = '';
-    html += '<div class="summary-grid">';
-    html += '<div class="summary-card highlight"><div class="n">' + convertRate + '%</div><div class="l">红题 → 绿/归档 转化率</div></div>';
-    html += '<div class="summary-card"><div class="n">' + rangeItems.length + '</div><div class="l">' + rangeLabel + '录入总数</div></div>';
-    html += '<div class="summary-card"><div class="n">' + totalRed + '</div><div class="l">其中初始为红题</div></div>';
-    html += '<div class="summary-card"><div class="n">' + redToGreenOrArchive + '</div><div class="l">已变绿或归档</div></div>';
-    html += '</div>';
-
-    var segments = [
-      { label: '红题', value: countRed, color: '#dc2626' },
-      { label: '黄题', value: countYellow, color: '#f59e0b' },
-      { label: '绿题', value: countGreen, color: '#15803d' },
-      { label: '归档', value: countArchive, color: '#7c3aed' }
-    ];
-
-    if(rangeItems.length === 0){
-      html += '<div class="empty-chart">' + rangeLabel + '内还没有录入任何题目。继续加油！</div>';
-    }else{
-      html += '<div class="chart-wrap">';
-      html += '<div class="pie-container">';
-      html += renderPie(segments);
-      html += '<div class="pie-center"><div class="pct">' + convertRate + '%</div><div class="lbl">转化率</div></div>';
-      html += '</div>';
-      html += '<div class="pie-legend">';
-      segments.forEach(function(s){
-        var pct = rangeItems.length > 0 ? Math.round((s.value / rangeItems.length) * 100) : 0;
-        html += '<div class="legend-item">' +
-          '<div class="legend-color" style="background:' + s.color + '"></div>' +
-          '<div class="legend-text">' + s.label + '</div>' +
-          '<div class="legend-count">' + s.value + ' 题 · ' + pct + '%</div>' +
-        '</div>';
-      });
-      html += '</div>';
-      html += '</div>';
-
-      html += '<div class="key key-dashboard" style="margin-top:16px;">';
-      html += '<b>统计口径：</b>' + rangeLabel + '（' + rangeStart + ' ~ ' + rangeEnd + '）内首次录入的题目，共 ' + rangeItems.length + ' 道。';
-      html += '其中初始标记为「红」的有 <b>' + totalRed + '</b> 道，目前已经变为「绿」或「归档」的有 <b>' + redToGreenOrArchive + '</b> 道。';
-      html += '</div>';
-    }
-
+    html += '<div class="summary-grid"><div class="summary-card highlight"><div class="n">' + convertRate + '%</div><div class="l">红题 → 绿/归档 转化率</div></div><div class="summary-card"><div class="n">' + rangeItems.length + '</div><div class="l">' + rangeLabel + '录入总数</div></div><div class="summary-card"><div class="n">' + totalRed + '</div><div class="l">其中初始为红题</div></div><div class="summary-card"><div class="n">' + redToGreenOrArchive + '</div><div class="l">已变绿或归档</div></div></div>';
+    var segments = [ { label: '红题', value: countRed, color: '#dc2626' }, { label: '黄题', value: countYellow, color: '#f59e0b' }, { label: '绿题', value: countGreen, color: '#15803d' }, { label: '归档', value: countArchive, color: '#7c3aed' } ];
+    if(rangeItems.length === 0){ html += '<div class="empty-chart">' + rangeLabel + '内还没有录入任何题目。继续加油！</div>'; } else { html += '<div class="chart-wrap"><div class="pie-container">' + renderPie(segments) + '<div class="pie-center"><div class="pct">' + convertRate + '%</div><div class="lbl">转化率</div></div></div><div class="pie-legend">'; segments.forEach(function(s){ var pct = rangeItems.length > 0 ? Math.round((s.value / rangeItems.length) * 100) : 0; html += '<div class="legend-item"><div class="legend-color" style="background:' + s.color + '"></div><div class="legend-text">' + s.label + '</div><div class="legend-count">' + s.value + ' 题 · ' + pct + '%</div></div>'; }); html += '</div></div>'; html += '<div class="key key-dashboard" style="margin-top:16px;"><b>统计口径：</b>' + rangeLabel + '（' + rangeStart + ' ~ ' + rangeEnd + '）内首次录入的题目，共 ' + rangeItems.length + ' 道。其中初始标记为「红」的有 <b>' + totalRed + '</b> 道，目前已经变为「绿」或「归档」的有 <b>' + redToGreenOrArchive + '</b> 道。</div>'; }
     container.innerHTML = html;
   }
 
-  function renderDashboard(){
-    renderCalendar();
-    renderStatsPanel();
-  }
+  function renderDashboard(){ renderCalendar(); renderStatsPanel(); }
 
   function renderAll(){
-    var inputEl = $('simDate');
-    if(inputEl && inputEl.value && inputEl.value !== simDate){
-      simDate = inputEl.value;
-      saveSim();
-    }
-    renderSimDisplay();
-    renderStats();
-    renderDue();
-    renderAllTable();
-    renderWeekRed();
-    renderGood();
-    renderDashboard();
-    renderSubjectStat('wkMathStat', '数学', 'weekly');
-    renderSubjectStat('wkCircStat', '电路', 'weekly');
-    renderChapterInputs('wkMathChapterInputs', '数学', 'weekly');
-    renderChapterInputs('wkCircChapterInputs', '电路', 'weekly');
-    renderSubjectStat('moMathStat', '数学', 'monthly');
-    renderSubjectStat('moCircStat', '电路', 'monthly');
-    renderChapterInputs('moMathChapterInputs', '数学', 'monthly');
-    renderChapterInputs('moCircChapterInputs', '电路', 'monthly');
-    renderRemedyStatus();
-    renderRemedyQueue();
-    renderRemedyScheduled();
-    updateWeekRedTab();
+    var inputEl = $('simDate'); if(inputEl && inputEl.value && inputEl.value !== simDate){ simDate = inputEl.value; saveSim(); }
+    renderSimDisplay(); renderStats(); renderDue(); renderAllTable(); renderWeekRed(); renderGood(); renderDashboard();
+    renderSubjectStat('wkMathStat', '数学', 'weekly'); renderSubjectStat('wkCircStat', '电路', 'weekly'); renderChapterInputs('wkMathChapterInputs', '数学', 'weekly'); renderChapterInputs('wkCircChapterInputs', '电路', 'weekly');
+    renderSubjectStat('moMathStat', '数学', 'monthly'); renderSubjectStat('moCircStat', '电路', 'monthly'); renderChapterInputs('moMathChapterInputs', '数学', 'monthly'); renderChapterInputs('moCircChapterInputs', '电路', 'monthly');
+    renderRemedyStatus(); renderRemedyQueue(); renderRemedyScheduled(); updateWeekRedTab();
   }
 
-  // 延迟备份：数据变更后 5 秒触发一次，避免频繁写入
   var idleBackupTimer = null;
   function scheduleIdleBackup(){
     if(idleBackupTimer) clearTimeout(idleBackupTimer);
-    idleBackupTimer = setTimeout(function(){
-      // 只写 IDB 冗余，不写文件夹（文件夹由定时器负责）
-      writeIdbSnapshot().then(function(){
-        return cleanIdbSnapshots();
-      }).catch(function(e){ console.warn('idle IDB snapshot failed', e); });
-    }, 5000);
+    idleBackupTimer = setTimeout(function(){ writeIdbSnapshot().then(function(){ return cleanIdbSnapshots(); }).catch(function(e){ console.warn('idle IDB snapshot failed', e); }); }, 5000);
   }
 
   function addItem(){
-    clearError();
-    var subject = $('inSubject').value;
-    var chapter = $('inChapter').value;
-    var source = $('inSource').value;
-    var page = $('inPage').value.trim();
-    var no = $('inNo').value.trim();
-    var status = $('inStatus').value;
-    var errReason = $('inErr').value.trim();
-    var isGood = $('inGood').checked;
-
-    if(!page && !no){ showError('至少填写页码或题号'); return; }
-    if(!chapter){ showError('请选择章节'); return; }
-
-    var cur = getCurrentSimDate();
-    var first = cur;
-    var next = scheduleNext(status, null, first);
-
+    clearError(); var subject = $('inSubject').value; var chapter = $('inChapter').value; var source = $('inSource').value; var page = $('inPage').value.trim(); var no = $('inNo').value.trim(); var status = $('inStatus').value; var errReason = $('inErr').value.trim(); var isGood = $('inGood').checked;
+    if(!page && !no){ showError('至少填写页码或题号'); return; } if(!chapter){ showError('请选择章节'); return; }
+    var cur = getCurrentSimDate(); var first = cur; var next = scheduleNext(status, null, first);
     pushUndo('添加题目「' + subject + ' ' + chapter + ' ' + page + ' ' + no + '」');
-    items.push({
-      id:uid(), subject:subject, chapter:chapter, source:source,
-      page:page, no:no, status:status, errReason:errReason,
-      first:first, next:next, reviewCount:0, lastReview:'', greenStreak:0,
-      isRemedy:false, isGood:isGood, onlyShowOnNext:false,
-      initialStatus: status
-    });
-
-    saveItems();
-    scheduleIdleBackup();
-    $('inPage').value=''; $('inNo').value=''; $('inErr').value=''; $('inGood').checked=false;
-    var hint = $('addHint');
-    if(hint) hint.textContent = '✓ 已添加，下次复习：' + fmtDateWk(next);
-    renderAll();
+    items.push({ id:uid(), subject:subject, chapter:chapter, source:source, page:page, no:no, status:status, errReason:errReason, first:first, next:next, reviewCount:0, lastReview:'', greenStreak:0, isRemedy:false, isGood:isGood, onlyShowOnNext:false, initialStatus: status });
+    saveItems(); scheduleIdleBackup(); scheduleCloudSync(); $('inPage').value=''; $('inNo').value=''; $('inErr').value=''; $('inGood').checked=false;
+    var hint = $('addHint'); if(hint) hint.textContent = '✓ 已添加，下次复习：' + fmtDateWk(next); renderAll();
   }
 
   function addToRemedyPool(){
-    var subject = $('rmSubject').value;
-    var chapter = $('rmChapter').value;
-    var source = $('rmSource').value;
-    var page = $('rmPage').value.trim();
-    var no = $('rmNo').value.trim();
-    var status = $('rmStatus').value;
-    var errReason = $('rmErr').value.trim();
-
-    if(!page && !no){ showError('补救录入：至少填写页码或题号'); return; }
-    if(!chapter){ showError('补救录入：请选择章节'); return; }
-
+    var subject = $('rmSubject').value; var chapter = $('rmChapter').value; var source = $('rmSource').value; var page = $('rmPage').value.trim(); var no = $('rmNo').value.trim(); var status = $('rmStatus').value; var errReason = $('rmErr').value.trim();
+    if(!page && !no){ showError('补救录入：至少填写页码或题号'); return; } if(!chapter){ showError('补救录入：请选择章节'); return; }
     pushUndo('加入待排池「' + subject + ' ' + chapter + ' ' + page + ' ' + no + '」');
-    remedyPool.push({
-      id: uid(),
-      subject: subject,
-      chapter: chapter,
-      source: source,
-      page: page,
-      no: no,
-      status: status,
-      errReason: errReason
-    });
-    saveRemedyPool();
-    scheduleIdleBackup();
-    $('rmPage').value=''; $('rmNo').value=''; $('rmErr').value='';
-    var hint = $('rmAddHint');
-    if(hint) hint.textContent = '✓ 已加入待排池，当前 ' + remedyPool.length + ' 条';
-    renderAll();
+    remedyPool.push({ id: uid(), subject: subject, chapter: chapter, source: source, page: page, no: no, status: status, errReason: errReason });
+    saveRemedyPool(); scheduleIdleBackup(); scheduleCloudSync(); $('rmPage').value=''; $('rmNo').value=''; $('rmErr').value='';
+    var hint = $('rmAddHint'); if(hint) hint.textContent = '✓ 已加入待排池，当前 ' + remedyPool.length + ' 条'; renderAll();
   }
 
-  function deleteRemedyQueueItem(idx){
-    var it = remedyPool[idx];
-    if(!it) return;
-    pushUndo('从待排池删除「' + it.subject + ' ' + it.page + ' ' + it.no + '」');
-    remedyPool.splice(idx, 1);
-    saveRemedyPool();
-    scheduleIdleBackup();
-    renderAll();
-  }
-
-  function clearRemedyQueue(){
-    if(remedyPool.length === 0){ alert('待排池已经是空的。'); return; }
-    if(!confirm('确定清空待排池？共 ' + remedyPool.length + ' 条。')) return;
-    pushUndo('清空待排池 ' + remedyPool.length + ' 条');
-    remedyPool = [];
-    saveRemedyPool();
-    scheduleIdleBackup();
-    $('rmPreview').innerHTML = '';
-    renderAll();
-  }
+  function deleteRemedyQueueItem(idx){ var it = remedyPool[idx]; if(!it) return; pushUndo('从待排池删除「' + it.subject + ' ' + it.page + ' ' + it.no + '」'); remedyPool.splice(idx, 1); saveRemedyPool(); scheduleIdleBackup(); scheduleCloudSync(); renderAll(); }
+  function clearRemedyQueue(){ if(remedyPool.length === 0){ alert('待排池已经是空的。'); return; } if(!confirm('确定清空待排池？共 ' + remedyPool.length + ' 条。')) return; pushUndo('清空待排池 ' + remedyPool.length + ' 条'); remedyPool = []; saveRemedyPool(); scheduleIdleBackup(); scheduleCloudSync(); $('rmPreview').innerHTML = ''; renderAll(); }
 
   function buildRemedySchedule(){
-    var cur = getCurrentSimDate();
-    var startDate = $('rmStartDate').value || cur;
-    var days = parseInt($('rmDays').value, 10) || 14;
-    var mathLimit = parseInt($('rmMathLimit').value, 10) || 15;
-    var circLimit = parseInt($('rmCircLimit').value, 10) || 10;
-    var sortBy = $('rmSortBy').value;
-
+    var cur = getCurrentSimDate(); var startDate = $('rmStartDate').value || cur; var days = parseInt($('rmDays').value, 10) || 14; var mathLimit = parseInt($('rmMathLimit').value, 10) || 15; var circLimit = parseInt($('rmCircLimit').value, 10) || 10; var sortBy = $('rmSortBy').value;
     var statusOrder = {'红':0,'黄':1,'绿':2,'归档':3};
-    function sortFn(a, b){
-      if(sortBy === 'status'){
-        if(statusOrder[a.status] !== statusOrder[b.status]) return statusOrder[a.status] - statusOrder[b.status];
-        return a.chapter.localeCompare(b.chapter);
-      }else{
-        if(a.chapter !== b.chapter) return a.chapter.localeCompare(b.chapter);
-        return statusOrder[a.status] - statusOrder[b.status];
-      }
-    }
-
-    var mathPool = remedyPool.filter(function(it){ return it.subject === '数学'; }).sort(sortFn);
-    var circPool = remedyPool.filter(function(it){ return it.subject === '电路'; }).sort(sortFn);
-
-    var assignments = [];
-    var mathIdx = 0, circIdx = 0;
-    var dayCursor = 0;
-    var safety = 0;
-
+    function sortFn(a, b){ if(sortBy === 'status'){ if(statusOrder[a.status] !== statusOrder[b.status]) return statusOrder[a.status] - statusOrder[b.status]; return a.chapter.localeCompare(b.chapter); } else { if(a.chapter !== b.chapter) return a.chapter.localeCompare(b.chapter); return statusOrder[a.status] - statusOrder[b.status]; } }
+    var mathPool = remedyPool.filter(function(it){ return it.subject === '数学'; }).sort(sortFn); var circPool = remedyPool.filter(function(it){ return it.subject === '电路'; }).sort(sortFn);
+    var assignments = []; var mathIdx = 0, circIdx = 0; var dayCursor = 0; var safety = 0;
     while((mathIdx < mathPool.length || circIdx < circPool.length) && safety < 1000){
-      var date = addDays(startDate, dayCursor);
-      var mathCount = 0, circCount = 0;
-
-      while(mathIdx < mathPool.length && mathCount < mathLimit){
-        assignments.push({ item: mathPool[mathIdx], date: date });
-        mathIdx++; mathCount++;
-      }
-      while(circIdx < circPool.length && circCount < circLimit){
-        assignments.push({ item: circPool[circIdx], date: date });
-        circIdx++; circCount++;
-      }
-      dayCursor++;
-      safety++;
+      var date = addDays(startDate, dayCursor); var mathCount = 0, circCount = 0;
+      while(mathIdx < mathPool.length && mathCount < mathLimit){ assignments.push({ item: mathPool[mathIdx], date: date }); mathIdx++; mathCount++; }
+      while(circIdx < circPool.length && circCount < circLimit){ assignments.push({ item: circPool[circIdx], date: date }); circIdx++; circCount++; }
+      dayCursor++; safety++;
     }
-
     return { assignments: assignments, startDate: startDate, days: days };
   }
 
   function previewRemedySchedule(){
-    if(remedyPool.length === 0){
-      $('rmPreview').innerHTML = '<div class="empty">待排池为空，请先录入历史题。</div>';
-      return;
-    }
-    var result = buildRemedySchedule();
-    var byDate = {};
-    result.assignments.forEach(function(a){
-      if(!byDate[a.date]) byDate[a.date] = { math: 0, circ: 0, items: [] };
-      if(a.item.subject === '数学') byDate[a.date].math++;
-      else byDate[a.date].circ++;
-      byDate[a.date].items.push(a.item);
-    });
-
-    var dates = Object.keys(byDate).sort();
-    var html = '<div class="key key-remedy" style="margin-bottom:12px;"><b>排程预览：</b>共 '+result.assignments.length+' 条，分布在 '+dates.length+' 天。</div>';
-
-    dates.forEach(function(d){
-      var info = byDate[d];
-      html += '<div class="schedule-preview">' +
-        '<div class="head">'+fmtDateWk(d)+'　数学 '+info.math+' 题 · 电路 '+info.circ+' 题</div>' +
-        '<div class="chips">';
-      info.items.slice(0, 12).forEach(function(it){
-        html += '<span class="chip chip-remedy">'+it.subject.slice(0,1)+'·'+it.chapter+'·'+it.status+'</span>';
-      });
-      if(info.items.length > 12){
-        html += '<span class="chip">…还有 '+(info.items.length-12)+' 条</span>';
-      }
-      html += '</div></div>';
-    });
-
+    if(remedyPool.length === 0){ $('rmPreview').innerHTML = '<div class="empty">待排池为空，请先录入历史题。</div>'; return; }
+    var result = buildRemedySchedule(); var byDate = {};
+    result.assignments.forEach(function(a){ if(!byDate[a.date]) byDate[a.date] = { math: 0, circ: 0, items: [] }; if(a.item.subject === '数学') byDate[a.date].math++; else byDate[a.date].circ++; byDate[a.date].items.push(a.item); });
+    var dates = Object.keys(byDate).sort(); var html = '<div class="key key-remedy" style="margin-bottom:12px;"><b>排程预览：</b>共 '+result.assignments.length+' 条，分布在 '+dates.length+' 天。</div>';
+    dates.forEach(function(d){ var info = byDate[d]; html += '<div class="schedule-preview"><div class="head">'+fmtDateWk(d)+'　数学 '+info.math+' 题 · 电路 '+info.circ+' 题</div><div class="chips">'; info.items.slice(0, 12).forEach(function(it){ html += '<span class="chip chip-remedy">'+it.subject.slice(0,1)+'·'+it.chapter+'·'+it.status+'</span>'; }); if(info.items.length > 12){ html += '<span class="chip">…还有 '+(info.items.length-12)+' 条</span>'; } html += '</div></div>'; });
     $('rmPreview').innerHTML = html;
   }
 
   function generateRemedySchedule(){
-    if(remedyPool.length === 0){
-      alert('待排池为空，请先录入历史题。');
-      return;
-    }
+    if(remedyPool.length === 0){ alert('待排池为空，请先录入历史题。'); return; }
     var result = buildRemedySchedule();
-    if(!confirm('即将把 '+remedyPool.length+' 条历史题按排程加入系统，确定继续？\n（首次复习后立即可被周测/月测抽到）')){
-      return;
-    }
+    if(!confirm('即将把 '+remedyPool.length+' 条历史题按排程加入系统，确定继续？\n（首次复习后立即可被周测/月测抽到）')) return;
     pushUndo('生成补救排程，把 ' + remedyPool.length + ' 条历史题加入系统');
-    result.assignments.forEach(function(a){
-      var it = a.item;
-      items.push({
-        id: uid(),
-        subject: it.subject,
-        chapter: it.chapter,
-        source: it.source,
-        page: it.page,
-        no: it.no,
-        status: it.status,
-        errReason: it.errReason,
-        first: a.date,
-        next: a.date,
-        reviewCount: 0,
-        lastReview: '',
-        greenStreak: 0,
-        isRemedy: true,
-        isGood: false,
-        onlyShowOnNext: false,
-        initialStatus: it.status
-      });
-    });
-    remedyPool = [];
-    saveRemedyPool();
-    saveItems();
-    scheduleIdleBackup();
-    $('rmPreview').innerHTML = '<div class="key key-remedy"><b>✓ 已生成：</b>'+result.assignments.length+' 条历史题已加入系统，首轮复习从 '+result.startDate+' 开始。</div>';
-    renderAll();
+    result.assignments.forEach(function(a){ var it = a.item; items.push({ id: uid(), subject: it.subject, chapter: it.chapter, source: it.source, page: it.page, no: it.no, status: it.status, errReason: it.errReason, first: a.date, next: a.date, reviewCount: 0, lastReview: '', greenStreak: 0, isRemedy: true, isGood: false, onlyShowOnNext: false, initialStatus: it.status }); });
+    remedyPool = []; saveRemedyPool(); saveItems(); scheduleIdleBackup(); scheduleCloudSync();
+    $('rmPreview').innerHTML = '<div class="key key-remedy"><b>✓ 已生成：</b>'+result.assignments.length+' 条历史题已加入系统，首轮复习从 '+result.startDate+' 开始。</div>'; renderAll();
   }
 
   function postponeOne(id, date){
-    var it = null;
-    for(var i=0;i<items.length;i++){ if(items[i].id===id){ it=items[i]; break; } }
-    if(!it) return;
-    var oldNext = it.next;
-    var verb = (date > oldNext) ? '延后到' : '提前到';
+    var it = null; for(var i=0;i<items.length;i++){ if(items[i].id===id){ it=items[i]; break; } } if(!it) return;
+    var oldNext = it.next; var verb = (date > oldNext) ? '延后到' : '提前到';
     pushUndo('把「' + it.subject + ' ' + it.page + ' ' + it.no + '」' + verb + ' ' + fmtDateWk(date));
-    it.next = date;
-    it.onlyShowOnNext = true;
-    saveItems();
-    scheduleIdleBackup();
-    renderAll();
+    it.next = date; it.onlyShowOnNext = true; saveItems(); scheduleIdleBackup(); scheduleCloudSync(); renderAll();
   }
 
   function postponeAll(){
-    var date = $('bulkPostponeSelect').value;
-    if(!date){ alert('请选择日期。'); return; }
-    var due = getDueFiltered();
-    if(due.length === 0){
-      alert('当前没有可调整的筛选结果。');
-      return;
-    }
+    var date = $('bulkPostponeSelect').value; if(!date){ alert('请选择日期。'); return; }
+    var due = getDueFiltered(); if(due.length === 0){ alert('当前没有可调整的筛选结果。'); return; }
     if(!confirm('即将把 ' + due.length + ' 条筛选结果跳到 ' + fmtDateWk(date) + '。\n确定继续？')) return;
     pushUndo('批量跳到 ' + fmtDateWk(date) + '（' + due.length + ' 条）');
-    due.forEach(function(it){
-      it.next = date;
-      it.onlyShowOnNext = true;
-    });
-    saveItems();
-    scheduleIdleBackup();
-    renderAll();
+    due.forEach(function(it){ it.next = date; it.onlyShowOnNext = true; });
+    saveItems(); scheduleIdleBackup(); scheduleCloudSync(); renderAll();
   }
 
   function deleteItem(id){
-    var it = null;
-    for(var i=0;i<items.length;i++){ if(items[i].id===id){ it=items[i]; break; } }
-    if(!it) return;
+    var it = null; for(var i=0;i<items.length;i++){ if(items[i].id===id){ it=items[i]; break; } } if(!it) return;
     if(!confirm('确定删除这道题？')) return;
     pushUndo('删除题目「' + it.subject + ' ' + it.chapter + ' ' + it.page + ' ' + it.no + '」');
-    items = items.filter(function(i){return i.id!==id;});
-    saveItems();
-    scheduleIdleBackup();
-    renderAll();
+    items = items.filter(function(i){return i.id!==id;}); saveItems(); scheduleIdleBackup(); scheduleCloudSync(); renderAll();
   }
 
   function toggleGood(id){
-    var it = null;
-    for(var i=0;i<items.length;i++){ if(items[i].id===id){ it=items[i]; break; } }
-    if(!it) return;
+    var it = null; for(var i=0;i<items.length;i++){ if(items[i].id===id){ it=items[i]; break; } } if(!it) return;
     var action = it.isGood ? '移出好题' : '加入好题';
     pushUndo('把「' + it.subject + ' ' + it.page + ' ' + it.no + '」' + action);
-    it.isGood = !it.isGood;
-    saveItems();
-    scheduleIdleBackup();
-    renderAll();
+    it.isGood = !it.isGood; saveItems(); scheduleIdleBackup(); scheduleCloudSync(); renderAll();
   }
 
   function removeGood(id){
-    var it = null;
-    for(var i=0;i<items.length;i++){ if(items[i].id===id){ it=items[i]; break; } }
-    if(!it) return;
+    var it = null; for(var i=0;i<items.length;i++){ if(items[i].id===id){ it=items[i]; break; } } if(!it) return;
     pushUndo('把「' + it.subject + ' ' + it.page + ' ' + it.no + '」移出好题');
-    it.isGood = false;
-    saveItems();
-    scheduleIdleBackup();
-    renderAll();
+    it.isGood = false; saveItems(); scheduleIdleBackup(); scheduleCloudSync(); renderAll();
   }
 
   function exportExcel(){
     if(items.length===0){ alert('没有数据可导出。'); return; }
-    var sorted = items.slice().sort(function(a,b){
-      if(a.subject!==b.subject) return a.subject.localeCompare(b.subject);
-      if(a.chapter!==b.chapter) return a.chapter.localeCompare(b.chapter);
-      return a.next.localeCompare(b.next);
-    });
-
+    var sorted = items.slice().sort(function(a,b){ if(a.subject!==b.subject) return a.subject.localeCompare(b.subject); if(a.chapter!==b.chapter) return a.chapter.localeCompare(b.chapter); return a.next.localeCompare(b.next); });
     var headers = ['科目','章节','来源','页码','题号','标记','初始标记','类型','状态','好题','首次复习','下次复习','复习次数','绿连击','错因/备注'];
     var rowsHtml = '';
-    sorted.forEach(function(it){
-      var typeStr = it.isRemedy ? '补救' : '常规';
-      var stateStr = '';
-      if(it.isRemedy){
-        stateStr = (it.reviewCount||0) === 0 ? '待首次复习' : '已可抽题';
-      }else{
-        stateStr = '—';
-      }
-      var goodStr = it.isGood ? '是' : '否';
-      rowsHtml += '<tr>' +
-        '<td>'+escapeHtml(it.subject)+'</td>' +
-        '<td>'+escapeHtml(it.chapter)+'</td>' +
-        '<td>'+escapeHtml(it.source)+'</td>' +
-        '<td>'+escapeHtml(it.page)+'</td>' +
-        '<td>'+escapeHtml(it.no)+'</td>' +
-        '<td>'+escapeHtml(it.status)+'</td>' +
-        '<td>'+escapeHtml(it.initialStatus||it.status)+'</td>' +
-        '<td>'+typeStr+'</td>' +
-        '<td>'+stateStr+'</td>' +
-        '<td>'+goodStr+'</td>' +
-        '<td>'+escapeHtml(fmtDateWk(it.first))+'</td>' +
-        '<td>'+escapeHtml(fmtDateWk(it.next))+'</td>' +
-        '<td>'+(it.reviewCount||0)+'</td>' +
-        '<td>'+(it.greenStreak||0)+'</td>' +
-        '<td>'+escapeHtml(it.errReason||'')+'</td>' +
-      '</tr>';
-    });
-
+    sorted.forEach(function(it){ var typeStr = it.isRemedy ? '补救' : '常规'; var stateStr = ''; if(it.isRemedy){ stateStr = (it.reviewCount||0) === 0 ? '待首次复习' : '已可抽题'; } else { stateStr = '—'; } var goodStr = it.isGood ? '是' : '否'; rowsHtml += '<tr><td>'+escapeHtml(it.subject)+'</td><td>'+escapeHtml(it.chapter)+'</td><td>'+escapeHtml(it.source)+'</td><td>'+escapeHtml(it.page)+'</td><td>'+escapeHtml(it.no)+'</td><td>'+escapeHtml(it.status)+'</td><td>'+escapeHtml(it.initialStatus||it.status)+'</td><td>'+typeStr+'</td><td>'+stateStr+'</td><td>'+goodStr+'</td><td>'+escapeHtml(fmtDateWk(it.first))+'</td><td>'+escapeHtml(fmtDateWk(it.next))+'</td><td>'+(it.reviewCount||0)+'</td><td>'+(it.greenStreak||0)+'</td><td>'+escapeHtml(it.errReason||'')+'</td></tr>'; });
     var headHtml = headers.map(function(h){ return '<th>'+h+'</th>'; }).join('');
-    var html = '<html xmlns:x="urn:schemas-microsoft-com:office:excel"><head><meta charset="UTF-8"></head><body>' +
-      '<table border="1" cellpadding="4" cellspacing="0" style="font-family:微软雅黑;font-size:12px;">' +
-      '<thead><tr>'+headHtml+'</tr></thead>' +
-      '<tbody>'+rowsHtml+'</tbody>' +
-      '</table></body></html>';
-
+    var html = '<html xmlns:x="urn:schemas-microsoft-com:office:excel"><head><meta charset="UTF-8"></head><body><table border="1" cellpadding="4" cellspacing="0" style="font-family:微软雅黑;font-size:12px;"><thead><tr>'+headHtml+'</tr></thead><tbody>'+rowsHtml+'</tbody></table></body></html>';
     var blob = new Blob(['\ufeff'+html], {type:'application/vnd.ms-excel;charset=utf-8'});
-    var url = URL.createObjectURL(blob);
-    var a = document.createElement('a');
-    a.href = url;
-    a.download = '题目复习数据_'+todayStr()+'.xls';
-    a.click();
-    URL.revokeObjectURL(url);
+    var url = URL.createObjectURL(blob); var a = document.createElement('a'); a.href = url; a.download = '题目复习数据_'+todayStr()+'.xls'; a.click(); URL.revokeObjectURL(url);
   }
 
-  // 从 IDB 最新快照恢复
   function restoreFromIdb(){
     openBackupDB().then(function(db){
-      return new Promise(function(resolve, reject){
-        var tx = db.transaction('snapshots', 'readonly');
-        var store = tx.objectStore('snapshots');
-        var allKeys = [];
-        var req = store.openKeyCursor();
-        req.onsuccess = function(e){
-          var cursor = e.target.result;
-          if(cursor){
-            allKeys.push(cursor.key);
-            cursor.continue();
-          }else{
-            allKeys.sort();
-            resolve(allKeys);
-          }
-        };
-        req.onerror = function(){ reject(req.error); };
-      });
-    }).then(function(keys){
-      if(!keys || keys.length === 0){
-        alert('IndexedDB 中还没有备份快照。');
-        return null;
-      }
-      // 取最新快照
-      var latestKey = keys[keys.length - 1];
-      return idbGet('snapshots', latestKey);
-    }).then(function(snapshot){
-      if(!snapshot) return;
-      var ok = confirm('将从 IndexedDB 最新快照恢复：\n' +
-        '• 快照时间：' + (snapshot.exportedAt || '未知') + '\n' +
-        '• 题目数：' + (snapshot.items ? snapshot.items.length : 0) + '\n' +
-        '• 待排池：' + (snapshot.remedyPool ? snapshot.remedyPool.length : 0) + '\n\n' +
-        '当前数据将被覆盖，确定继续？');
-      if(!ok) return;
-      pushUndo('从 IndexedDB 快照恢复');
-      if(snapshot.items) items = snapshot.items;
-      if(snapshot.remedyPool) remedyPool = snapshot.remedyPool;
-      if(snapshot.simDate){ simDate = snapshot.simDate; var simEl = $('simDate'); if(simEl) simEl.value = simDate; saveSim(); }
-      items.forEach(function(it){
-        if(!it.id) it.id = uid();
-        if(!it.chapter) it.chapter = '第1章';
-        if(typeof it.reviewCount!=='number') it.reviewCount = 0;
-        if(typeof it.greenStreak!=='number') it.greenStreak = 0;
-        if(typeof it.isRemedy!=='boolean') it.isRemedy = false;
-        if(typeof it.isGood!=='boolean') it.isGood = false;
-        if(!it.lastReview) it.lastReview = '';
-        if(typeof it.onlyShowOnNext!=='boolean') it.onlyShowOnNext = false;
-        if(!it.initialStatus) it.initialStatus = it.status;
-      });
-      saveItems(); saveRemedyPool(); renderAll();
-      alert('已从 IDB 快照恢复：' + items.length + ' 道题，待排池 ' + remedyPool.length + ' 条。');
-    }).catch(function(e){
-      alert('恢复失败：' + e.message);
-    });
+      return new Promise(function(resolve, reject){ var tx = db.transaction('snapshots', 'readonly'); var store = tx.objectStore('snapshots'); var allKeys = []; var req = store.openKeyCursor(); req.onsuccess = function(e){ var cursor = e.target.result; if(cursor){ allKeys.push(cursor.key); cursor.continue(); } else { allKeys.sort(); resolve(allKeys); } }; req.onerror = function(){ reject(req.error); }; });
+    }).then(function(keys){ if(!keys || keys.length === 0){ alert('IndexedDB 中还没有备份快照。'); return null; } var latestKey = keys[keys.length - 1]; return idbGet('snapshots', latestKey); })
+    .then(function(snapshot){ if(!snapshot) return; var ok = confirm('将从 IndexedDB 最新快照恢复：\n• 快照时间：' + (snapshot.exportedAt || '未知') + '\n• 题目数：' + (snapshot.items ? snapshot.items.length : 0) + '\n• 待排池：' + (snapshot.remedyPool ? snapshot.remedyPool.length : 0) + '\n\n当前数据将被覆盖，确定继续？'); if(!ok) return; pushUndo('从 IndexedDB 快照恢复'); if(snapshot.items) items = snapshot.items; if(snapshot.remedyPool) remedyPool = snapshot.remedyPool; if(snapshot.simDate){ simDate = snapshot.simDate; var simEl = $('simDate'); if(simEl) simEl.value = simDate; saveSim(); } items.forEach(function(it){ if(!it.id) it.id = uid(); if(!it.chapter) it.chapter = '第1章'; if(typeof it.reviewCount!=='number') it.reviewCount = 0; if(typeof it.greenStreak!=='number') it.greenStreak = 0; if(typeof it.isRemedy!=='boolean') it.isRemedy = false; if(typeof it.isGood!=='boolean') it.isGood = false; if(!it.lastReview) it.lastReview = ''; if(typeof it.onlyShowOnNext!=='boolean') it.onlyShowOnNext = false; if(!it.initialStatus) it.initialStatus = it.status; }); saveItems(); saveRemedyPool(); scheduleCloudSync(); renderAll(); alert('已从 IDB 快照恢复：' + items.length + ' 道题，待排池 ' + remedyPool.length + ' 条。'); })
+    .catch(function(e){ alert('恢复失败：' + e.message); });
   }
 
   function bindEvents(){
@@ -2703,499 +1712,143 @@
         document.querySelectorAll('.tab').forEach(function(t){ t.classList.remove('active'); });
         document.querySelectorAll('.panel').forEach(function(p){ p.classList.remove('active'); });
         tab.classList.add('active');
-        var panel = $('panel-'+tab.getAttribute('data-tab'));
-        if(panel) panel.classList.add('active');
+        var panel = $('panel-'+tab.getAttribute('data-tab')); if(panel) panel.classList.add('active');
         var t = tab.getAttribute('data-tab');
-        if(t === 'weekred'){
-          renderWeekRed();
-        }else if(t === 'dashboard'){
-          renderDashboard();
-        }else if(t === 'data'){
-          updateBackupStatusUI();
-        }
+        if(t === 'weekred'){ renderWeekRed(); } else if(t === 'dashboard'){ renderDashboard(); } else if(t === 'data'){ updateBackupStatusUI(); } else if(t === 'sync'){ renderSyncUI(); }
       });
     });
 
     var simInput = $('simDate');
     if(simInput){
       simInput.value = simDate;
-      var onSimDateChange = function(){
-        var v = simInput.value;
-        if(!v) return;
-        if(v === simDate){
-          renderAll();
-          return;
-        }
-        simDate = v;
-        localStorage.setItem(MANUAL_KEY, 'true');
-        saveSim();
-        renderAll();
-        updatePostponeOptions();
-      };
-      simInput.addEventListener('change', onSimDateChange);
-      simInput.addEventListener('input', onSimDateChange);
-      simInput.addEventListener('blur', onSimDateChange);
+      var onSimDateChange = function(){ var v = simInput.value; if(!v) return; if(v === simDate){ renderAll(); return; } simDate = v; localStorage.setItem(MANUAL_KEY, 'true'); saveSim(); renderAll(); updatePostponeOptions(); };
+      simInput.addEventListener('change', onSimDateChange); simInput.addEventListener('input', onSimDateChange); simInput.addEventListener('blur', onSimDateChange);
     }
 
     var backBtn = $('backToTodayBtn');
-    if(backBtn){
-      backBtn.addEventListener('click', function(){
-        simDate = chinaToday();
-        localStorage.removeItem(MANUAL_KEY);
-        saveSim();
-        if(simInput) simInput.value = simDate;
-        renderAll();
-        updatePostponeOptions();
-        if($('panel-weekred').classList.contains('active') && !isSaturday()){
-          var dueTab = document.querySelector('.tab[data-tab="due"]');
-          if(dueTab) dueTab.click();
-        }
-      });
-    }
+    if(backBtn){ backBtn.addEventListener('click', function(){ simDate = chinaToday(); localStorage.removeItem(MANUAL_KEY); saveSim(); if(simInput) simInput.value = simDate; renderAll(); updatePostponeOptions(); if($('panel-weekred').classList.contains('active') && !isSaturday()){ var dueTab = document.querySelector('.tab[data-tab="due"]'); if(dueTab) dueTab.click(); } }); }
 
-    var undoBtn = $('undoBtn');
-    if(undoBtn) undoBtn.addEventListener('click', doUndo);
+    var undoBtn = $('undoBtn'); if(undoBtn) undoBtn.addEventListener('click', doUndo);
 
-    var inSubj = $('inSubject');
-    if(inSubj) inSubj.addEventListener('change', fillChapterSelect);
-    var addBtn = $('addBtn');
-    if(addBtn) addBtn.addEventListener('click', addItem);
+    var inSubj = $('inSubject'); if(inSubj) inSubj.addEventListener('change', fillChapterSelect);
+    var addBtn = $('addBtn'); if(addBtn) addBtn.addEventListener('click', addItem);
 
-    var rmSubj = $('rmSubject');
-    if(rmSubj) rmSubj.addEventListener('change', fillRemedyChapterSelect);
-    var rmAddBtn = $('rmAddBtn');
-    if(rmAddBtn) rmAddBtn.addEventListener('click', addToRemedyPool);
-    var rmClearQueue = $('rmClearQueue');
-    if(rmClearQueue) rmClearQueue.addEventListener('click', clearRemedyQueue);
-    var rmQueueList = $('rmQueueList');
-    if(rmQueueList){
-      rmQueueList.addEventListener('click', function(e){
-        var btn = e.target.closest('button[data-rm-del]');
-        if(!btn) return;
-        deleteRemedyQueueItem(parseInt(btn.getAttribute('data-rm-del'), 10));
-      });
-    }
-    var rmPreviewBtn = $('rmPreviewBtn');
-    if(rmPreviewBtn) rmPreviewBtn.addEventListener('click', previewRemedySchedule);
-    var rmGenerateBtn = $('rmGenerateBtn');
-    if(rmGenerateBtn) rmGenerateBtn.addEventListener('click', generateRemedySchedule);
-    var rmScheduledFilter = $('rmScheduledFilter');
-    if(rmScheduledFilter) rmScheduledFilter.addEventListener('change', renderRemedyScheduled);
+    var rmSubj = $('rmSubject'); if(rmSubj) rmSubj.addEventListener('change', fillRemedyChapterSelect);
+    var rmAddBtn = $('rmAddBtn'); if(rmAddBtn) rmAddBtn.addEventListener('click', addToRemedyPool);
+    var rmClearQueue = $('rmClearQueue'); if(rmClearQueue) rmClearQueue.addEventListener('click', clearRemedyQueue);
+    var rmQueueList = $('rmQueueList'); if(rmQueueList){ rmQueueList.addEventListener('click', function(e){ var btn = e.target.closest('button[data-rm-del]'); if(!btn) return; deleteRemedyQueueItem(parseInt(btn.getAttribute('data-rm-del'), 10)); }); }
+    var rmPreviewBtn = $('rmPreviewBtn'); if(rmPreviewBtn) rmPreviewBtn.addEventListener('click', previewRemedySchedule);
+    var rmGenerateBtn = $('rmGenerateBtn'); if(rmGenerateBtn) rmGenerateBtn.addEventListener('click', generateRemedySchedule);
+    var rmScheduledFilter = $('rmScheduledFilter'); if(rmScheduledFilter) rmScheduledFilter.addEventListener('change', renderRemedyScheduled);
 
-    var dueFilterSubject = $('dueFilterSubject');
-    if(dueFilterSubject) dueFilterSubject.addEventListener('change', function(){
-      fillDueFilterChapter();
-      renderDue();
-    });
-    var dueFilterChapter = $('dueFilterChapter');
-    if(dueFilterChapter) dueFilterChapter.addEventListener('change', renderDue);
-    var dueFilterStatus = $('dueFilterStatus');
-    if(dueFilterStatus) dueFilterStatus.addEventListener('change', renderDue);
-    var dueFilterType = $('dueFilterType');
-    if(dueFilterType) dueFilterType.addEventListener('change', renderDue);
-    var dueFilterSearch = $('dueFilterSearch');
-    if(dueFilterSearch) dueFilterSearch.addEventListener('input', renderDue);
-    var dueResetFilterBtn = $('dueResetFilterBtn');
-    if(dueResetFilterBtn) dueResetFilterBtn.addEventListener('click', function(){
-      $('dueFilterSubject').value = '全部';
-      fillDueFilterChapter();
-      $('dueFilterChapter').value = '全部';
-      $('dueFilterStatus').value = '全部';
-      $('dueFilterType').value = '全部';
-      $('dueFilterSearch').value = '';
-      renderDue();
-    });
+    var dueFilterSubject = $('dueFilterSubject'); if(dueFilterSubject) dueFilterSubject.addEventListener('change', function(){ fillDueFilterChapter(); renderDue(); });
+    var dueFilterChapter = $('dueFilterChapter'); if(dueFilterChapter) dueFilterChapter.addEventListener('change', renderDue);
+    var dueFilterStatus = $('dueFilterStatus'); if(dueFilterStatus) dueFilterStatus.addEventListener('change', renderDue);
+    var dueFilterType = $('dueFilterType'); if(dueFilterType) dueFilterType.addEventListener('change', renderDue);
+    var dueFilterSearch = $('dueFilterSearch'); if(dueFilterSearch) dueFilterSearch.addEventListener('input', renderDue);
+    var dueResetFilterBtn = $('dueResetFilterBtn'); if(dueResetFilterBtn) dueResetFilterBtn.addEventListener('click', function(){ $('dueFilterSubject').value = '全部'; fillDueFilterChapter(); $('dueFilterChapter').value = '全部'; $('dueFilterStatus').value = '全部'; $('dueFilterType').value = '全部'; $('dueFilterSearch').value = ''; renderDue(); });
 
-    var bulkBtn = $('bulkPostponeBtn');
-    if(bulkBtn) bulkBtn.addEventListener('click', postponeAll);
+    var bulkBtn = $('bulkPostponeBtn'); if(bulkBtn) bulkBtn.addEventListener('click', postponeAll);
 
-    var dueList = $('dueList');
-    if(dueList){
-      dueList.addEventListener('click', function(e){
-        var btn = e.target.closest('button');
-        if(!btn) return;
-        if(btn.getAttribute('data-act')){
-          applyResult(btn.getAttribute('data-id'), btn.getAttribute('data-act'));
-        }
-      });
-    }
+    var dueList = $('dueList'); if(dueList){ dueList.addEventListener('click', function(e){ var btn = e.target.closest('button'); if(!btn) return; if(btn.getAttribute('data-act')){ applyResult(btn.getAttribute('data-id'), btn.getAttribute('data-act')); } }); }
 
-    var allTbody = $('allTbody');
-    if(allTbody){
-      allTbody.addEventListener('click', function(e){
-        var btn = e.target.closest('button');
-        if(!btn) return;
-        if(btn.getAttribute('data-good-toggle')){
-          toggleGood(btn.getAttribute('data-good-toggle'));
-        }else if(btn.getAttribute('data-act')){
-          applyResult(btn.getAttribute('data-id'), btn.getAttribute('data-act'));
-        }else if(btn.getAttribute('data-del')){
-          deleteItem(btn.getAttribute('data-del'));
-        }
-      });
-    }
-    var fSubj = $('filterSubject');
-    if(fSubj) fSubj.addEventListener('change', function(){ fillFilterChapter(); renderAllTable(); });
-    var fChap = $('filterChapter');
-    if(fChap) fChap.addEventListener('change', renderAllTable);
-    var fStat = $('filterStatus');
-    if(fStat) fStat.addEventListener('change', renderAllTable);
-    var fSrc = $('filterSource');
-    if(fSrc) fSrc.addEventListener('change', renderAllTable);
+    var allTbody = $('allTbody'); if(allTbody){ allTbody.addEventListener('click', function(e){ var btn = e.target.closest('button'); if(!btn) return; if(btn.getAttribute('data-good-toggle')){ toggleGood(btn.getAttribute('data-good-toggle')); } else if(btn.getAttribute('data-act')){ applyResult(btn.getAttribute('data-id'), btn.getAttribute('data-act')); } else if(btn.getAttribute('data-del')){ deleteItem(btn.getAttribute('data-del')); } }); }
+    var fSubj = $('filterSubject'); if(fSubj) fSubj.addEventListener('change', function(){ fillFilterChapter(); renderAllTable(); });
+    var fChap = $('filterChapter'); if(fChap) fChap.addEventListener('change', renderAllTable);
+    var fStat = $('filterStatus'); if(fStat) fStat.addEventListener('change', renderAllTable);
+    var fSrc = $('filterSource'); if(fSrc) fSrc.addEventListener('change', renderAllTable);
 
-    var wkMathBtn = $('wkMathBtn');
-    if(wkMathBtn) wkMathBtn.addEventListener('click', function(){ doPick('数学', $('wkMathScope').value, 'wkMathChapterInputs', 'wkMathResult', 'weekly'); });
-    var wkMathReBtn = $('wkMathReBtn');
-    if(wkMathReBtn) wkMathReBtn.addEventListener('click', function(){ doPick('数学', $('wkMathScope').value, 'wkMathChapterInputs', 'wkMathResult', 'weekly'); });
-    var wkMathFillOne = $('wkMathFillOne');
-    if(wkMathFillOne) wkMathFillOne.addEventListener('click', function(){ fillAllOne('wkMathChapterInputs'); });
-    var wkMathClear = $('wkMathClear');
-    if(wkMathClear) wkMathClear.addEventListener('click', function(){ clearInputs('wkMathChapterInputs'); });
-    var wkMathResult = $('wkMathResult');
-    if(wkMathResult) wkMathResult.addEventListener('click', pickResultClickHandler);
+    var wkMathBtn = $('wkMathBtn'); if(wkMathBtn) wkMathBtn.addEventListener('click', function(){ doPick('数学', $('wkMathScope').value, 'wkMathChapterInputs', 'wkMathResult', 'weekly'); });
+    var wkMathReBtn = $('wkMathReBtn'); if(wkMathReBtn) wkMathReBtn.addEventListener('click', function(){ doPick('数学', $('wkMathScope').value, 'wkMathChapterInputs', 'wkMathResult', 'weekly'); });
+    var wkMathFillOne = $('wkMathFillOne'); if(wkMathFillOne) wkMathFillOne.addEventListener('click', function(){ fillAllOne('wkMathChapterInputs'); });
+    var wkMathClear = $('wkMathClear'); if(wkMathClear) wkMathClear.addEventListener('click', function(){ clearInputs('wkMathChapterInputs'); });
+    var wkMathResult = $('wkMathResult'); if(wkMathResult) wkMathResult.addEventListener('click', pickResultClickHandler);
 
-    var wkCircBtn = $('wkCircBtn');
-    if(wkCircBtn) wkCircBtn.addEventListener('click', function(){ doPick('电路', $('wkCircScope').value, 'wkCircChapterInputs', 'wkCircResult', 'weekly'); });
-    var wkCircReBtn = $('wkCircReBtn');
-    if(wkCircReBtn) wkCircReBtn.addEventListener('click', function(){ doPick('电路', $('wkCircScope').value, 'wkCircChapterInputs', 'wkCircResult', 'weekly'); });
-    var wkCircFillOne = $('wkCircFillOne');
-    if(wkCircFillOne) wkCircFillOne.addEventListener('click', function(){ fillAllOne('wkCircChapterInputs'); });
-    var wkCircClear = $('wkCircClear');
-    if(wkCircClear) wkCircClear.addEventListener('click', function(){ clearInputs('wkCircChapterInputs'); });
-    var wkCircResult = $('wkCircResult');
-    if(wkCircResult) wkCircResult.addEventListener('click', pickResultClickHandler);
+    var wkCircBtn = $('wkCircBtn'); if(wkCircBtn) wkCircBtn.addEventListener('click', function(){ doPick('电路', $('wkCircScope').value, 'wkCircChapterInputs', 'wkCircResult', 'weekly'); });
+    var wkCircReBtn = $('wkCircReBtn'); if(wkCircReBtn) wkCircReBtn.addEventListener('click', function(){ doPick('电路', $('wkCircScope').value, 'wkCircChapterInputs', 'wkCircResult', 'weekly'); });
+    var wkCircFillOne = $('wkCircFillOne'); if(wkCircFillOne) wkCircFillOne.addEventListener('click', function(){ fillAllOne('wkCircChapterInputs'); });
+    var wkCircClear = $('wkCircClear'); if(wkCircClear) wkCircClear.addEventListener('click', function(){ clearInputs('wkCircChapterInputs'); });
+    var wkCircResult = $('wkCircResult'); if(wkCircResult) wkCircResult.addEventListener('click', pickResultClickHandler);
 
-    var moMathBtn = $('moMathBtn');
-    if(moMathBtn) moMathBtn.addEventListener('click', function(){ doPick('数学', $('moMathScope').value, 'moMathChapterInputs', 'moMathResult', 'monthly'); });
-    var moMathReBtn = $('moMathReBtn');
-    if(moMathReBtn) moMathReBtn.addEventListener('click', function(){ doPick('数学', $('moMathScope').value, 'moMathChapterInputs', 'moMathResult', 'monthly'); });
-    var moMathFillOne = $('moMathFillOne');
-    if(moMathFillOne) moMathFillOne.addEventListener('click', function(){ fillAllOne('moMathChapterInputs'); });
-    var moMathClear = $('moMathClear');
-    if(moMathClear) moMathClear.addEventListener('click', function(){ clearInputs('moMathChapterInputs'); });
-    var moMathResult = $('moMathResult');
-    if(moMathResult) moMathResult.addEventListener('click', pickResultClickHandler);
+    var moMathBtn = $('moMathBtn'); if(moMathBtn) moMathBtn.addEventListener('click', function(){ doPick('数学', $('moMathScope').value, 'moMathChapterInputs', 'moMathResult', 'monthly'); });
+    var moMathReBtn = $('moMathReBtn'); if(moMathReBtn) moMathReBtn.addEventListener('click', function(){ doPick('数学', $('moMathScope').value, 'moMathChapterInputs', 'moMathResult', 'monthly'); });
+    var moMathFillOne = $('moMathFillOne'); if(moMathFillOne) moMathFillOne.addEventListener('click', function(){ fillAllOne('moMathChapterInputs'); });
+    var moMathClear = $('moMathClear'); if(moMathClear) moMathClear.addEventListener('click', function(){ clearInputs('moMathChapterInputs'); });
+    var moMathResult = $('moMathResult'); if(moMathResult) moMathResult.addEventListener('click', pickResultClickHandler);
 
-    var moCircBtn = $('moCircBtn');
-    if(moCircBtn) moCircBtn.addEventListener('click', function(){ doPick('电路', $('moCircScope').value, 'moCircChapterInputs', 'moCircResult', 'monthly'); });
-    var moCircReBtn = $('moCircReBtn');
-    if(moCircReBtn) moCircReBtn.addEventListener('click', function(){ doPick('电路', $('moCircScope').value, 'moCircChapterInputs', 'moCircResult', 'monthly'); });
-    var moCircFillOne = $('moCircFillOne');
-    if(moCircFillOne) moCircFillOne.addEventListener('click', function(){ fillAllOne('moCircChapterInputs'); });
-    var moCircClear = $('moCircClear');
-    if(moCircClear) moCircClear.addEventListener('click', function(){ clearInputs('moCircChapterInputs'); });
-    var moCircResult = $('moCircResult');
-    if(moCircResult) moCircResult.addEventListener('click', pickResultClickHandler);
+    var moCircBtn = $('moCircBtn'); if(moCircBtn) moCircBtn.addEventListener('click', function(){ doPick('电路', $('moCircScope').value, 'moCircChapterInputs', 'moCircResult', 'monthly'); });
+    var moCircReBtn = $('moCircReBtn'); if(moCircReBtn) moCircReBtn.addEventListener('click', function(){ doPick('电路', $('moCircScope').value, 'moCircChapterInputs', 'moCircResult', 'monthly'); });
+    var moCircFillOne = $('moCircFillOne'); if(moCircFillOne) moCircFillOne.addEventListener('click', function(){ fillAllOne('moCircChapterInputs'); });
+    var moCircClear = $('moCircClear'); if(moCircClear) moCircClear.addEventListener('click', function(){ clearInputs('moCircChapterInputs'); });
+    var moCircResult = $('moCircResult'); if(moCircResult) moCircResult.addEventListener('click', pickResultClickHandler);
 
-    var goodList = $('goodList');
-    if(goodList){
-      goodList.addEventListener('click', function(e){
-        var btn = e.target.closest('button[data-good-remove]');
-        if(!btn) return;
-        removeGood(btn.getAttribute('data-good-remove'));
-      });
-    }
+    var goodList = $('goodList'); if(goodList){ goodList.addEventListener('click', function(e){ var btn = e.target.closest('button[data-good-remove]'); if(!btn) return; removeGood(btn.getAttribute('data-good-remove')); }); }
 
     var rangeBtns = document.querySelectorAll('#statRangeBtns .btn');
-    rangeBtns.forEach(function(btn){
-      btn.addEventListener('click', function(){
-        rangeBtns.forEach(function(b){ b.classList.remove('active'); });
-        btn.classList.add('active');
-        currentStatRange = parseInt(btn.getAttribute('data-stat-range'), 10) || 7;
-        renderStatsPanel();
-      });
-    });
+    rangeBtns.forEach(function(btn){ btn.addEventListener('click', function(){ rangeBtns.forEach(function(b){ b.classList.remove('active'); }); btn.classList.add('active'); currentStatRange = parseInt(btn.getAttribute('data-stat-range'), 10) || 7; renderStatsPanel(); }); });
 
-    // 自动备份相关
-    var intervalEl = $('backupInterval');
-    if(intervalEl){
-      intervalEl.value = String(backupConfig.intervalMinutes);
-      intervalEl.addEventListener('change', function(){
-        var v = parseInt(intervalEl.value, 10);
-        if(isNaN(v)) v = 15;
-        backupConfig.intervalMinutes = v;
-        backupConfig.enabled = v > 0;
-        saveBackupConfig();
-        scheduleBackup();
-        updateBackupStatusUI();
-      });
-    }
-    var keepEl = $('backupKeepCount');
-    if(keepEl){
-      keepEl.value = String(backupConfig.keepCount);
-      keepEl.addEventListener('change', function(){
-        var v = parseInt(keepEl.value, 10);
-        if(isNaN(v)) v = 20;
-        backupConfig.keepCount = v;
-        saveBackupConfig();
-        updateBackupStatusUI();
-      });
-    }
+    var intervalEl = $('backupInterval'); if(intervalEl){ intervalEl.value = String(backupConfig.intervalMinutes); intervalEl.addEventListener('change', function(){ var v = parseInt(intervalEl.value, 10); if(isNaN(v)) v = 15; backupConfig.intervalMinutes = v; backupConfig.enabled = v > 0; saveBackupConfig(); scheduleBackup(); updateBackupStatusUI(); }); }
+    var keepEl = $('backupKeepCount'); if(keepEl){ keepEl.value = String(backupConfig.keepCount); keepEl.addEventListener('change', function(){ var v = parseInt(keepEl.value, 10); if(isNaN(v)) v = 20; backupConfig.keepCount = v; saveBackupConfig(); updateBackupStatusUI(); }); }
 
     var chooseFolderBtn = $('chooseBackupFolderBtn');
     if(chooseFolderBtn){
-      if(!window.showDirectoryPicker){
-        chooseFolderBtn.disabled = true;
-        chooseFolderBtn.textContent = '当前浏览器不支持选文件夹';
-        chooseFolderBtn.title = '请使用 Chrome 或 Edge；Safari/iPad 会自动降级为定时下载备份';
-        autoDownloadFallback = true;
-      }else{
-        chooseFolderBtn.addEventListener('click', function(){
-          window.showDirectoryPicker({ mode: 'readwrite' }).then(function(handle){
-            backupDirHandle = handle;
-            return idbPut('handles', 'backupDir', handle).then(function(){
-              updateBackupStatusUI();
-              alert('已选择备份文件夹：' + (handle.name || '已选择') + '\n系统会按设定频率自动写入备份。');
-            });
-          }).catch(function(e){
-            if(e && e.name === 'AbortError') return;
-            alert('选择文件夹失败：' + (e.message || e));
-          });
-        });
-      }
+      if(!window.showDirectoryPicker){ chooseFolderBtn.disabled = true; chooseFolderBtn.textContent = '当前浏览器不支持选文件夹'; chooseFolderBtn.title = '请使用 Chrome 或 Edge；Safari/iPad 会自动降级为定时下载备份'; autoDownloadFallback = true; }
+      else { chooseFolderBtn.addEventListener('click', function(){ window.showDirectoryPicker({ mode: 'readwrite' }).then(function(handle){ backupDirHandle = handle; return idbPut('handles', 'backupDir', handle).then(function(){ updateBackupStatusUI(); alert('已选择备份文件夹：' + (handle.name || '已选择') + '\n系统会按设定频率自动写入备份。'); }); }).catch(function(e){ if(e && e.name === 'AbortError') return; alert('选择文件夹失败：' + (e.message || e)); }); }); }
     }
 
-    var manualBackupBtn = $('manualBackupBtn');
-    if(manualBackupBtn){
-      manualBackupBtn.addEventListener('click', function(){
-        performBackup(true);
-      });
-    }
+    var manualBackupBtn = $('manualBackupBtn'); if(manualBackupBtn) manualBackupBtn.addEventListener('click', function(){ performBackup(true); });
+    var restoreIdbBtn = $('restoreFromIdbBtn'); if(restoreIdbBtn) restoreIdbBtn.addEventListener('click', restoreFromIdb);
 
-    var restoreIdbBtn = $('restoreFromIdbBtn');
-    if(restoreIdbBtn){
-      restoreIdbBtn.addEventListener('click', restoreFromIdb);
-    }
+    var importFromFolderBtn = $('importFromFolderBtn'); var importFromFolderFile = $('importFromFolderFile');
+    if(importFromFolderBtn && importFromFolderFile){ importFromFolderBtn.addEventListener('click', function(){ importFromFolderFile.click(); }); importFromFolderFile.addEventListener('change', function(e){ var f = e.target.files[0]; if(!f) return; var reader = new FileReader(); reader.onload = function(ev){ try{ var obj = JSON.parse(ev.target.result); var newItems = null, newSim = null, newPool = null; if(Array.isArray(obj)) newItems = obj; else if(obj && Array.isArray(obj.items)){ newItems = obj.items; newSim = obj.simDate; newPool = obj.remedyPool; } else { alert('文件格式错误'); return; } if(!confirm('导入将覆盖当前所有数据，确定继续？')) return; pushUndo('从备份文件恢复'); items = newItems; items.forEach(function(it){ if(!it.id) it.id = uid(); if(!it.chapter) it.chapter = '第1章'; if(typeof it.reviewCount!=='number') it.reviewCount = 0; if(typeof it.greenStreak!=='number') it.greenStreak = 0; if(typeof it.isRemedy!=='boolean') it.isRemedy = false; if(typeof it.isGood!=='boolean') it.isGood = false; if(!it.lastReview) it.lastReview = ''; if(typeof it.onlyShowOnNext!=='boolean') it.onlyShowOnNext = false; if(!it.initialStatus) it.initialStatus = it.status; }); if(Array.isArray(newPool)) remedyPool = newPool; if(newSim){ simDate = newSim; if(simInput) simInput.value = simDate; saveSim(); localStorage.setItem(MANUAL_KEY, 'true'); } saveItems(); saveRemedyPool(); scheduleCloudSync(); renderAll(); alert('恢复成功：' + items.length + ' 道题，待排池 ' + remedyPool.length + ' 条。'); }catch(err){ alert('文件解析失败：'+err.message); } }; reader.readAsText(f); e.target.value = ''; }); }
 
-    var importFromFolderBtn = $('importFromFolderBtn');
-    var importFromFolderFile = $('importFromFolderFile');
-    if(importFromFolderBtn && importFromFolderFile){
-      importFromFolderBtn.addEventListener('click', function(){
-        importFromFolderFile.click();
-      });
-      importFromFolderFile.addEventListener('change', function(e){
-        var f = e.target.files[0];
-        if(!f) return;
-        var reader = new FileReader();
-        reader.onload = function(ev){
-          try{
-            var obj = JSON.parse(ev.target.result);
-            var newItems = null, newSim = null, newPool = null;
-            if(Array.isArray(obj)) newItems = obj;
-            else if(obj && Array.isArray(obj.items)){
-              newItems = obj.items; newSim = obj.simDate; newPool = obj.remedyPool;
-            }else{ alert('文件格式错误'); return; }
-            if(!confirm('导入将覆盖当前所有数据，确定继续？')) return;
-            pushUndo('从备份文件恢复');
-            items = newItems;
-            items.forEach(function(it){
-              if(!it.id) it.id = uid();
-              if(!it.chapter) it.chapter = '第1章';
-              if(typeof it.reviewCount!=='number') it.reviewCount = 0;
-              if(typeof it.greenStreak!=='number') it.greenStreak = 0;
-              if(typeof it.isRemedy!=='boolean') it.isRemedy = false;
-              if(typeof it.isGood!=='boolean') it.isGood = false;
-              if(!it.lastReview) it.lastReview = '';
-              if(typeof it.onlyShowOnNext!=='boolean') it.onlyShowOnNext = false;
-              if(!it.initialStatus) it.initialStatus = it.status;
-            });
-            if(Array.isArray(newPool)) remedyPool = newPool;
-            if(newSim){ simDate = newSim; if(simInput) simInput.value = simDate; saveSim(); localStorage.setItem(MANUAL_KEY, 'true'); }
-            saveItems(); saveRemedyPool(); renderAll();
-            scheduleIdleBackup();
-            alert('恢复成功：' + items.length + ' 道题，待排池 ' + remedyPool.length + ' 条。');
-          }catch(err){ alert('文件解析失败：'+err.message); }
-        };
-        reader.readAsText(f);
-        e.target.value = '';
-      });
-    }
+    // 云同步按钮
+    var copySyncCodeBtn = $('copySyncCodeBtn'); if(copySyncCodeBtn) copySyncCodeBtn.addEventListener('click', function(){ var el = $('syncCodeDisplay'); if(!el) return; var text = el.textContent; if(navigator.clipboard && navigator.clipboard.writeText){ navigator.clipboard.writeText(text).then(function(){ alert('已复制同步码：' + text); }).catch(function(){ alert('复制失败，请手动长按复制：' + text); }); } else { alert('请手动复制：' + text); } });
+    var pullFromCloudBtn = $('pullFromCloudBtn'); if(pullFromCloudBtn) pullFromCloudBtn.addEventListener('click', function(){ var input = $('inputSyncCode'); if(!input || !input.value.trim()){ alert('请输入同步码'); return; } var newId = input.value.trim(); if(newId === syncUserId){ alert('这与当前同步码相同'); return; } if(!confirm('即将用同步码 ' + newId + ' 的数据覆盖当前设备，确定继续？')) return; syncUserId = newId; localStorage.setItem(SYNC_ID_KEY, syncUserId); renderSyncUI(); cloudPull().then(function(){ renderAll(); alert('已切换同步码并拉取数据：' + items.length + ' 道题'); }); });
+    var forcePushBtn = $('forcePushBtn'); if(forcePushBtn) forcePushBtn.addEventListener('click', function(){ cloudPush(false); });
+    var forcePullBtn = $('forcePullBtn'); if(forcePullBtn) forcePullBtn.addEventListener('click', function(){ cloudPull().then(function(){ renderAll(); }); });
 
-    var excelBtn = $('excelBtn');
-    if(excelBtn) excelBtn.addEventListener('click', exportExcel);
+    var excelBtn = $('excelBtn'); if(excelBtn) excelBtn.addEventListener('click', exportExcel);
+    var exportBtn = $('exportBtn'); if(exportBtn){ exportBtn.addEventListener('click', function(){ var payload = buildBackupPayload(); var blob = new Blob([JSON.stringify(payload, null, 2)], {type:'application/json'}); var url = URL.createObjectURL(blob); var a = document.createElement('a'); a.href = url; a.download = backupFilename(); a.click(); URL.revokeObjectURL(url); }); }
+    var importBtn = $('importBtn'); if(importBtn) importBtn.addEventListener('click', function(){ $('importFile').click(); });
+    var importFile = $('importFile'); if(importFile){ importFile.addEventListener('change', function(e){ var f = e.target.files[0]; if(!f) return; var reader = new FileReader(); reader.onload = function(ev){ try{ var obj = JSON.parse(ev.target.result); var newItems = null, newSim = null, newPool = null; if(Array.isArray(obj)) newItems = obj; else if(obj && Array.isArray(obj.items)){ newItems = obj.items; newSim = obj.simDate; newPool = obj.remedyPool; } else { alert('文件格式错误'); return; } if(!confirm('导入将覆盖当前所有数据，确定继续？')) return; pushUndo('导入 JSON 备份（覆盖当前数据）'); items = newItems; items.forEach(function(it){ if(!it.id) it.id = uid(); if(!it.chapter) it.chapter = '第1章'; if(typeof it.reviewCount!=='number') it.reviewCount = 0; if(typeof it.greenStreak!=='number') it.greenStreak = 0; if(typeof it.isRemedy!=='boolean') it.isRemedy = false; if(typeof it.isGood!=='boolean') it.isGood = false; if(!it.lastReview) it.lastReview = ''; if(typeof it.onlyShowOnNext!=='boolean') it.onlyShowOnNext = false; if(!it.initialStatus) it.initialStatus = it.status; }); if(Array.isArray(newPool)) remedyPool = newPool; if(newSim){ simDate = newSim; if(simInput) simInput.value = simDate; saveSim(); localStorage.setItem(MANUAL_KEY, 'true'); } saveItems(); saveRemedyPool(); scheduleCloudSync(); renderAll(); alert('导入成功，共 '+items.length+' 道题，待排池 '+remedyPool.length+' 条。'); }catch(err){ alert('文件解析失败：'+err.message); } }; reader.readAsText(f); e.target.value = ''; }); }
+    var resetBtn = $('resetBtn'); if(resetBtn){ resetBtn.addEventListener('click', function(){ if(confirm('确定清空所有数据（含待排池）？此操作不可恢复。')){ pushUndo('清空所有数据（含待排池）'); items = []; remedyPool = []; saveItems(); saveRemedyPool(); scheduleCloudSync(); renderAll(); } }); }
 
-    var exportBtn = $('exportBtn');
-    if(exportBtn){
-      exportBtn.addEventListener('click', function(){
-        var payload = buildBackupPayload();
-        var blob = new Blob([JSON.stringify(payload, null, 2)], {type:'application/json'});
-        var url = URL.createObjectURL(blob);
-        var a = document.createElement('a');
-        a.href = url;
-        a.download = backupFilename();
-        a.click();
-        URL.revokeObjectURL(url);
-      });
-    }
-    var importBtn = $('importBtn');
-    if(importBtn) importBtn.addEventListener('click', function(){ $('importFile').click(); });
-    var importFile = $('importFile');
-    if(importFile){
-      importFile.addEventListener('change', function(e){
-        var f = e.target.files[0];
-        if(!f) return;
-        var reader = new FileReader();
-        reader.onload = function(ev){
-          try{
-            var obj = JSON.parse(ev.target.result);
-            var newItems = null, newSim = null, newPool = null;
-            if(Array.isArray(obj)) newItems = obj;
-            else if(obj && Array.isArray(obj.items)){
-              newItems = obj.items; newSim = obj.simDate; newPool = obj.remedyPool;
-            }else{ alert('文件格式错误'); return; }
-            if(!confirm('导入将覆盖当前所有数据，确定继续？')) return;
-            pushUndo('导入 JSON 备份（覆盖当前数据）');
-            items = newItems;
-            items.forEach(function(it){
-              if(!it.id) it.id = uid();
-              if(!it.chapter) it.chapter = '第1章';
-              if(typeof it.reviewCount!=='number') it.reviewCount = 0;
-              if(typeof it.greenStreak!=='number') it.greenStreak = 0;
-              if(typeof it.isRemedy!=='boolean') it.isRemedy = false;
-              if(typeof it.isGood!=='boolean') it.isGood = false;
-              if(!it.lastReview) it.lastReview = '';
-              if(typeof it.onlyShowOnNext!=='boolean') it.onlyShowOnNext = false;
-              if(!it.initialStatus) it.initialStatus = it.status;
-            });
-            if(Array.isArray(newPool)) remedyPool = newPool;
-            if(newSim){ simDate = newSim; if(simInput) simInput.value = simDate; saveSim(); localStorage.setItem(MANUAL_KEY, 'true'); }
-            saveItems(); saveRemedyPool(); renderAll();
-            scheduleIdleBackup();
-            alert('导入成功，共 '+items.length+' 道题，待排池 '+remedyPool.length+' 条。');
-          }catch(err){ alert('文件解析失败：'+err.message); }
-        };
-        reader.readAsText(f);
-        e.target.value = '';
-      });
-    }
-    var resetBtn = $('resetBtn');
-    if(resetBtn){
-      resetBtn.addEventListener('click', function(){
-        if(confirm('确定清空所有数据（含待排池）？此操作不可恢复。')){
-          pushUndo('清空所有数据（含待排池）');
-          items = []; remedyPool = [];
-          saveItems(); saveRemedyPool();
-          scheduleIdleBackup();
-          renderAll();
-        }
-      });
-    }
-
-    // 关闭页面时尝试写入一次 IDB
-    window.addEventListener('beforeunload', function(){
-      try{
-        // 同步 + 异步 IDB 写入不可靠，此处只做尽力而为
-        writeIdbSnapshot();
-      }catch(e){}
-    });
+    window.addEventListener('beforeunload', function(){ try{ writeIdbSnapshot(); }catch(e){} });
   }
 
-  function updatePostponeOptions(){
-    var sel = $('bulkPostponeSelect');
-    if(!sel) return;
-    sel.innerHTML = buildPostponeOptionsHtml('选择日期');
-  }
+  function updatePostponeOptions(){ var sel = $('bulkPostponeSelect'); if(!sel) return; sel.innerHTML = buildPostponeOptionsHtml('选择日期'); }
 
   function init(){
     try{
-      loadBackupConfig();
-      items = loadItems();
-      remedyPool = loadRemedyPool();
+      loadBackupConfig(); items = loadItems(); remedyPool = loadRemedyPool();
+      simDate = chinaToday(); localStorage.removeItem(MANUAL_KEY); saveSim();
+      fillChapterSelect(); fillRemedyChapterSelect(); fillFilterChapter(); fillDueFilterChapter(); updatePostponeOptions(); $('rmStartDate').value = simDate;
+      bindEvents(); renderAll(); updateUndoBtn(); updateBackupStatusUI(); renderSyncUI(); clearError();
 
-      simDate = chinaToday();
-      localStorage.removeItem(MANUAL_KEY);
-      saveSim();
+      // 启动时尝试从云端拉取（如果本地没有数据，或者云端有更新）
+      cloudPull().then(function(result){
+        if(result.pulled){ renderAll(); }
+      });
 
-      fillChapterSelect();
-      fillRemedyChapterSelect();
-      fillFilterChapter();
-      fillDueFilterChapter();
-      updatePostponeOptions();
-      $('rmStartDate').value = simDate;
+      idbGet('handles', 'backupDir').then(function(handle){ if(handle){ backupDirHandle = handle; updateBackupStatusUI(); } else { if(!window.showDirectoryPicker){ autoDownloadFallback = true; } else { autoDownloadFallback = true; } updateBackupStatusUI(); } }).catch(function(){});
+      writeIdbSnapshot().then(function(){ return cleanIdbSnapshots(); }).catch(function(){});
 
-      bindEvents();
-      renderAll();
-      updateUndoBtn();
-      updateBackupStatusUI();
-      clearError();
+      idbGet('meta', 'lastSnapshot').then(function(meta){ if(!meta) return; var localCount = items.length; var idbCount = meta.count || 0; if(localCount === 0 && idbCount > 0){ setTimeout(function(){ if(confirm('检测到浏览器本地数据为空，但 IndexedDB 中保存着 ' + idbCount + ' 道题的备份快照。\n是否从备份恢复？')){ restoreFromIdb(); } }, 500); } }).catch(function(){});
 
-      // 尝试恢复 backupDirHandle
-      idbGet('handles', 'backupDir').then(function(handle){
-        if(handle){
-          backupDirHandle = handle;
-          updateBackupStatusUI();
-        }else{
-          // 没有文件夹 handle，若支持就提示用户；若支持但用户没选，则先降级为定时下载
-          if(!window.showDirectoryPicker){
-            autoDownloadFallback = true;
-          }else{
-            autoDownloadFallback = true; // 默认也启用下载兜底
-          }
-          updateBackupStatusUI();
-        }
-      }).catch(function(){ /* ignore */ });
-
-      // 启动时写一次 IDB 快照
-      writeIdbSnapshot().then(function(){
-        return cleanIdbSnapshots();
-      }).catch(function(){ /* ignore */ });
-
-      // 启动时检查 IDB 是否有比 localStorage 更多的数据
-      idbGet('meta', 'lastSnapshot').then(function(meta){
-        if(!meta) return;
-        var localCount = items.length;
-        var idbCount = meta.count || 0;
-        if(localCount === 0 && idbCount > 0){
-          setTimeout(function(){
-            if(confirm('检测到浏览器本地数据为空，但 IndexedDB 中保存着 ' + idbCount + ' 道题的备份快照。\n是否从备份恢复？')){
-              restoreFromIdb();
-            }
-          }, 500);
-        }
-      }).catch(function(){ /* ignore */ });
-
-      // 启动定时器
       scheduleBackup();
 
-      // 每秒兜底同步 + 自动跟随中国时间
       setInterval(function(){
-        var inputEl = $('simDate');
-        if(!inputEl) return;
-        var manualNow = localStorage.getItem(MANUAL_KEY) === 'true';
-
-        if(!manualNow){
-          var newDate = chinaToday();
-          if(newDate !== simDate){
-            simDate = newDate;
-            inputEl.value = simDate;
-            saveSim();
-            renderAll();
-            updatePostponeOptions();
-            return;
-          }
-        }
-
-        if(inputEl.value && inputEl.value !== simDate){
-          simDate = inputEl.value;
-          saveSim();
-          renderAll();
-          updatePostponeOptions();
-        }
+        var inputEl = $('simDate'); if(!inputEl) return; var manualNow = localStorage.getItem(MANUAL_KEY) === 'true';
+        if(!manualNow){ var newDate = chinaToday(); if(newDate !== simDate){ simDate = newDate; inputEl.value = simDate; saveSim(); renderAll(); updatePostponeOptions(); return; } }
+        if(inputEl.value && inputEl.value !== simDate){ simDate = inputEl.value; saveSim(); renderAll(); updatePostponeOptions(); }
       }, 1000);
 
-      // 每 15 秒更新一次备份状态（倒计时）
       setInterval(updateBackupStatusUI, 15000);
-    }catch(e){
-      console.error('init error:', e);
-      showError('系统初始化失败：'+e.message+'。请刷新页面重试，或清空数据。');
-    }
+    }catch(e){ console.error('init error:', e); showError('系统初始化失败：'+e.message+'。请刷新页面重试，或清空数据。'); }
   }
 
-  if(document.readyState==='loading'){
-    document.addEventListener('DOMContentLoaded', init);
-  }else{
-    init();
-  }
+  if(document.readyState==='loading'){ document.addEventListener('DOMContentLoaded', init); } else { init(); }
 })();
 </script>
 </body>
