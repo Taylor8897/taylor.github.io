@@ -256,6 +256,28 @@
   .sync-status.warn{color:#b45309;}
   .sync-status.err{color:#dc2626;}
 
+  /* ===== 自由字段（一级/二级）相关样式 ===== */
+  .tab.fields.active{background:#2563eb;border-color:#2563eb;}
+  .t-blue{background:#eff6ff;color:#1d4ed8;}
+  .field-block{background:#f8fafc;border:1px solid var(--line);border-radius:10px;padding:12px 14px;margin-bottom:10px;}
+  .field-head{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:10px;}
+  .field-head input.field-name{width:auto;min-width:130px;max-width:240px;font-weight:700;font-size:13px;padding:5px 8px;}
+  .field-head .field-meta{font-size:12px;color:var(--sub);}
+  .field-children{display:flex;flex-wrap:wrap;gap:8px;align-items:center;}
+  .field-chip{display:inline-flex;align-items:center;gap:2px;background:#fff;border:1px solid var(--line);border-radius:16px;padding:2px 4px 2px 8px;}
+  .field-chip input{width:78px;border:none;background:transparent;padding:2px;font-size:12px;text-align:center;}
+  .field-chip input:focus{outline:1px solid #93c5fd;border-radius:4px;}
+  .chip-x{background:#f1f5f9;border:1px solid #e2e8f0;color:#64748b;border-radius:50%;width:18px;height:18px;line-height:1;font-size:12px;cursor:pointer;padding:0;font-family:inherit;}
+  .chip-x:hover{background:#fef2f2;color:#dc2626;border-color:#fecaca;}
+  .field-add{display:inline-flex;gap:6px;align-items:center;background:#fff;border:1px dashed #cbd5e1;border-radius:8px;padding:3px 6px;}
+  .field-add input{width:120px;border:none;background:transparent;padding:3px 4px;font-size:12px;}
+  .field-empty-hint{color:var(--sub);font-size:13px;padding:16px;text-align:center;background:#fff;border:1px dashed var(--line);border-radius:8px;}
+  .limit-item{display:inline-flex;align-items:center;gap:6px;background:#fff;border:1px solid var(--line);border-radius:8px;padding:5px 10px;font-size:12px;color:var(--sub);font-weight:600;}
+  .limit-item input{width:66px;padding:3px 6px;text-align:center;font-size:12px;}
+  .field-link-btn{background:#eff6ff;color:#1d4ed8;border:1px solid #bfdbfe;padding:3px 10px;border-radius:12px;font-size:11px;font-weight:700;cursor:pointer;font-family:inherit;margin-left:6px;}
+  .field-link-btn:hover{background:#dbeafe;}
+  .picked-l1-badge{display:inline-block;padding:1px 7px;border-radius:10px;background:#eff6ff;color:#1d4ed8;font-size:11px;font-weight:700;margin-right:6px;}
+
   @media (max-width:600px){.form-grid{grid-template-columns:1fr;}.method-table{font-size:12px;}.method-table td,.method-table th{padding:7px 8px;}.calendar-grid{grid-template-columns:repeat(2,1fr);}}
 </style>
 </head>
@@ -263,7 +285,7 @@
 <div class="wrap">
 
   <h1>题目复习系统 · 云同步版</h1>
-  <div class="sub">本地存储 + IndexedDB + Supabase 云端三层防护。换设备、清缓存，数据不丢失。</div>
+  <div class="sub">本地存储 + IndexedDB + Supabase 云端三层防护。换设备、清缓存，数据不丢失。一级 / 二级字段可自由设置。</div>
 
   <div class="error-box" id="errorBox"></div>
 
@@ -289,6 +311,7 @@
     <button class="tab remedy" data-tab="remedy">补救板块</button>
     <button class="tab good" data-tab="good" id="goodTab">好题板块</button>
     <button class="tab dashboard" data-tab="dashboard" id="dashboardTab">学习看板</button>
+    <button class="tab fields" data-tab="fields" id="fieldsTab">字段设置</button>
     <button class="tab sync" data-tab="sync">云同步</button>
     <button class="tab" data-tab="data">数据与备份</button>
   </div>
@@ -341,11 +364,16 @@
         <b>排程规则：</b>红 → 明天；黄 → 3 天后；绿 → 7 天后；绿再会 → 30 天后；绿连续 3 次会 → 归档。
       </div>
 
+      <div class="key key-good">
+        <b>字段自由设置：</b>一级字段相当于「学科 / 大类」，二级字段相当于「章节 / 小类」，都可以在<b>「字段设置」</b>里自由添加、重命名、删除。以后换学科、换教材，直接改字段即可，不用改代码，也不会影响已录入的题目。
+        <button class="field-link-btn" id="openFieldsFromInput">⚙ 打开字段设置</button>
+      </div>
+
       <div class="form-grid">
-        <div><label>科目</label>
-          <select id="inSubject"><option value="数学">数学</option><option value="电路">电路</option></select>
+        <div><label>一级字段</label>
+          <select id="inSubject"></select>
         </div>
-        <div><label>章节</label><select id="inChapter"></select></div>
+        <div><label>二级字段</label><select id="inChapter"></select></div>
         <div><label>来源</label>
           <select id="inSource"><option value="真题本">真题本</option><option value="讲义">讲义</option></select>
         </div>
@@ -412,14 +440,12 @@
       </div>
 
       <div class="filter-bar">
-        <div><label>科目</label>
+        <div><label>一级字段</label>
           <select id="dueFilterSubject">
             <option value="全部">全部</option>
-            <option value="数学">数学</option>
-            <option value="电路">电路</option>
           </select>
         </div>
-        <div><label>章节</label>
+        <div><label>二级字段</label>
           <select id="dueFilterChapter"><option value="全部">全部</option></select>
         </div>
         <div><label>标记</label>
@@ -467,10 +493,10 @@
     <div class="card">
       <h2>全部题目</h2>
       <div class="filter-bar">
-        <div><label>科目</label>
-          <select id="filterSubject"><option value="全部">全部</option><option value="数学">数学</option><option value="电路">电路</option></select>
+        <div><label>一级字段</label>
+          <select id="filterSubject"><option value="全部">全部</option></select>
         </div>
-        <div><label>章节</label><select id="filterChapter"><option value="全部">全部</option></select></div>
+        <div><label>二级字段</label><select id="filterChapter"><option value="全部">全部</option></select></div>
         <div><label>标记</label>
           <select id="filterStatus"><option value="全部">全部</option><option value="红">红</option><option value="黄">黄</option><option value="绿">绿</option><option value="归档">归档</option></select>
         </div>
@@ -484,7 +510,7 @@
       <div style="overflow-x:auto;">
         <table>
           <thead>
-            <tr><th>科目</th><th>章节</th><th>来源</th><th>页码</th><th>题号</th><th>标记</th><th>类型</th><th>状态</th><th>首次</th><th>下次</th><th>次数</th><th>操作</th></tr>
+            <tr><th>一级字段</th><th>二级字段</th><th>来源</th><th>页码</th><th>题号</th><th>标记</th><th>类型</th><th>状态</th><th>首次</th><th>下次</th><th>次数</th><th>操作</th></tr>
           </thead>
           <tbody id="allTbody"></tbody>
         </table>
@@ -517,51 +543,11 @@
         <b>权重：</b>红 3、黄 2。
       </div>
 
-      <div class="subject-box math">
-        <div class="subject-head">
-          <div class="title">📐 数学 · 周测</div>
-          <div class="stat" id="wkMathStat">本周录入 0 题 / 总 0 题</div>
-        </div>
-        <div class="scope-row">
-          <div>
-            <label>抽题范围</label>
-            <select id="wkMathScope">
-              <option value="new">本周录入优先（不够自动扩展）</option>
-              <option value="all">全部题目</option>
-            </select>
-          </div>
-        </div>
-        <div class="hint-text">章节徽章：绿色=本周录入；紫色=补救题已可抽；灰色=无。</div>
-        <div id="wkMathChapterInputs"></div>
-        <button class="btn btn-primary" id="wkMathBtn">抽取数学周测</button>
-        <button class="btn" id="wkMathReBtn">重新抽题</button>
-        <button class="btn" id="wkMathFillOne">每章1题</button>
-        <button class="btn" id="wkMathClear">清空</button>
-        <div id="wkMathResult" style="margin-top:14px;"></div>
+      <div class="key key-good">
+        <b>字段说明：</b>下面按你设置的每个一级字段自动生成一块周测。一级 / 二级字段可在「字段设置」里自由增删改。
       </div>
 
-      <div class="subject-box circ">
-        <div class="subject-head">
-          <div class="title">⚡ 电路 · 周测</div>
-          <div class="stat" id="wkCircStat">本周录入 0 题 / 总 0 题</div>
-        </div>
-        <div class="scope-row">
-          <div>
-            <label>抽题范围</label>
-            <select id="wkCircScope">
-              <option value="new">本周录入优先（不够自动扩展）</option>
-              <option value="all">全部题目</option>
-            </select>
-          </div>
-        </div>
-        <div class="hint-text">章节徽章：绿色=本周录入；紫色=补救题已可抽；灰色=无。</div>
-        <div id="wkCircChapterInputs"></div>
-        <button class="btn btn-primary" id="wkCircBtn">抽取电路周测</button>
-        <button class="btn" id="wkCircReBtn">重新抽题</button>
-        <button class="btn" id="wkCircFillOne">每章1题</button>
-        <button class="btn" id="wkCircClear">清空</button>
-        <div id="wkCircResult" style="margin-top:14px;"></div>
-      </div>
+      <div id="wkBoxes"></div>
     </div>
   </div>
 
@@ -575,51 +561,11 @@
         <b>权重：</b>红 3、黄 2、绿 2、归档 1。
       </div>
 
-      <div class="subject-box math">
-        <div class="subject-head">
-          <div class="title">📐 数学 · 月测</div>
-          <div class="stat" id="moMathStat">本月录入 0 题 / 总 0 题</div>
-        </div>
-        <div class="scope-row">
-          <div>
-            <label>抽题范围</label>
-            <select id="moMathScope">
-              <option value="new">本月录入优先（不够自动扩展）</option>
-              <option value="all">全部题目</option>
-            </select>
-          </div>
-        </div>
-        <div class="hint-text">章节徽章：绿色=本月录入；紫色=补救题已可抽；灰色=无。</div>
-        <div id="moMathChapterInputs"></div>
-        <button class="btn btn-primary" id="moMathBtn">抽取数学月测</button>
-        <button class="btn" id="moMathReBtn">重新抽题</button>
-        <button class="btn" id="moMathFillOne">每章1题</button>
-        <button class="btn" id="moMathClear">清空</button>
-        <div id="moMathResult" style="margin-top:14px;"></div>
+      <div class="key key-good">
+        <b>字段说明：</b>下面按你设置的每个一级字段自动生成一块月测。一级 / 二级字段可在「字段设置」里自由增删改。
       </div>
 
-      <div class="subject-box circ">
-        <div class="subject-head">
-          <div class="title">⚡ 电路 · 月测</div>
-          <div class="stat" id="moCircStat">本月录入 0 题 / 总 0 题</div>
-        </div>
-        <div class="scope-row">
-          <div>
-            <label>抽题范围</label>
-            <select id="moCircScope">
-              <option value="new">本月录入优先（不够自动扩展）</option>
-              <option value="all">全部题目</option>
-            </select>
-          </div>
-        </div>
-        <div class="hint-text">章节徽章：绿色=本月录入；紫色=补救题已可抽；灰色=无。</div>
-        <div id="moCircChapterInputs"></div>
-        <button class="btn btn-primary" id="moCircBtn">抽取电路月测</button>
-        <button class="btn" id="moCircReBtn">重新抽题</button>
-        <button class="btn" id="moCircFillOne">每章1题</button>
-        <button class="btn" id="moCircClear">清空</button>
-        <div id="moCircResult" style="margin-top:14px;"></div>
-      </div>
+      <div id="moBoxes"></div>
     </div>
   </div>
 
@@ -650,10 +596,10 @@
       <div class="subject-box remedy">
         <div style="font-size:14px;font-weight:700;margin-bottom:10px;">① 录入历史题到待排池</div>
         <div class="form-grid">
-          <div><label>科目</label>
-            <select id="rmSubject"><option value="数学">数学</option><option value="电路">电路</option></select>
+          <div><label>一级字段</label>
+            <select id="rmSubject"></select>
           </div>
-          <div><label>章节</label><select id="rmChapter"></select></div>
+          <div><label>二级字段</label><select id="rmChapter"></select></div>
           <div><label>来源</label>
             <select id="rmSource"><option value="真题本">真题本</option><option value="讲义">讲义</option></select>
           </div>
@@ -683,12 +629,11 @@
         <div class="form-grid">
           <div><label>开始日期</label><input type="date" id="rmStartDate"></div>
           <div><label>持续天数</label><input type="number" id="rmDays" value="14" min="1" max="60"></div>
-          <div><label>数学每天上限</label><input type="number" id="rmMathLimit" value="15" min="1" max="100"></div>
-          <div><label>电路每天上限</label><input type="number" id="rmCircLimit" value="10" min="1" max="100"></div>
+          <div class="wide"><label>每个一级字段每天上限</label><div id="rmLimits" style="display:flex;gap:8px;flex-wrap:wrap;"></div></div>
           <div><label>排序优先级</label>
             <select id="rmSortBy">
               <option value="status">按标记（红→黄→绿→归档）</option>
-              <option value="chapter">按章节顺序</option>
+              <option value="chapter">按二级字段顺序</option>
             </select>
           </div>
         </div>
@@ -744,6 +689,31 @@
         <button class="btn" data-stat-range="30">近 1 月</button>
       </div>
       <div id="statsContent"></div>
+    </div>
+  </div>
+
+  <!-- 字段设置 -->
+  <div class="panel" id="panel-fields">
+    <div class="card">
+      <h2 style="border-left-color:#2563eb;">字段设置 · 一级 / 二级</h2>
+      <div class="key key-good">
+        <b>像 Word 的大纲一样管理字段：</b>一级字段 = 学科 / 大类（如「电路」「数学」「英语」）；二级字段 = 该大类下的章节 / 小类（如「第3章」「阅读理解」）。<br>
+        <b>可以自由做：</b>添加一级字段、给一级字段添加二级字段、重命名（重命名会自动同步更新所有已录入题目的字段值）、调整顺序、删除（该字段下还有题目时不允许删除，避免误删数据）。<br>
+        <b>数据安全：</b>字段只是「选项」；题目里保存的仍是一级 / 二级字段的文字值。以后新增学科、换教材，直接改这里即可，旧题目不会丢失。
+      </div>
+
+      <div class="form-grid" style="align-items:end;">
+        <div><label>新增一级字段</label>
+          <input id="fieldNewL1" placeholder="如：英语 / 电路 / 政治 / 专业课">
+        </div>
+        <div style="display:flex;gap:8px;align-items:end;">
+          <button class="btn btn-primary" id="fieldAddL1Btn">添加一级字段</button>
+          <button class="btn" id="fieldResetBtn" title="恢复默认的数学 / 电路字段（不会删除题目）">恢复默认字段</button>
+        </div>
+      </div>
+
+      <div id="fieldEditor"></div>
+      <div class="mini" style="margin-top:8px;">提示：重命名一级字段 / 二级字段后，全部题目、今日到期、周测、月测、补救板块的筛选选项会立即同步。</div>
     </div>
   </div>
 
@@ -892,12 +862,19 @@
   var REMEDY_KEY = 'tiqu_final_remedypool';
   var BACKUP_CONFIG_KEY = 'tiqu_backup_config';
 
-  var MATH_CH = ['第1章','第2章','第3章','第4章','第5章','第6章','第7章','第8章','第9章'];
-  var CIRC_CH = ['第1章','第2章','第3章','第4章','第5章','第6章','第7章','第8章','第9章','第10章','第11章','第12章','第13章','第14章'];
+  var FIELD_KEY = 'tiqu_field_schema';
+  var FIELD_COLORS = ['#2563eb','#ea580c','#7c3aed','#0891b2','#059669','#d97706','#db2777','#4f46e5'];
+  var FIELD_DEFAULT_SEED = [
+    { name: '数学', children: ['第1章','第2章','第3章','第4章','第5章','第6章','第7章','第8章','第9章'] },
+    { name: '电路', children: ['第1章','第2章','第3章','第4章','第5章','第6章','第7章','第8章','第9章','第10章','第11章','第12章','第13章','第14章'] }
+  ];
 
   var items = [];
   var simDate = '';
   var remedyPool = [];
+  var fieldSchema = [];
+  var remedyLimits = {};
+  var cloudSchemaSupported = true;
 
   var undoStack = [];
   var UNDO_MAX = 30;
@@ -918,6 +895,28 @@
     }
   }
 
+  function normalizeRemoteItems(arr){
+    if(!Array.isArray(arr)) return [];
+    arr.forEach(function(it){
+      if(!it.id) it.id = uid();
+      if(!it.subject) it.subject = '未分类';
+      if(!it.chapter) it.chapter = '';
+      if(!it.source) it.source = '讲义';
+      if(!it.page) it.page = '';
+      if(!it.no) it.no = '';
+      if(!it.status) it.status = '黄';
+      if(!it.first) it.first = todayStr();
+      if(!it.next) it.next = it.first;
+      if(typeof it.reviewCount!=='number') it.reviewCount = 0;
+      if(typeof it.greenStreak!=='number') it.greenStreak = 0;
+      if(typeof it.isRemedy!=='boolean') it.isRemedy = false;
+      if(typeof it.isGood!=='boolean') it.isGood = false;
+      if(!it.lastReview) it.lastReview = '';
+      if(typeof it.onlyShowOnNext!=='boolean') it.onlyShowOnNext = false;
+      if(!it.initialStatus) it.initialStatus = it.status;
+    });
+    return arr;
+  }
   function cloudPull(){
     setSyncStatus('syncing', '正在从云端下载…');
     return fetch(SUPABASE_URL + '/rest/v1/user_data?user_id=eq.' + encodeURIComponent(syncUserId), {
@@ -929,9 +928,10 @@
     }).then(function(data){
       if(data && data.length > 0){
         var row = data[0];
-        var cloudItems = row.items || [];
-        var cloudPool = row.remedy_pool || [];
+        var cloudItems = normalizeRemoteItems(row.items || []);
+        var cloudPool = Array.isArray(row.remedy_pool) ? row.remedy_pool : [];
         var cloudSim = row.sim_date || '';
+        if(row.field_schema){ try{ applyIncomingSchema(row.field_schema); }catch(e){} }
         var localHasData = items.length > 0 || remedyPool.length > 0;
         var shouldOverwrite = false;
         if(!localHasData){ shouldOverwrite = true; }
@@ -940,21 +940,14 @@
           items = cloudItems;
           remedyPool = cloudPool;
           if(cloudSim){ simDate = cloudSim; var simEl = $('simDate'); if(simEl) simEl.value = simDate; saveSim(); }
-          items.forEach(function(it){
-            if(!it.id) it.id = uid();
-            if(!it.chapter) it.chapter = '第1章';
-            if(typeof it.reviewCount!=='number') it.reviewCount = 0;
-            if(typeof it.greenStreak!=='number') it.greenStreak = 0;
-            if(typeof it.isRemedy!=='boolean') it.isRemedy = false;
-            if(typeof it.isGood!=='boolean') it.isGood = false;
-            if(!it.lastReview) it.lastReview = '';
-            if(typeof it.onlyShowOnNext!=='boolean') it.onlyShowOnNext = false;
-            if(!it.initialStatus) it.initialStatus = it.status;
-          });
-          saveItems(); saveRemedyPool(); renderAll();
+          normalizeRemoteItems(items);
+          mergeSchemaWithData(fieldSchema); saveFieldSchema();
+          saveItems(); saveRemedyPool(); fillFieldSelects(); renderRemedyLimits(); renderAll();
           setSyncStatus('ok', '已从云端同步最新数据（' + items.length + ' 道题）');
           return { pulled: true };
         } else {
+          mergeSchemaWithData(fieldSchema); saveFieldSchema();
+          saveItems(); saveRemedyPool(); fillFieldSelects(); renderRemedyLimits(); renderAll();
           setSyncStatus('ok', '云端与本地数据一致');
           return { pulled: false };
         }
@@ -970,26 +963,42 @@
 
   function cloudPush(silent){
     if(!silent){ setSyncStatus('syncing', '正在上传到云端…'); }
-    var payload = {
-      user_id: syncUserId,
-      items: items,
-      remedy_pool: remedyPool,
-      sim_date: simDate,
-      updated_at: new Date().toISOString()
-    };
-    return fetch(SUPABASE_URL + '/rest/v1/user_data?on_conflict=user_id', {
-      method: 'POST',
-      headers: {
-        'apikey': SUPABASE_KEY,
-        'Authorization': 'Bearer ' + SUPABASE_KEY,
-        'Content-Type': 'application/json',
-        'Prefer': 'resolution=merge-duplicates'
-      },
-      body: JSON.stringify([payload])
-    }).then(function(res){
-      if(!res.ok) return res.text().then(function(t){ throw new Error(t); });
-      if(!silent){ setSyncStatus('ok', '已成功上传到云端（' + items.length + ' 道题）'); }
-      return { ok: true };
+    function send(includeSchema){
+      var payload = {
+        user_id: syncUserId,
+        items: items,
+        remedy_pool: remedyPool,
+        sim_date: simDate,
+        updated_at: new Date().toISOString()
+      };
+      if(includeSchema) payload.field_schema = { version: 2, fields: cloneSchema(fieldSchema) };
+      return fetch(SUPABASE_URL + '/rest/v1/user_data?on_conflict=user_id', {
+        method: 'POST',
+        headers: {
+          'apikey': SUPABASE_KEY,
+          'Authorization': 'Bearer ' + SUPABASE_KEY,
+          'Content-Type': 'application/json',
+          'Prefer': 'resolution=merge-duplicates'
+        },
+        body: JSON.stringify([payload])
+      });
+    }
+    return send(cloudSchemaSupported).then(function(res){
+      if(res.ok){
+        if(!silent){ setSyncStatus('ok', '已成功上传到云端（' + items.length + ' 道题）'); }
+        return { ok: true };
+      }
+      return res.text().then(function(t){
+        if(cloudSchemaSupported && /field_schema|PGRST204|column|schema/i.test(t)){
+          cloudSchemaSupported = false;
+          return send(false).then(function(res2){
+            if(!res2.ok) return res2.text().then(function(t2){ throw new Error(t2); });
+            if(!silent){ setSyncStatus('ok', '已上传（云端不支持字段表，字段已保存在本机与备份中）'); }
+            return { ok: true, schemaLocalOnly: true };
+          });
+        }
+        throw new Error(t);
+      });
     }).catch(function(e){
       if(!silent){ setSyncStatus('error', '云端上传失败：' + (e.message || e)); }
       return { ok: false, error: e };
@@ -1042,7 +1051,7 @@
   }
 
   function buildBackupPayload(){
-    return { version: 'backup_v1', exportedAt: new Date().toISOString(), simDate: simDate, items: items, remedyPool: remedyPool };
+    return { version: 'backup_v2', exportedAt: new Date().toISOString(), simDate: simDate, fieldSchema: { version: 2, fields: cloneSchema(fieldSchema) }, items: items, remedyPool: remedyPool };
   }
 
   function backupFilename(){
@@ -1209,7 +1218,7 @@
 
   function pushUndo(desc){
     try{
-      undoStack.push({ desc: desc, items: JSON.parse(JSON.stringify(items)), remedyPool: JSON.parse(JSON.stringify(remedyPool)) });
+      undoStack.push({ desc: desc, items: JSON.parse(JSON.stringify(items)), remedyPool: JSON.parse(JSON.stringify(remedyPool)), fieldSchema: cloneSchema(fieldSchema) });
       if(undoStack.length > UNDO_MAX) undoStack.shift();
       updateUndoBtn();
     }catch(e){ console.error('pushUndo error:', e); }
@@ -1218,7 +1227,9 @@
     if(undoStack.length === 0){ alert('没有可撤回的操作。'); return; }
     var state = undoStack.pop();
     items = state.items; remedyPool = state.remedyPool;
-    saveItems(); saveRemedyPool(); renderAll(); updateUndoBtn();
+    if(state.fieldSchema) fieldSchema = cloneSchema(state.fieldSchema);
+    mergeSchemaWithData(fieldSchema); saveFieldSchema();
+    saveItems(); saveRemedyPool(); fillFieldSelects(); renderRemedyLimits(); renderAll(); updateUndoBtn();
     alert('已撤回：' + state.desc);
   }
   function updateUndoBtn(){
@@ -1281,7 +1292,7 @@
       var raw = localStorage.getItem(ITEM_KEY); if(!raw) return [];
       var arr = JSON.parse(raw); if(!Array.isArray(arr)) return [];
       arr.forEach(function(it){
-        if(!it.id) it.id = uid(); if(!it.subject) it.subject='数学'; if(!it.chapter) it.chapter='第1章'; if(!it.source) it.source='讲义'; if(!it.page) it.page=''; if(!it.no) it.no=''; if(!it.status) it.status='黄'; if(!it.first) it.first=todayStr(); if(!it.next) it.next=it.first; if(typeof it.reviewCount!=='number') it.reviewCount=0; if(!it.errReason) it.errReason=''; if(typeof it.greenStreak!=='number') it.greenStreak=0; if(typeof it.isRemedy!=='boolean') it.isRemedy=false; if(typeof it.isGood!=='boolean') it.isGood=false; if(!it.lastReview) it.lastReview=''; if(typeof it.onlyShowOnNext!=='boolean') it.onlyShowOnNext=false; if(!it.initialStatus) it.initialStatus = it.status;
+        if(!it.id) it.id = uid(); if(!it.subject) it.subject='未分类'; if(!it.chapter) it.chapter=''; if(!it.source) it.source='讲义'; if(!it.page) it.page=''; if(!it.no) it.no=''; if(!it.status) it.status='黄'; if(!it.first) it.first=todayStr(); if(!it.next) it.next=it.first; if(typeof it.reviewCount!=='number') it.reviewCount=0; if(!it.errReason) it.errReason=''; if(typeof it.greenStreak!=='number') it.greenStreak=0; if(typeof it.isRemedy!=='boolean') it.isRemedy=false; if(typeof it.isGood!=='boolean') it.isGood=false; if(!it.lastReview) it.lastReview=''; if(typeof it.onlyShowOnNext!=='boolean') it.onlyShowOnNext=false; if(!it.initialStatus) it.initialStatus = it.status;
       });
       return arr;
     }catch(e){ return []; }
@@ -1290,6 +1301,256 @@
   function saveSim(){ try{ localStorage.setItem(SIM_KEY,simDate); }catch(e){} }
   function loadRemedyPool(){ try{ var raw = localStorage.getItem(REMEDY_KEY); return raw ? JSON.parse(raw) : []; }catch(e){ return []; } }
   function saveRemedyPool(){ try{ localStorage.setItem(REMEDY_KEY,JSON.stringify(remedyPool)); }catch(e){} }
+
+  // ================= 自由字段（一级 / 二级） =================
+  function cloneSchema(src){
+    var out = [];
+    (src || []).forEach(function(f){
+      if(!f) return;
+      var name = String(f.name == null ? '' : f.name).trim();
+      if(!name || name === '全部') return;
+      var children = [];
+      (f.children || []).forEach(function(ch){
+        var c = String(ch == null ? '' : ch).trim();
+        if(c && children.indexOf(c) === -1) children.push(c);
+      });
+      for(var i=0;i<out.length;i++){
+        if(out[i].name === name){ children.forEach(function(c){ if(out[i].children.indexOf(c) === -1) out[i].children.push(c); }); return; }
+      }
+      out.push({ name: name, children: children });
+    });
+    return out;
+  }
+  function loadFieldSchema(){
+    try{
+      var raw = localStorage.getItem(FIELD_KEY);
+      if(!raw) return null;
+      var obj = JSON.parse(raw);
+      if(Array.isArray(obj)) return cloneSchema(obj);
+      if(obj && Array.isArray(obj.fields)) return cloneSchema(obj.fields);
+      return null;
+    }catch(e){ return null; }
+  }
+  function saveFieldSchema(){
+    try{ localStorage.setItem(FIELD_KEY, JSON.stringify({ version: 2, fields: cloneSchema(fieldSchema) })); }catch(e){}
+  }
+  function getL1Names(){ return fieldSchema.map(function(f){ return f.name; }); }
+  function getField(name){
+    for(var i=0;i<fieldSchema.length;i++){ if(fieldSchema[i].name === name) return fieldSchema[i]; }
+    return null;
+  }
+  function getL2Names(fieldName){
+    if(fieldName === '全部' || !fieldName){
+      var all = [], seen = {};
+      fieldSchema.forEach(function(f){ f.children.forEach(function(c){ if(!seen[c]){ seen[c] = 1; all.push(c); } }); });
+      return all;
+    }
+    var f = getField(fieldName);
+    return f ? f.children.slice() : [];
+  }
+  function ensureField(name){
+    name = String(name == null ? '' : name).trim();
+    if(!name || name === '全部') return null;
+    var f = getField(name);
+    if(!f){ f = { name: name, children: [] }; fieldSchema.push(f); }
+    return f;
+  }
+  function ensureChild(fieldName, childName){
+    var f = ensureField(fieldName); if(!f) return;
+    childName = String(childName == null ? '' : childName).trim();
+    if(childName && f.children.indexOf(childName) === -1) f.children.push(childName);
+  }
+  function mergeSchemaWithData(base){
+    fieldSchema = cloneSchema(base || []);
+    function addItem(it){
+      if(!it) return;
+      var l1 = String(it.subject == null ? '' : it.subject).trim() || '未分类';
+      var f = ensureField(l1);
+      var l2 = String(it.chapter == null ? '' : it.chapter).trim();
+      if(l2 && f && f.children.indexOf(l2) === -1) f.children.push(l2);
+    }
+    items.forEach(addItem); remedyPool.forEach(addItem);
+    return fieldSchema;
+  }
+  function initFieldSchema(stored){
+    if(stored && stored.length){ fieldSchema = cloneSchema(stored); }
+    else if(stored && stored.length === 0){ fieldSchema = []; }
+    else { fieldSchema = cloneSchema(FIELD_DEFAULT_SEED); }
+    return mergeSchemaWithData(fieldSchema);
+  }
+  function fieldItemCount(name){ return items.filter(function(it){ return it.subject === name; }).length; }
+  function chapterItemCount(fieldName, childName){ return items.filter(function(it){ return it.subject === fieldName && it.chapter === childName; }).length; }
+
+  function syncSelectOptions(el, values, keepValue, placeholderText){
+    if(!el) return;
+    var prev = (keepValue !== undefined && keepValue !== null) ? keepValue : el.value;
+    el.innerHTML = '';
+    if(placeholderText){ var o0 = document.createElement('option'); o0.value = '全部'; o0.textContent = placeholderText; el.appendChild(o0); }
+    values.forEach(function(v){ var o = document.createElement('option'); o.value = v; o.textContent = v; el.appendChild(o); });
+    var exists = false;
+    for(var i=0;i<el.options.length;i++){ if(el.options[i].value === prev){ exists = true; break; } }
+    if(!values.length){ el.value = ''; return; }
+    el.value = exists ? prev : values[0];
+  }
+  function fillFieldSelects(){
+    var names = getL1Names();
+    ['inSubject','rmSubject'].forEach(function(id){ syncSelectOptions($(id), names, null, ''); });
+    ['filterSubject','dueFilterSubject'].forEach(function(id){ syncSelectOptions($(id), names, null, '全部'); });
+    fillChapterSelect(); fillRemedyChapterSelect(); fillFilterChapter(); fillDueFilterChapter();
+  }
+  function fillChapterSelect(){
+    var subj = ($('inSubject')||{}).value || '';
+    syncSelectOptions($('inChapter'), getL2Names(subj), null, '');
+  }
+  function fillRemedyChapterSelect(){
+    var subj = ($('rmSubject')||{}).value || '';
+    syncSelectOptions($('rmChapter'), getL2Names(subj), null, '');
+  }
+  function fillFilterChapter(){
+    var subj = ($('filterSubject')||{}).value || '全部';
+    syncSelectOptions($('filterChapter'), getL2Names(subj), null, '全部');
+  }
+  function fillDueFilterChapter(){
+    var subj = ($('dueFilterSubject')||{}).value || '全部';
+    syncSelectOptions($('dueFilterChapter'), getL2Names(subj), null, '全部');
+  }
+  function renderRemedyLimits(){
+    var wrap = $('rmLimits'); if(!wrap) return;
+    var names = getL1Names();
+    if(!names.length){ wrap.innerHTML = '<span class="mini">请先在「字段设置」里添加一级字段。</span>'; return; }
+    var html = '';
+    names.forEach(function(n){
+      if(typeof remedyLimits[n] !== 'number') remedyLimits[n] = (n === '数学' ? 15 : 10);
+      html += '<span class="limit-item">' + escapeHtml(n) + '<input type="number" min="1" max="100" value="' + remedyLimits[n] + '" data-rm-limit="' + escapeHtml(n) + '"> 题/天</span>';
+    });
+    wrap.innerHTML = html;
+  }
+  function onSchemaChanged(){
+    saveFieldSchema();
+    mergeSchemaWithData(fieldSchema);
+    saveFieldSchema();
+    fillFieldSelects();
+    renderRemedyLimits();
+    renderFieldSettings();
+    renderAll();
+    scheduleCloudSync();
+  }
+  function renameField(oldName, newName){
+    oldName = String(oldName||'').trim(); newName = String(newName||'').trim();
+    if(!oldName || !newName || oldName === newName) return false;
+    if(newName === '全部' || getField(newName)){ alert('一级字段「' + newName + '」已存在，或名称不可用。'); return false; }
+    var count = fieldItemCount(oldName);
+    if(count > 0 && !confirm('重命名会把 ' + count + ' 道题的一级字段从「' + oldName + '」同步改为「' + newName + '」，确定继续？')) return false;
+    var f = getField(oldName); if(!f) return false;
+    pushUndo('重命名一级字段「' + oldName + '」→「' + newName + '」');
+    f.name = newName;
+    items.forEach(function(it){ if(it.subject === oldName) it.subject = newName; });
+    remedyPool.forEach(function(it){ if(it.subject === oldName) it.subject = newName; });
+    if(remedyLimits[oldName] !== undefined){ remedyLimits[newName] = remedyLimits[oldName]; delete remedyLimits[oldName]; }
+    saveItems(); saveRemedyPool(); saveFieldSchema(); scheduleCloudSync();
+    fillFieldSelects(); renderRemedyLimits(); renderFieldSettings(); renderAll();
+    return true;
+  }
+  function renameChild(fieldName, oldName, newName){
+    oldName = String(oldName||'').trim(); newName = String(newName||'').trim();
+    if(!oldName || !newName || oldName === newName) return false;
+    var f = getField(fieldName); if(!f) return false;
+    if(f.children.indexOf(newName) !== -1){ alert('二级字段「' + newName + '」已存在。'); return false; }
+    var count = chapterItemCount(fieldName, oldName);
+    if(count > 0 && !confirm('重命名会把 ' + count + ' 道题的二级字段从「' + oldName + '」同步改为「' + newName + '」，确定继续？')) return false;
+    pushUndo('重命名二级字段「' + fieldName + ' / ' + oldName + '」→「' + newName + '」');
+    f.children[f.children.indexOf(oldName)] = newName;
+    items.forEach(function(it){ if(it.subject === fieldName && it.chapter === oldName) it.chapter = newName; });
+    remedyPool.forEach(function(it){ if(it.subject === fieldName && it.chapter === oldName) it.chapter = newName; });
+    saveItems(); saveRemedyPool(); saveFieldSchema(); scheduleCloudSync();
+    fillFieldSelects(); renderFieldSettings(); renderAll();
+    return true;
+  }
+  function addField(name){
+    name = String(name||'').trim();
+    if(!name){ alert('请先输入一级字段名称。'); return; }
+    if(name === '全部' || getField(name)){ alert('一级字段「' + name + '」已存在。'); return; }
+    pushUndo('新增一级字段「' + name + '」');
+    fieldSchema.push({ name: name, children: [] });
+    onSchemaChanged();
+  }
+  function addChild(fieldName, name){
+    name = String(name||'').trim();
+    if(!name){ alert('请先输入二级字段名称。'); return; }
+    var f = getField(fieldName); if(!f) return;
+    if(f.children.indexOf(name) !== -1){ alert('二级字段「' + name + '」已存在。'); return; }
+    pushUndo('新增二级字段「' + fieldName + ' / ' + name + '」');
+    f.children.push(name);
+    onSchemaChanged();
+  }
+  function deleteField(name){
+    var f = getField(name); if(!f) return;
+    var count = fieldItemCount(name);
+    if(count > 0){ alert('「' + name + '」下还有 ' + count + ' 道题，不能删除。请先重命名该字段，或把题目改到其他字段后再删除。'); return; }
+    if(!confirm('确定删除一级字段「' + name + '」及其下的二级字段吗？（该字段下没有题目，不会丢失数据）')) return;
+    pushUndo('删除一级字段「' + name + '」');
+    fieldSchema = fieldSchema.filter(function(x){ return x.name !== name; });
+    delete remedyLimits[name];
+    onSchemaChanged();
+  }
+  function deleteChild(fieldName, childName){
+    var f = getField(fieldName); if(!f) return;
+    var count = chapterItemCount(fieldName, childName);
+    if(count > 0){ alert('「' + fieldName + ' / ' + childName + '」下还有 ' + count + ' 道题，不能删除。'); return; }
+    pushUndo('删除二级字段「' + fieldName + ' / ' + childName + '」');
+    f.children = f.children.filter(function(c){ return c !== childName; });
+    onSchemaChanged();
+  }
+  function moveField(name, dir){
+    var idx = -1; for(var i=0;i<fieldSchema.length;i++){ if(fieldSchema[i].name === name){ idx = i; break; } }
+    if(idx === -1) return;
+    var to = idx + dir; if(to < 0 || to >= fieldSchema.length) return;
+    pushUndo('调整一级字段顺序');
+    var tmp = fieldSchema[idx]; fieldSchema[idx] = fieldSchema[to]; fieldSchema[to] = tmp;
+    onSchemaChanged();
+  }
+  function moveChild(fieldName, name, dir){
+    var f = getField(fieldName); if(!f) return;
+    var idx = f.children.indexOf(name); if(idx === -1) return;
+    var to = idx + dir; if(to < 0 || to >= f.children.length) return;
+    pushUndo('调整二级字段顺序');
+    var tmp = f.children[idx]; f.children[idx] = f.children[to]; f.children[to] = tmp;
+    onSchemaChanged();
+  }
+  function renderFieldSettings(){
+    var box = $('fieldEditor'); if(!box) return;
+    if(!fieldSchema.length){ box.innerHTML = '<div class="field-empty-hint">还没有一级字段。请在上方输入名称并点击「添加一级字段」。</div>'; return; }
+    var html = '';
+    fieldSchema.forEach(function(f, fi){
+      var count = fieldItemCount(f.name);
+      html += '<div class="field-block">';
+      html += '<div class="field-head"><span class="tag t-blue">一级</span>';
+      html += '<input class="field-name" data-l1-name="' + fi + '" value="' + escapeHtml(f.name) + '">';
+      html += '<span class="field-meta">' + count + ' 道题 · ' + f.children.length + ' 个二级字段</span><span style="flex:1;"></span>';
+      html += '<button class="btn btn-sm" data-l1-up="' + fi + '" title="上移">↑</button>';
+      html += '<button class="btn btn-sm" data-l1-down="' + fi + '" title="下移">↓</button>';
+      html += '<button class="btn btn-sm btn-danger" data-l1-del="' + fi + '">删除一级字段</button></div>';
+      html += '<div class="field-children">';
+      f.children.forEach(function(ch, ci){
+        html += '<span class="field-chip"><input data-l2-name="' + fi + ':' + ci + '" value="' + escapeHtml(ch) + '"><button class="chip-x" data-l2-del="' + fi + ':' + ci + '" title="删除二级字段">×</button></span>';
+      });
+      html += '<span class="field-add"><input data-new-l2="' + fi + '" placeholder="新增二级字段"><button class="btn btn-sm" data-l2-add="' + fi + '">＋ 添加</button></span>';
+      html += '</div></div>';
+    });
+    box.innerHTML = html;
+  }
+  function applyIncomingSchema(schema){
+    if(!schema) return;
+    var incoming = Array.isArray(schema) ? cloneSchema(schema) : (schema && Array.isArray(schema.fields) ? cloneSchema(schema.fields) : null);
+    if(!incoming) return;
+    incoming.forEach(function(f){
+      var local = getField(f.name);
+      if(!local){ fieldSchema.push(f); return; }
+      f.children.forEach(function(c){ if(local.children.indexOf(c) === -1) local.children.push(c); });
+    });
+    mergeSchemaWithData(fieldSchema);
+    saveFieldSchema();
+  }
 
   function scheduleNext(newStatus, prevStatus, fromDate){
     if(newStatus==='红') return addDays(fromDate,1);
@@ -1333,16 +1594,14 @@
     saveItems(); scheduleIdleBackup(); scheduleCloudSync(); renderAll();
   }
 
-  function fillChapterSelect(){ var subj = ($('inSubject')||{}).value || '数学'; var list = (subj==='数学')?MATH_CH:CIRC_CH; var el = $('inChapter'); if(!el) return; el.innerHTML = ''; list.forEach(function(ch){ var o = document.createElement('option'); o.value=ch; o.textContent=ch; el.appendChild(o); }); }
-  function fillRemedyChapterSelect(){ var subj = ($('rmSubject')||{}).value || '数学'; var list = (subj==='数学')?MATH_CH:CIRC_CH; var el = $('rmChapter'); if(!el) return; el.innerHTML = ''; list.forEach(function(ch){ var o = document.createElement('option'); o.value=ch; o.textContent=ch; el.appendChild(o); }); }
-  function fillFilterChapter(){ var subj = ($('filterSubject')||{}).value || '全部'; var el = $('filterChapter'); if(!el) return; var prev = el.value; el.innerHTML = '<option value="全部">全部</option>'; var list = []; if(subj==='数学') list = MATH_CH; else if(subj==='电路') list = CIRC_CH; else list = MATH_CH.concat(CIRC_CH); list.forEach(function(ch){ var o = document.createElement('option'); o.value=ch; o.textContent=ch; el.appendChild(o); }); var exists = false; for(var i=0;i<el.options.length;i++){ if(el.options[i].value===prev){exists=true;break;} } if(exists) el.value = prev; }
-  function fillDueFilterChapter(){ var subj = ($('dueFilterSubject')||{}).value || '全部'; var el = $('dueFilterChapter'); if(!el) return; var prev = el.value; el.innerHTML = '<option value="全部">全部</option>'; var list = []; if(subj==='数学') list = MATH_CH; else if(subj==='电路') list = CIRC_CH; else list = MATH_CH.concat(CIRC_CH); list.forEach(function(ch){ var o = document.createElement('option'); o.value=ch; o.textContent=ch; el.appendChild(o); }); var exists = false; for(var i=0;i<el.options.length;i++){ if(el.options[i].value===prev){exists=true;break;} } if(exists) el.value = prev; }
   function countNewInRange(subject, mode){ var count = 0; items.forEach(function(it){ if(it.subject !== subject) return; if(isNewInRange(it, mode)) count++; }); return count; }
   function countTotal(subject){ var count = 0; items.forEach(function(it){ if(it.subject === subject) count++; }); return count; }
 
   function renderChapterInputs(containerId, subject, mode){
     var container = $(containerId); if(!container) return;
-    var chapters = subject === '数学' ? MATH_CH : CIRC_CH; var labelNew = (mode==='weekly') ? '本周' : '本月';
+    var chapters = getL2Names(subject);
+    if(!chapters.length){ container.innerHTML = '<div class="empty">该一级字段还没有二级字段，请到「字段设置」里添加。</div>'; return; }
+    var labelNew = (mode==='weekly') ? '本周' : '本月';
     var html = '<div class="chapter-grid">';
     chapters.forEach(function(ch){
       var newCount = 0, total = 0, remedyPickable = 0;
@@ -1350,11 +1609,83 @@
       var badgeClass = 'badge-zero'; var badgeText = labelNew + newCount + '/总' + total;
       if(remedyPickable > 0 && newCount === 0){ badgeClass = 'badge-remedy'; badgeText = '补救可抽' + remedyPickable + '/总' + total; } else if(newCount > 0){ badgeClass = 'badge-new'; }
       var badge = '<span class="count-badge ' + badgeClass + '">' + badgeText + '</span>';
-      html += '<div class="ch-item"><label>' + ch + ' ' + badge + '</label><input type="number" min="0" max="30" value="0" data-ch-name="' + ch + '"></div>';
+      html += '<div class="ch-item"><label>' + escapeHtml(ch) + ' ' + badge + '</label><input type="number" min="0" max="30" value="0" data-ch-name="' + escapeHtml(ch) + '"></div>';
     });
     html += '</div>'; container.innerHTML = html;
   }
   function renderSubjectStat(elId, subject, mode){ var el = $(elId); if(!el) return; var newCount = countNewInRange(subject, mode); var total = countTotal(subject); var labelNew = (mode==='weekly') ? '本周录入' : '本月录入'; el.textContent = labelNew + ' ' + newCount + ' 题 / 总 ' + total + ' 题'; }
+
+  function renderExamBoxes(mode){
+    var modeKey = (mode === 'weekly') ? 'wk' : 'mo';
+    var wrap = $(modeKey + 'Boxes'); if(!wrap) return;
+    if(!fieldSchema.length){ wrap.innerHTML = '<div class="empty">还没有一级字段，请先到「字段设置」里添加。</div>'; return; }
+    var label = (mode === 'weekly') ? '周测' : '月测';
+    var scopeNew = (mode === 'weekly') ? '本周录入优先（不够自动扩展）' : '本月录入优先（不够自动扩展）';
+    var hint = (mode === 'weekly') ? '章节徽章：绿色=本周录入；紫色=补救题已可抽；灰色=无。' : '章节徽章：绿色=本月录入；紫色=补救题已可抽；灰色=无。';
+    var html = '';
+    fieldSchema.forEach(function(f, fi){
+      var color = FIELD_COLORS[fi % FIELD_COLORS.length];
+      html += '<div class="subject-box" style="border-left:4px solid ' + color + ';">';
+      html += '<div class="subject-head"><div class="title" style="color:' + color + ';">' + escapeHtml(f.name) + ' · ' + label + '</div>';
+      html += '<div class="stat" id="' + modeKey + 'Stat' + fi + '"></div></div>';
+      html += '<div class="scope-row"><div><label>抽题范围</label>';
+      html += '<select data-mm-scope="' + mode + ':' + fi + '"><option value="new">' + scopeNew + '</option><option value="all">全部题目</option></select></div></div>';
+      html += '<div class="hint-text">' + hint + '</div>';
+      html += '<div id="' + modeKey + 'Ch' + fi + '" data-l1="' + escapeHtml(f.name) + '"></div>';
+      html += '<button class="btn btn-primary" data-mm-act="pick" data-mm-fi="' + fi + '" data-mm-mode="' + mode + '">抽取' + escapeHtml(f.name) + label + '</button> ';
+      html += '<button class="btn" data-mm-act="repick" data-mm-fi="' + fi + '" data-mm-mode="' + mode + '">重新抽题</button> ';
+      html += '<button class="btn" data-mm-act="fillone" data-mm-fi="' + fi + '" data-mm-mode="' + mode + '">每章1题</button> ';
+      html += '<button class="btn" data-mm-act="clear" data-mm-fi="' + fi + '" data-mm-mode="' + mode + '">清空</button>';
+      html += '<div id="' + modeKey + 'Res' + fi + '" style="margin-top:14px;"></div></div>';
+    });
+    wrap.innerHTML = html;
+    fieldSchema.forEach(function(f, fi){
+      renderSubjectStat(modeKey + 'Stat' + fi, f.name, mode);
+      renderChapterInputs(modeKey + 'Ch' + fi, f.name, mode);
+    });
+  }
+  function refreshExamBoxesIfNeeded(mode){
+    var modeKey = (mode === 'weekly') ? 'wk' : 'mo';
+    var wrap = $(modeKey + 'Boxes');
+    var boxes = wrap ? wrap.querySelectorAll('.subject-box').length : -1;
+    if(boxes !== fieldSchema.length){ renderExamBoxes(mode); return; }
+    var label = (mode === 'weekly') ? '周测' : '月测';
+    var titles = wrap ? wrap.querySelectorAll('.subject-box .title') : [];
+    for(var ti=0; ti<fieldSchema.length; ti++){
+      if(!titles[ti] || titles[ti].textContent.trim() !== fieldSchema[ti].name + ' · ' + label){ renderExamBoxes(mode); return; }
+    }
+    var missing = false;
+    fieldSchema.forEach(function(f, fi){
+      var statEl = $(modeKey + 'Stat' + fi), chEl = $(modeKey + 'Ch' + fi);
+      if(!statEl || !chEl){ missing = true; return; }
+      chEl.setAttribute('data-l1', f.name);
+      renderSubjectStat(modeKey + 'Stat' + fi, f.name, mode);
+      renderChapterInputs(modeKey + 'Ch' + fi, f.name, mode);
+    });
+    if(missing) renderExamBoxes(mode);
+  }
+  function bindExamBoxEvents(){
+    ['wkBoxes','moBoxes'].forEach(function(wrapId){
+      var wrap = $(wrapId); if(!wrap) return;
+      wrap.addEventListener('click', function(e){
+        var btn = e.target.closest('button[data-mm-act]');
+        if(!btn) return;
+        var mode = btn.getAttribute('data-mm-mode');
+        var fi = parseInt(btn.getAttribute('data-mm-fi'), 10);
+        var act = btn.getAttribute('data-mm-act');
+        var box = btn.closest('.subject-box');
+        var sel = box ? box.querySelector('select[data-mm-scope]') : null;
+        var scope = sel ? sel.value : 'new';
+        var f = fieldSchema[fi]; if(!f) return;
+        var modeKey = (mode === 'weekly') ? 'wk' : 'mo';
+        var chId = modeKey + 'Ch' + fi, resId = modeKey + 'Res' + fi;
+        if(act === 'pick' || act === 'repick') doPick(f.name, scope, chId, resId, mode);
+        else if(act === 'fillone') fillAllOne(chId);
+        else if(act === 'clear'){ clearInputs(chId); var rel = $(resId); if(rel) rel.innerHTML = ''; }
+      });
+      wrap.addEventListener('click', pickResultClickHandler);
+    });
+  }
 
   function weightedPick(pool, count, weights){
     weights = weights || {'红':3,'黄':2,'绿':2,'归档':1}; var picked = []; var remain = pool.slice();
@@ -1402,7 +1733,7 @@
     var row = btn.closest('.result-item'); if(row){ row.classList.add('done'); var info = row.querySelector('.info'); if(info){ var tag = info.querySelector('.tag'); if(tag){ for(var i=0;i<items.length;i++){ if(items[i].id===id){ tag.className = 'tag ' + statusClass(items[i].status); tag.textContent = items[i].status; break; } } } } }
   }
 
-  function fillAllOne(containerId){ var inputs = document.querySelectorAll('#'+containerId+' input[data-ch-name]'); inputs.forEach(function(inp){ var chap = inp.getAttribute('data-ch-name'); var has = items.some(function(it){ return it.chapter===chap && isPickableForExam(it) && (it.status==='红'||it.status==='黄'||it.status==='绿'||it.status==='归档'); }); inp.value = has ? 1 : 0; }); }
+  function fillAllOne(containerId){ var container = $(containerId); if(!container) return; var l1 = container.getAttribute('data-l1') || ''; var inputs = container.querySelectorAll('input[data-ch-name]'); inputs.forEach(function(inp){ var chap = inp.getAttribute('data-ch-name'); var has = items.some(function(it){ return it.subject===l1 && it.chapter===chap && isPickableForExam(it) && (it.status==='红'||it.status==='黄'||it.status==='绿'||it.status==='归档'); }); inp.value = has ? 1 : 0; }); }
   function clearInputs(containerId){ var inputs = document.querySelectorAll('#'+containerId+' input[data-ch-name]'); inputs.forEach(function(inp){ inp.value = 0; }); }
 
   function renderSimDisplay(){ var cur = getCurrentSimDate(); var el = $('simDisplay'); if(el) el.textContent = '当前：' + fmtDateWk(cur); var satEl = $('satDisplay'); if(satEl) satEl.textContent = '本周日：' + fmtDateWk(getNextSunday()); var manualFlag = $('manualFlag'); var manual = localStorage.getItem(MANUAL_KEY) === 'true'; if(manualFlag) manualFlag.style.display = manual ? 'inline-block' : 'none'; }
@@ -1495,7 +1826,7 @@
     var list = items.filter(function(i){ return i.isRemedy; }); if(filter === 'waiting'){ list = list.filter(function(i){ return (i.reviewCount||0) === 0; }); } else if(filter === 'active'){ list = list.filter(function(i){ return (i.reviewCount||0) > 0; }); }
     list.sort(function(a,b){ if(a.next!==b.next) return a.next.localeCompare(b.next); return (a.subject||'').localeCompare(b.subject||''); });
     if(list.length === 0){ container.innerHTML = '<div class="empty">暂无已排程的补救题。</div>'; return; }
-    var html = '<div style="overflow-x:auto;"><table><thead><tr><th>科目</th><th>章节</th><th>来源</th><th>页码</th><th>题号</th><th>标记</th><th>状态</th><th>首次</th><th>下次</th><th>次数</th></tr></thead><tbody>';
+    var html = '<div style="overflow-x:auto;"><table><thead><tr><th>一级字段</th><th>二级字段</th><th>来源</th><th>页码</th><th>题号</th><th>标记</th><th>状态</th><th>首次</th><th>下次</th><th>次数</th></tr></thead><tbody>';
     list.forEach(function(it){ var stateTag = (it.reviewCount||0) === 0 ? '<span class="tag t-wait">待首次复习</span>' : '<span class="tag t-new">已可抽题</span>'; var goodTag = it.isGood ? ' <span class="tag t-good">好题</span>' : ''; html += '<tr><td>'+it.subject+'</td><td>'+it.chapter+'</td><td>'+it.source+'</td><td>'+it.page+'</td><td>'+it.no+'</td><td><span class="tag '+statusClass(it.status)+'">'+it.status+'</span> '+goodTag+'</td><td>'+stateTag+'</td><td>'+fmtDateWk(it.first)+'</td><td>'+fmtDateWk(it.next)+'</td><td>'+(it.reviewCount||0)+'</td></tr>'; });
     html += '</tbody></table></div>'; container.innerHTML = html;
   }
@@ -1553,9 +1884,8 @@
   function renderAll(){
     var inputEl = $('simDate'); if(inputEl && inputEl.value && inputEl.value !== simDate){ simDate = inputEl.value; saveSim(); }
     renderSimDisplay(); renderStats(); renderDue(); renderAllTable(); renderWeekRed(); renderGood(); renderDashboard();
-    renderSubjectStat('wkMathStat', '数学', 'weekly'); renderSubjectStat('wkCircStat', '电路', 'weekly'); renderChapterInputs('wkMathChapterInputs', '数学', 'weekly'); renderChapterInputs('wkCircChapterInputs', '电路', 'weekly');
-    renderSubjectStat('moMathStat', '数学', 'monthly'); renderSubjectStat('moCircStat', '电路', 'monthly'); renderChapterInputs('moMathChapterInputs', '数学', 'monthly'); renderChapterInputs('moCircChapterInputs', '电路', 'monthly');
-    renderRemedyStatus(); renderRemedyQueue(); renderRemedyScheduled(); updateWeekRedTab();
+    refreshExamBoxesIfNeeded('weekly'); refreshExamBoxesIfNeeded('monthly');
+    renderRemedyStatus(); renderRemedyQueue(); renderRemedyScheduled(); renderRemedyLimits(); updateWeekRedTab();
   }
 
   var idleBackupTimer = null;
@@ -1566,7 +1896,8 @@
 
   function addItem(){
     clearError(); var subject = $('inSubject').value; var chapter = $('inChapter').value; var source = $('inSource').value; var page = $('inPage').value.trim(); var no = $('inNo').value.trim(); var status = $('inStatus').value; var errReason = $('inErr').value.trim(); var isGood = $('inGood').checked;
-    if(!page && !no){ showError('至少填写页码或题号'); return; } if(!chapter){ showError('请选择章节'); return; }
+    if(!subject){ showError('请先在「字段设置」里添加一级字段'); return; }
+    if(!page && !no){ showError('至少填写页码或题号'); return; } if(!chapter){ showError('请选择二级字段（可到「字段设置」里添加）'); return; }
     var cur = getCurrentSimDate(); var first = cur; var next = scheduleNext(status, null, first);
     pushUndo('添加题目「' + subject + ' ' + chapter + ' ' + page + ' ' + no + '」');
     items.push({ id:uid(), subject:subject, chapter:chapter, source:source, page:page, no:no, status:status, errReason:errReason, first:first, next:next, reviewCount:0, lastReview:'', greenStreak:0, isRemedy:false, isGood:isGood, onlyShowOnNext:false, initialStatus: status });
@@ -1576,7 +1907,8 @@
 
   function addToRemedyPool(){
     var subject = $('rmSubject').value; var chapter = $('rmChapter').value; var source = $('rmSource').value; var page = $('rmPage').value.trim(); var no = $('rmNo').value.trim(); var status = $('rmStatus').value; var errReason = $('rmErr').value.trim();
-    if(!page && !no){ showError('补救录入：至少填写页码或题号'); return; } if(!chapter){ showError('补救录入：请选择章节'); return; }
+    if(!subject){ showError('补救录入：请先在「字段设置」里添加一级字段'); return; }
+    if(!page && !no){ showError('补救录入：至少填写页码或题号'); return; } if(!chapter){ showError('补救录入：请选择二级字段'); return; }
     pushUndo('加入待排池「' + subject + ' ' + chapter + ' ' + page + ' ' + no + '」');
     remedyPool.push({ id: uid(), subject: subject, chapter: chapter, source: source, page: page, no: no, status: status, errReason: errReason });
     saveRemedyPool(); scheduleIdleBackup(); scheduleCloudSync(); $('rmPage').value=''; $('rmNo').value=''; $('rmErr').value='';
@@ -1587,26 +1919,49 @@
   function clearRemedyQueue(){ if(remedyPool.length === 0){ alert('待排池已经是空的。'); return; } if(!confirm('确定清空待排池？共 ' + remedyPool.length + ' 条。')) return; pushUndo('清空待排池 ' + remedyPool.length + ' 条'); remedyPool = []; saveRemedyPool(); scheduleIdleBackup(); scheduleCloudSync(); $('rmPreview').innerHTML = ''; renderAll(); }
 
   function buildRemedySchedule(){
-    var cur = getCurrentSimDate(); var startDate = $('rmStartDate').value || cur; var days = parseInt($('rmDays').value, 10) || 14; var mathLimit = parseInt($('rmMathLimit').value, 10) || 15; var circLimit = parseInt($('rmCircLimit').value, 10) || 10; var sortBy = $('rmSortBy').value;
+    var cur = getCurrentSimDate(); var startDate = $('rmStartDate').value || cur; var sortBy = $('rmSortBy').value;
     var statusOrder = {'红':0,'黄':1,'绿':2,'归档':3};
-    function sortFn(a, b){ if(sortBy === 'status'){ if(statusOrder[a.status] !== statusOrder[b.status]) return statusOrder[a.status] - statusOrder[b.status]; return a.chapter.localeCompare(b.chapter); } else { if(a.chapter !== b.chapter) return a.chapter.localeCompare(b.chapter); return statusOrder[a.status] - statusOrder[b.status]; } }
-    var mathPool = remedyPool.filter(function(it){ return it.subject === '数学'; }).sort(sortFn); var circPool = remedyPool.filter(function(it){ return it.subject === '电路'; }).sort(sortFn);
-    var assignments = []; var mathIdx = 0, circIdx = 0; var dayCursor = 0; var safety = 0;
-    while((mathIdx < mathPool.length || circIdx < circPool.length) && safety < 1000){
-      var date = addDays(startDate, dayCursor); var mathCount = 0, circCount = 0;
-      while(mathIdx < mathPool.length && mathCount < mathLimit){ assignments.push({ item: mathPool[mathIdx], date: date }); mathIdx++; mathCount++; }
-      while(circIdx < circPool.length && circCount < circLimit){ assignments.push({ item: circPool[circIdx], date: date }); circIdx++; circCount++; }
-      dayCursor++; safety++;
+    function sortFn(a, b){
+      if(sortBy === 'status'){ if(statusOrder[a.status] !== statusOrder[b.status]) return statusOrder[a.status] - statusOrder[b.status]; return (a.chapter||'').localeCompare(b.chapter||''); }
+      if((a.chapter||'') !== (b.chapter||'')) return (a.chapter||'').localeCompare(b.chapter||'');
+      return statusOrder[a.status] - statusOrder[b.status];
     }
-    return { assignments: assignments, startDate: startDate, days: days };
+    var fieldNames = getL1Names();
+    var queues = fieldNames.map(function(name){ return remedyPool.filter(function(it){ return it.subject === name; }).sort(sortFn); });
+    var other = remedyPool.filter(function(it){ return fieldNames.indexOf(it.subject) === -1; }).sort(sortFn);
+    if(other.length){ fieldNames.push('未分类'); queues.push(other); }
+    var cursor = 0; var assignments = []; var totalLeft = remedyPool.length; var safety = 0;
+    while(totalLeft > 0 && safety < 2000){
+      var date = addDays(startDate, cursor);
+      for(var qi=0; qi<queues.length; qi++){
+        var limit = remedyLimits[fieldNames[qi]];
+        if(typeof limit !== 'number' || !(limit > 0)) limit = (fieldNames[qi] === '数学' ? 15 : 10);
+        var placed = 0;
+        while(queues[qi].length && placed < limit){ assignments.push({ item: queues[qi].shift(), date: date }); totalLeft--; placed++; }
+      }
+      cursor++; safety++;
+    }
+    return { assignments: assignments, startDate: startDate, fieldNames: fieldNames };
   }
 
   function previewRemedySchedule(){
     if(remedyPool.length === 0){ $('rmPreview').innerHTML = '<div class="empty">待排池为空，请先录入历史题。</div>'; return; }
     var result = buildRemedySchedule(); var byDate = {};
-    result.assignments.forEach(function(a){ if(!byDate[a.date]) byDate[a.date] = { math: 0, circ: 0, items: [] }; if(a.item.subject === '数学') byDate[a.date].math++; else byDate[a.date].circ++; byDate[a.date].items.push(a.item); });
+    result.assignments.forEach(function(a){
+      if(!byDate[a.date]) byDate[a.date] = { counts: {}, items: [] };
+      var k = a.item.subject || '未分类';
+      byDate[a.date].counts[k] = (byDate[a.date].counts[k] || 0) + 1;
+      byDate[a.date].items.push(a.item);
+    });
     var dates = Object.keys(byDate).sort(); var html = '<div class="key key-remedy" style="margin-bottom:12px;"><b>排程预览：</b>共 '+result.assignments.length+' 条，分布在 '+dates.length+' 天。</div>';
-    dates.forEach(function(d){ var info = byDate[d]; html += '<div class="schedule-preview"><div class="head">'+fmtDateWk(d)+'　数学 '+info.math+' 题 · 电路 '+info.circ+' 题</div><div class="chips">'; info.items.slice(0, 12).forEach(function(it){ html += '<span class="chip chip-remedy">'+it.subject.slice(0,1)+'·'+it.chapter+'·'+it.status+'</span>'; }); if(info.items.length > 12){ html += '<span class="chip">…还有 '+(info.items.length-12)+' 条</span>'; } html += '</div></div>'; });
+    dates.forEach(function(d){
+      var info = byDate[d];
+      var countText = Object.keys(info.counts).map(function(k){ return escapeHtml(k) + ' ' + info.counts[k] + ' 题'; }).join(' · ');
+      html += '<div class="schedule-preview"><div class="head">'+fmtDateWk(d)+'　'+countText+'</div><div class="chips">';
+      info.items.slice(0, 12).forEach(function(it){ html += '<span class="chip chip-remedy">'+escapeHtml((it.subject||'').slice(0,1))+'·'+escapeHtml(it.chapter||'')+'·'+it.status+'</span>'; });
+      if(info.items.length > 12){ html += '<span class="chip">…还有 '+(info.items.length-12)+' 条</span>'; }
+      html += '</div></div>';
+    });
     $('rmPreview').innerHTML = html;
   }
 
@@ -1659,7 +2014,7 @@
   function exportExcel(){
     if(items.length===0){ alert('没有数据可导出。'); return; }
     var sorted = items.slice().sort(function(a,b){ if(a.subject!==b.subject) return a.subject.localeCompare(b.subject); if(a.chapter!==b.chapter) return a.chapter.localeCompare(b.chapter); return a.next.localeCompare(b.next); });
-    var headers = ['科目','章节','来源','页码','题号','标记','初始标记','类型','状态','好题','首次复习','下次复习','复习次数','绿连击','错因/备注'];
+    var headers = ['一级字段','二级字段','来源','页码','题号','标记','初始标记','类型','状态','好题','首次复习','下次复习','复习次数','绿连击','错因/备注'];
     var rowsHtml = '';
     sorted.forEach(function(it){ var typeStr = it.isRemedy ? '补救' : '常规'; var stateStr = ''; if(it.isRemedy){ stateStr = (it.reviewCount||0) === 0 ? '待首次复习' : '已可抽题'; } else { stateStr = '—'; } var goodStr = it.isGood ? '是' : '否'; rowsHtml += '<tr><td>'+escapeHtml(it.subject)+'</td><td>'+escapeHtml(it.chapter)+'</td><td>'+escapeHtml(it.source)+'</td><td>'+escapeHtml(it.page)+'</td><td>'+escapeHtml(it.no)+'</td><td>'+escapeHtml(it.status)+'</td><td>'+escapeHtml(it.initialStatus||it.status)+'</td><td>'+typeStr+'</td><td>'+stateStr+'</td><td>'+goodStr+'</td><td>'+escapeHtml(fmtDateWk(it.first))+'</td><td>'+escapeHtml(fmtDateWk(it.next))+'</td><td>'+(it.reviewCount||0)+'</td><td>'+(it.greenStreak||0)+'</td><td>'+escapeHtml(it.errReason||'')+'</td></tr>'; });
     var headHtml = headers.map(function(h){ return '<th>'+h+'</th>'; }).join('');
@@ -1672,7 +2027,7 @@
     openBackupDB().then(function(db){
       return new Promise(function(resolve, reject){ var tx = db.transaction('snapshots', 'readonly'); var store = tx.objectStore('snapshots'); var allKeys = []; var req = store.openKeyCursor(); req.onsuccess = function(e){ var cursor = e.target.result; if(cursor){ allKeys.push(cursor.key); cursor.continue(); } else { allKeys.sort(); resolve(allKeys); } }; req.onerror = function(){ reject(req.error); }; });
     }).then(function(keys){ if(!keys || keys.length === 0){ alert('IndexedDB 中还没有备份快照。'); return null; } var latestKey = keys[keys.length - 1]; return idbGet('snapshots', latestKey); })
-    .then(function(snapshot){ if(!snapshot) return; var ok = confirm('将从 IndexedDB 最新快照恢复：\n• 快照时间：' + (snapshot.exportedAt || '未知') + '\n• 题目数：' + (snapshot.items ? snapshot.items.length : 0) + '\n• 待排池：' + (snapshot.remedyPool ? snapshot.remedyPool.length : 0) + '\n\n当前数据将被覆盖，确定继续？'); if(!ok) return; pushUndo('从 IndexedDB 快照恢复'); if(snapshot.items) items = snapshot.items; if(snapshot.remedyPool) remedyPool = snapshot.remedyPool; if(snapshot.simDate){ simDate = snapshot.simDate; var simEl = $('simDate'); if(simEl) simEl.value = simDate; saveSim(); } items.forEach(function(it){ if(!it.id) it.id = uid(); if(!it.chapter) it.chapter = '第1章'; if(typeof it.reviewCount!=='number') it.reviewCount = 0; if(typeof it.greenStreak!=='number') it.greenStreak = 0; if(typeof it.isRemedy!=='boolean') it.isRemedy = false; if(typeof it.isGood!=='boolean') it.isGood = false; if(!it.lastReview) it.lastReview = ''; if(typeof it.onlyShowOnNext!=='boolean') it.onlyShowOnNext = false; if(!it.initialStatus) it.initialStatus = it.status; }); saveItems(); saveRemedyPool(); scheduleCloudSync(); renderAll(); alert('已从 IDB 快照恢复：' + items.length + ' 道题，待排池 ' + remedyPool.length + ' 条。'); })
+    .then(function(snapshot){ if(!snapshot) return; var ok = confirm('将从 IndexedDB 最新快照恢复：\n• 快照时间：' + (snapshot.exportedAt || '未知') + '\n• 题目数：' + (snapshot.items ? snapshot.items.length : 0) + '\n• 待排池：' + (snapshot.remedyPool ? snapshot.remedyPool.length : 0) + '\n\n当前数据将被覆盖，确定继续？'); if(!ok) return; pushUndo('从 IndexedDB 快照恢复'); if(snapshot.items) items = snapshot.items; if(snapshot.remedyPool) remedyPool = snapshot.remedyPool; if(snapshot.fieldSchema) applyIncomingSchema(snapshot.fieldSchema); else if(snapshot.fields) applyIncomingSchema(snapshot.fields); if(snapshot.simDate){ simDate = snapshot.simDate; var simEl = $('simDate'); if(simEl) simEl.value = simDate; saveSim(); } items.forEach(function(it){ if(!it.id) it.id = uid(); if(!it.chapter) it.chapter = ''; if(typeof it.reviewCount!=='number') it.reviewCount = 0; if(typeof it.greenStreak!=='number') it.greenStreak = 0; if(typeof it.isRemedy!=='boolean') it.isRemedy = false; if(typeof it.isGood!=='boolean') it.isGood = false; if(!it.lastReview) it.lastReview = ''; if(typeof it.onlyShowOnNext!=='boolean') it.onlyShowOnNext = false; if(!it.initialStatus) it.initialStatus = it.status; }); mergeSchemaWithData(fieldSchema); saveFieldSchema(); fillFieldSelects(); renderRemedyLimits(); saveItems(); saveRemedyPool(); scheduleCloudSync(); renderAll(); alert('已从 IDB 快照恢复：' + items.length + ' 道题，待排池 ' + remedyPool.length + ' 条。'); })
     .catch(function(e){ alert('恢复失败：' + e.message); });
   }
 
@@ -1685,7 +2040,7 @@
         tab.classList.add('active');
         var panel = $('panel-'+tab.getAttribute('data-tab')); if(panel) panel.classList.add('active');
         var t = tab.getAttribute('data-tab');
-        if(t === 'weekred'){ renderWeekRed(); } else if(t === 'dashboard'){ renderDashboard(); } else if(t === 'data'){ updateBackupStatusUI(); } else if(t === 'sync'){ renderSyncUI(); }
+        if(t === 'weekred'){ renderWeekRed(); } else if(t === 'dashboard'){ renderDashboard(); } else if(t === 'fields'){ renderFieldSettings(); } else if(t === 'data'){ updateBackupStatusUI(); } else if(t === 'sync'){ renderSyncUI(); }
       });
     });
 
@@ -1711,6 +2066,8 @@
     var rmPreviewBtn = $('rmPreviewBtn'); if(rmPreviewBtn) rmPreviewBtn.addEventListener('click', previewRemedySchedule);
     var rmGenerateBtn = $('rmGenerateBtn'); if(rmGenerateBtn) rmGenerateBtn.addEventListener('click', generateRemedySchedule);
     var rmScheduledFilter = $('rmScheduledFilter'); if(rmScheduledFilter) rmScheduledFilter.addEventListener('change', renderRemedyScheduled);
+    var rmLimitsEl = $('rmLimits');
+    if(rmLimitsEl) rmLimitsEl.addEventListener('change', function(e){ var t = e.target; if(!t || !t.getAttribute) return; var name = t.getAttribute('data-rm-limit'); if(name === null) return; var num = parseInt(t.value,10); remedyLimits[name] = (isNaN(num) || num < 1) ? 10 : Math.min(num, 100); });
 
     var dueFilterSubject = $('dueFilterSubject'); if(dueFilterSubject) dueFilterSubject.addEventListener('change', function(){ fillDueFilterChapter(); renderDue(); });
     var dueFilterChapter = $('dueFilterChapter'); if(dueFilterChapter) dueFilterChapter.addEventListener('change', renderDue);
@@ -1743,31 +2100,52 @@
     var fStat = $('filterStatus'); if(fStat) fStat.addEventListener('change', renderAllTable);
     var fSrc = $('filterSource'); if(fSrc) fSrc.addEventListener('change', renderAllTable);
 
-    var wkMathBtn = $('wkMathBtn'); if(wkMathBtn) wkMathBtn.addEventListener('click', function(){ doPick('数学', $('wkMathScope').value, 'wkMathChapterInputs', 'wkMathResult', 'weekly'); });
-    var wkMathReBtn = $('wkMathReBtn'); if(wkMathReBtn) wkMathReBtn.addEventListener('click', function(){ doPick('数学', $('wkMathScope').value, 'wkMathChapterInputs', 'wkMathResult', 'weekly'); });
-    var wkMathFillOne = $('wkMathFillOne'); if(wkMathFillOne) wkMathFillOne.addEventListener('click', function(){ fillAllOne('wkMathChapterInputs'); });
-    var wkMathClear = $('wkMathClear'); if(wkMathClear) wkMathClear.addEventListener('click', function(){ clearInputs('wkMathChapterInputs'); });
-    var wkMathResult = $('wkMathResult'); if(wkMathResult) wkMathResult.addEventListener('click', pickResultClickHandler);
+    bindExamBoxEvents();
 
-    var wkCircBtn = $('wkCircBtn'); if(wkCircBtn) wkCircBtn.addEventListener('click', function(){ doPick('电路', $('wkCircScope').value, 'wkCircChapterInputs', 'wkCircResult', 'weekly'); });
-    var wkCircReBtn = $('wkCircReBtn'); if(wkCircReBtn) wkCircReBtn.addEventListener('click', function(){ doPick('电路', $('wkCircScope').value, 'wkCircChapterInputs', 'wkCircResult', 'weekly'); });
-    var wkCircFillOne = $('wkCircFillOne'); if(wkCircFillOne) wkCircFillOne.addEventListener('click', function(){ fillAllOne('wkCircChapterInputs'); });
-    var wkCircClear = $('wkCircClear'); if(wkCircClear) wkCircClear.addEventListener('click', function(){ clearInputs('wkCircChapterInputs'); });
-    var wkCircResult = $('wkCircResult'); if(wkCircResult) wkCircResult.addEventListener('click', pickResultClickHandler);
+    var openFieldsFromInput = $('openFieldsFromInput');
+    if(openFieldsFromInput) openFieldsFromInput.addEventListener('click', function(){ var t = document.querySelector('.tab[data-tab="fields"]'); if(t) t.click(); });
+    var fieldAddL1Btn = $('fieldAddL1Btn');
+    var fieldNewL1 = $('fieldNewL1');
+    function doAddField(){ if(!fieldNewL1) return; addField(fieldNewL1.value); fieldNewL1.value = ''; }
+    if(fieldAddL1Btn) fieldAddL1Btn.addEventListener('click', doAddField);
+    if(fieldNewL1) fieldNewL1.addEventListener('keydown', function(e){ if(e.key === 'Enter'){ e.preventDefault(); doAddField(); } });
+    var fieldResetBtn = $('fieldResetBtn');
+    if(fieldResetBtn) fieldResetBtn.addEventListener('click', function(){
+      if(!confirm('恢复默认字段（数学 / 电路）？不会删除任何题目，只是把默认字段加回来。')) return;
+      pushUndo('恢复默认字段');
+      FIELD_DEFAULT_SEED.forEach(function(f){ ensureField(f.name); f.children.forEach(function(c){ ensureChild(f.name, c); }); });
+      onSchemaChanged();
+    });
+    var fieldEditor = $('fieldEditor');
+    if(fieldEditor){
+      fieldEditor.addEventListener('click', function(e){
+        var btn = e.target.closest('button'); if(!btn) return;
+        var v;
+        v = btn.getAttribute('data-l1-up'); if(v !== null){ moveField(fieldSchema[parseInt(v,10)].name, -1); return; }
+        v = btn.getAttribute('data-l1-down'); if(v !== null){ moveField(fieldSchema[parseInt(v,10)].name, 1); return; }
+        v = btn.getAttribute('data-l1-del'); if(v !== null){ deleteField(fieldSchema[parseInt(v,10)].name); return; }
+        v = btn.getAttribute('data-l2-add');
+        if(v !== null){ var fi = parseInt(v,10); var inp = fieldEditor.querySelector('input[data-new-l2="' + fi + '"]'); addChild((fieldSchema[fi]||{}).name, inp ? inp.value : ''); return; }
+        v = btn.getAttribute('data-l2-del');
+        if(v !== null){ var parts = v.split(':'); var f = fieldSchema[parseInt(parts[0],10)]; if(f) deleteChild(f.name, f.children[parseInt(parts[1],10)]); return; }
+      });
+      fieldEditor.addEventListener('change', function(e){
+        var t = e.target; if(!t || !t.getAttribute) return;
+        var v = t.getAttribute('data-l1-name');
+        if(v !== null){ var fi = parseInt(v,10); var f = fieldSchema[fi]; if(f && t.value.trim() !== f.name && !renameField(f.name, t.value)) renderFieldSettings(); return; }
+        v = t.getAttribute('data-l2-name');
+        if(v !== null){ var parts = v.split(':'); var f2 = fieldSchema[parseInt(parts[0],10)]; if(f2){ var oldName = f2.children[parseInt(parts[1],10)]; if(oldName !== undefined && t.value.trim() !== oldName && !renameChild(f2.name, oldName, t.value)) renderFieldSettings(); } return; }
+        v = t.getAttribute('data-rm-limit');
+        if(v !== null){ var num = parseInt(t.value,10); remedyLimits[v] = (isNaN(num) || num < 1) ? 10 : Math.min(num, 100); }
+      });
+      fieldEditor.addEventListener('keydown', function(e){
+        if(e.key === 'Enter' && e.target && e.target.getAttribute && e.target.getAttribute('data-new-l2') !== null){
+          e.preventDefault(); var fi = parseInt(e.target.getAttribute('data-new-l2'),10); addChild((fieldSchema[fi]||{}).name, e.target.value);
+        }
+      });
+    }
 
-    var moMathBtn = $('moMathBtn'); if(moMathBtn) moMathBtn.addEventListener('click', function(){ doPick('数学', $('moMathScope').value, 'moMathChapterInputs', 'moMathResult', 'monthly'); });
-    var moMathReBtn = $('moMathReBtn'); if(moMathReBtn) moMathReBtn.addEventListener('click', function(){ doPick('数学', $('moMathScope').value, 'moMathChapterInputs', 'moMathResult', 'monthly'); });
-    var moMathFillOne = $('moMathFillOne'); if(moMathFillOne) moMathFillOne.addEventListener('click', function(){ fillAllOne('moMathChapterInputs'); });
-    var moMathClear = $('moMathClear'); if(moMathClear) moMathClear.addEventListener('click', function(){ clearInputs('moMathChapterInputs'); });
-    var moMathResult = $('moMathResult'); if(moMathResult) moMathResult.addEventListener('click', pickResultClickHandler);
-
-    var moCircBtn = $('moCircBtn'); if(moCircBtn) moCircBtn.addEventListener('click', function(){ doPick('电路', $('moCircScope').value, 'moCircChapterInputs', 'moCircResult', 'monthly'); });
-    var moCircReBtn = $('moCircReBtn'); if(moCircReBtn) moCircReBtn.addEventListener('click', function(){ doPick('电路', $('moCircScope').value, 'moCircChapterInputs', 'moCircResult', 'monthly'); });
-    var moCircFillOne = $('moCircFillOne'); if(moCircFillOne) moCircFillOne.addEventListener('click', function(){ fillAllOne('moCircChapterInputs'); });
-    var moCircClear = $('moCircClear'); if(moCircClear) moCircClear.addEventListener('click', function(){ clearInputs('moCircChapterInputs'); });
-    var moCircResult = $('moCircResult'); if(moCircResult) moCircResult.addEventListener('click', pickResultClickHandler);
-
-    var goodList = $('goodList'); if(goodList){ goodList.addEventListener('click', function(e){ var btn = e.target.closest('button[data-good-remove]'); if(!btn) return; removeGood(btn.getAttribute('data-good-remove')); }); }
+    var goodList = $('goodList');    var goodList = $('goodList'); if(goodList){ goodList.addEventListener('click', function(e){ var btn = e.target.closest('button[data-good-remove]'); if(!btn) return; removeGood(btn.getAttribute('data-good-remove')); }); }
 
     var rangeBtns = document.querySelectorAll('#statRangeBtns .btn');
     rangeBtns.forEach(function(btn){ btn.addEventListener('click', function(){ rangeBtns.forEach(function(b){ b.classList.remove('active'); }); btn.classList.add('active'); currentStatRange = parseInt(btn.getAttribute('data-stat-range'), 10) || 7; renderStatsPanel(); }); });
@@ -1785,7 +2163,7 @@
     var restoreIdbBtn = $('restoreFromIdbBtn'); if(restoreIdbBtn) restoreIdbBtn.addEventListener('click', restoreFromIdb);
 
     var importFromFolderBtn = $('importFromFolderBtn'); var importFromFolderFile = $('importFromFolderFile');
-    if(importFromFolderBtn && importFromFolderFile){ importFromFolderBtn.addEventListener('click', function(){ importFromFolderFile.click(); }); importFromFolderFile.addEventListener('change', function(e){ var f = e.target.files[0]; if(!f) return; var reader = new FileReader(); reader.onload = function(ev){ try{ var obj = JSON.parse(ev.target.result); var newItems = null, newSim = null, newPool = null; if(Array.isArray(obj)) newItems = obj; else if(obj && Array.isArray(obj.items)){ newItems = obj.items; newSim = obj.simDate; newPool = obj.remedyPool; } else { alert('文件格式错误'); return; } if(!confirm('导入将覆盖当前所有数据，确定继续？')) return; pushUndo('从备份文件恢复'); items = newItems; items.forEach(function(it){ if(!it.id) it.id = uid(); if(!it.chapter) it.chapter = '第1章'; if(typeof it.reviewCount!=='number') it.reviewCount = 0; if(typeof it.greenStreak!=='number') it.greenStreak = 0; if(typeof it.isRemedy!=='boolean') it.isRemedy = false; if(typeof it.isGood!=='boolean') it.isGood = false; if(!it.lastReview) it.lastReview = ''; if(typeof it.onlyShowOnNext!=='boolean') it.onlyShowOnNext = false; if(!it.initialStatus) it.initialStatus = it.status; }); if(Array.isArray(newPool)) remedyPool = newPool; if(newSim){ simDate = newSim; if(simInput) simInput.value = simDate; saveSim(); localStorage.setItem(MANUAL_KEY, 'true'); } saveItems(); saveRemedyPool(); scheduleCloudSync(); renderAll(); alert('恢复成功：' + items.length + ' 道题，待排池 ' + remedyPool.length + ' 条。'); }catch(err){ alert('文件解析失败：'+err.message); } }; reader.readAsText(f); e.target.value = ''; }); }
+    if(importFromFolderBtn && importFromFolderFile){ importFromFolderBtn.addEventListener('click', function(){ importFromFolderFile.click(); }); importFromFolderFile.addEventListener('change', function(e){ var f = e.target.files[0]; if(!f) return; var reader = new FileReader(); reader.onload = function(ev){ try{ var obj = JSON.parse(ev.target.result); var newItems = null, newSim = null, newPool = null; if(Array.isArray(obj)) newItems = obj; else if(obj && Array.isArray(obj.items)){ newItems = obj.items; newSim = obj.simDate; newPool = obj.remedyPool; } else { alert('文件格式错误'); return; } if(!confirm('导入将覆盖当前所有数据，确定继续？')) return; pushUndo('从备份文件恢复'); items = newItems; items.forEach(function(it){ if(!it.id) it.id = uid(); if(!it.chapter) it.chapter = ''; if(typeof it.reviewCount!=='number') it.reviewCount = 0; if(typeof it.greenStreak!=='number') it.greenStreak = 0; if(typeof it.isRemedy!=='boolean') it.isRemedy = false; if(typeof it.isGood!=='boolean') it.isGood = false; if(!it.lastReview) it.lastReview = ''; if(typeof it.onlyShowOnNext!=='boolean') it.onlyShowOnNext = false; if(!it.initialStatus) it.initialStatus = it.status; }); if(Array.isArray(newPool)) remedyPool = newPool; if(obj && obj.fieldSchema) applyIncomingSchema(obj.fieldSchema); else if(obj && obj.fields) applyIncomingSchema(obj.fields); if(newSim){ simDate = newSim; if(simInput) simInput.value = simDate; saveSim(); localStorage.setItem(MANUAL_KEY, 'true'); } mergeSchemaWithData(fieldSchema); saveFieldSchema(); fillFieldSelects(); renderRemedyLimits(); saveItems(); saveRemedyPool(); scheduleCloudSync(); renderAll(); alert('恢复成功：' + items.length + ' 道题，待排池 ' + remedyPool.length + ' 条。'); }catch(err){ alert('文件解析失败：'+err.message); } }; reader.readAsText(f); e.target.value = ''; }); }
 
     var copySyncCodeBtn = $('copySyncCodeBtn'); if(copySyncCodeBtn) copySyncCodeBtn.addEventListener('click', function(){ var el = $('syncCodeDisplay'); if(!el) return; var text = el.textContent; if(navigator.clipboard && navigator.clipboard.writeText){ navigator.clipboard.writeText(text).then(function(){ alert('已复制同步码：' + text); }).catch(function(){ alert('复制失败，请手动长按复制：' + text); }); } else { alert('请手动复制：' + text); } });
     var pullFromCloudBtn = $('pullFromCloudBtn'); if(pullFromCloudBtn) pullFromCloudBtn.addEventListener('click', function(){ var input = $('inputSyncCode'); if(!input || !input.value.trim()){ alert('请输入同步码'); return; } var newId = input.value.trim(); if(newId === syncUserId){ alert('这与当前同步码相同'); return; } if(!confirm('即将用同步码 ' + newId + ' 的数据覆盖当前设备，确定继续？')) return; syncUserId = newId; localStorage.setItem(SYNC_ID_KEY, syncUserId); renderSyncUI(); cloudPull().then(function(){ renderAll(); alert('已切换同步码并拉取数据：' + items.length + ' 道题'); }); });
@@ -1795,7 +2173,7 @@
     var excelBtn = $('excelBtn'); if(excelBtn) excelBtn.addEventListener('click', exportExcel);
     var exportBtn = $('exportBtn'); if(exportBtn){ exportBtn.addEventListener('click', function(){ var payload = buildBackupPayload(); var blob = new Blob([JSON.stringify(payload, null, 2)], {type:'application/json'}); var url = URL.createObjectURL(blob); var a = document.createElement('a'); a.href = url; a.download = backupFilename(); a.click(); URL.revokeObjectURL(url); }); }
     var importBtn = $('importBtn'); if(importBtn) importBtn.addEventListener('click', function(){ $('importFile').click(); });
-    var importFile = $('importFile'); if(importFile){ importFile.addEventListener('change', function(e){ var f = e.target.files[0]; if(!f) return; var reader = new FileReader(); reader.onload = function(ev){ try{ var obj = JSON.parse(ev.target.result); var newItems = null, newSim = null, newPool = null; if(Array.isArray(obj)) newItems = obj; else if(obj && Array.isArray(obj.items)){ newItems = obj.items; newSim = obj.simDate; newPool = obj.remedyPool; } else { alert('文件格式错误'); return; } if(!confirm('导入将覆盖当前所有数据，确定继续？')) return; pushUndo('导入 JSON 备份（覆盖当前数据）'); items = newItems; items.forEach(function(it){ if(!it.id) it.id = uid(); if(!it.chapter) it.chapter = '第1章'; if(typeof it.reviewCount!=='number') it.reviewCount = 0; if(typeof it.greenStreak!=='number') it.greenStreak = 0; if(typeof it.isRemedy!=='boolean') it.isRemedy = false; if(typeof it.isGood!=='boolean') it.isGood = false; if(!it.lastReview) it.lastReview = ''; if(typeof it.onlyShowOnNext!=='boolean') it.onlyShowOnNext = false; if(!it.initialStatus) it.initialStatus = it.status; }); if(Array.isArray(newPool)) remedyPool = newPool; if(newSim){ simDate = newSim; if(simInput) simInput.value = simDate; saveSim(); localStorage.setItem(MANUAL_KEY, 'true'); } saveItems(); saveRemedyPool(); scheduleCloudSync(); renderAll(); alert('导入成功，共 '+items.length+' 道题，待排池 '+remedyPool.length+' 条。'); }catch(err){ alert('文件解析失败：'+err.message); } }; reader.readAsText(f); e.target.value = ''; }); }
+    var importFile = $('importFile'); if(importFile){ importFile.addEventListener('change', function(e){ var f = e.target.files[0]; if(!f) return; var reader = new FileReader(); reader.onload = function(ev){ try{ var obj = JSON.parse(ev.target.result); var newItems = null, newSim = null, newPool = null; if(Array.isArray(obj)) newItems = obj; else if(obj && Array.isArray(obj.items)){ newItems = obj.items; newSim = obj.simDate; newPool = obj.remedyPool; } else { alert('文件格式错误'); return; } if(!confirm('导入将覆盖当前所有数据，确定继续？')) return; pushUndo('导入 JSON 备份（覆盖当前数据）'); items = newItems; items.forEach(function(it){ if(!it.id) it.id = uid(); if(!it.chapter) it.chapter = ''; if(typeof it.reviewCount!=='number') it.reviewCount = 0; if(typeof it.greenStreak!=='number') it.greenStreak = 0; if(typeof it.isRemedy!=='boolean') it.isRemedy = false; if(typeof it.isGood!=='boolean') it.isGood = false; if(!it.lastReview) it.lastReview = ''; if(typeof it.onlyShowOnNext!=='boolean') it.onlyShowOnNext = false; if(!it.initialStatus) it.initialStatus = it.status; }); if(Array.isArray(newPool)) remedyPool = newPool; if(obj && obj.fieldSchema) applyIncomingSchema(obj.fieldSchema); else if(obj && obj.fields) applyIncomingSchema(obj.fields); if(newSim){ simDate = newSim; if(simInput) simInput.value = simDate; saveSim(); localStorage.setItem(MANUAL_KEY, 'true'); } mergeSchemaWithData(fieldSchema); saveFieldSchema(); fillFieldSelects(); renderRemedyLimits(); saveItems(); saveRemedyPool(); scheduleCloudSync(); renderAll(); alert('导入成功，共 '+items.length+' 道题，待排池 '+remedyPool.length+' 条。'); }catch(err){ alert('文件解析失败：'+err.message); } }; reader.readAsText(f); e.target.value = ''; }); }
     var resetBtn = $('resetBtn'); if(resetBtn){ resetBtn.addEventListener('click', function(){ if(confirm('确定清空所有数据（含待排池）？此操作不可恢复。')){ pushUndo('清空所有数据（含待排池）'); items = []; remedyPool = []; saveItems(); saveRemedyPool(); scheduleCloudSync(); renderAll(); } }); }
 
     window.addEventListener('beforeunload', function(){ try{ writeIdbSnapshot(); }catch(e){} });
@@ -1806,9 +2184,10 @@
   function init(){
     try{
       loadBackupConfig(); items = loadItems(); remedyPool = loadRemedyPool();
+      initFieldSchema(loadFieldSchema()); saveFieldSchema();
       simDate = chinaToday(); localStorage.removeItem(MANUAL_KEY); saveSim();
-      fillChapterSelect(); fillRemedyChapterSelect(); fillFilterChapter(); fillDueFilterChapter(); updatePostponeOptions(); $('rmStartDate').value = simDate;
-      bindEvents(); renderAll(); updateUndoBtn(); updateBackupStatusUI(); renderSyncUI(); clearError();
+      fillFieldSelects(); renderRemedyLimits(); updatePostponeOptions(); $('rmStartDate').value = simDate;
+      bindEvents(); renderAll(); renderFieldSettings(); updateUndoBtn(); updateBackupStatusUI(); renderSyncUI(); clearError();
 
       cloudPull().then(function(result){ if(result.pulled){ renderAll(); } });
 
