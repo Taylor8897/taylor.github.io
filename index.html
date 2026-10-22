@@ -278,14 +278,37 @@
   .field-link-btn:hover{background:#dbeafe;}
   .picked-l1-badge{display:inline-block;padding:1px 7px;border-radius:10px;background:#eff6ff;color:#1d4ed8;font-size:11px;font-weight:700;margin-right:6px;}
 
-  @media (max-width:600px){.form-grid{grid-template-columns:1fr;}.method-table{font-size:12px;}.method-table td,.method-table th{padding:7px 8px;}.calendar-grid{grid-template-columns:repeat(2,1fr);}}
+  /* ===== 新增：错因/档位徽章与编辑器 ===== */
+  .ct-badge{display:inline-block;padding:1px 7px;border-radius:10px;font-size:11px;font-weight:700;background:#fff;margin-left:4px;white-space:nowrap;vertical-align:middle;line-height:1.5;}
+  .ct-select{width:auto;min-width:96px;font-size:12px;padding:3px 6px;border-radius:6px;border:1px solid var(--line);background:#fff;cursor:pointer;font-family:inherit;}
+  .ct-select:focus{outline:2px solid #93c5fd;}
+  .ct-editor-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:12px;margin-top:12px;}
+  .ct-block{background:#f8fafc;border:1px solid var(--line);border-radius:8px;padding:12px;}
+  .ct-block .ct-head{font-size:13px;font-weight:700;margin-bottom:10px;padding-left:8px;border-left:3px solid var(--blue);}
+  .ct-row{display:flex;align-items:center;gap:6px;margin-bottom:6px;flex-wrap:wrap;}
+  .ct-row .ct-code-badge{padding:2px 8px;border-radius:10px;font-size:12px;font-weight:700;background:#fff;border:1px solid;min-width:40px;text-align:center;}
+  .ct-row input[data-ct-desc]{flex:1;min-width:120px;font-size:12px;padding:4px 8px;}
+  .ct-row input[type=color]{width:40px;height:28px;padding:1px;cursor:pointer;border:1px solid var(--line);border-radius:6px;}
+  .ct-add{display:flex;gap:6px;flex-wrap:wrap;margin-top:8px;align-items:center;}
+  .ct-add input[data-new-code]{width:60px;font-size:12px;padding:4px 8px;text-align:center;}
+  .ct-add input[data-new-desc]{flex:1;min-width:120px;font-size:12px;padding:4px 8px;}
+  .ct-add input[type=color]{width:40px;height:28px;padding:1px;border:1px solid var(--line);border-radius:6px;}
+
+  /* ===== 新增：批次管理 ===== */
+  .batch-row{background:#f8fafc;border:1px solid var(--line);border-radius:8px;padding:10px 12px;margin-bottom:8px;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px;}
+  .batch-row .batch-info{font-size:13px;flex:1;min-width:200px;}
+  .batch-row .batch-actions{display:flex;gap:6px;flex-wrap:wrap;}
+  .batch-row.history{background:#fffbeb;border-color:#fcd34d;}
+  .import-hint{font-size:12px;color:var(--sub);margin-bottom:10px;padding:8px 12px;background:#f0f9ff;border-left:3px solid #0284c7;border-radius:6px;}
+
+  @media (max-width:600px){.form-grid{grid-template-columns:1fr;}.method-table{font-size:12px;}.method-table td,.method-table th{padding:7px 8px;}.calendar-grid{grid-template-columns:repeat(2,1fr);}.ct-editor-grid{grid-template-columns:1fr;}}
 </style>
 </head>
 <body>
 <div class="wrap">
 
   <h1>题目复习系统 · 云同步版</h1>
-  <div class="sub">本地存储 + IndexedDB + Supabase 云端三层防护。换设备、清缓存，数据不丢失。一级 / 二级字段可自由设置。</div>
+  <div class="sub">本地存储 + IndexedDB + Supabase 云端三层防护。换设备、清缓存，数据不丢失。一级 / 二级字段可自由设置；错因（C/T/K）与档位（S/A/C）可自定义，并支持按它们筛选。</div>
 
   <div class="error-box" id="errorBox"></div>
 
@@ -365,7 +388,7 @@
       </div>
 
       <div class="key key-good">
-        <b>字段自由设置：</b>一级字段相当于「学科 / 大类」，二级字段相当于「章节 / 小类」，都可以在<b>「字段设置」</b>里自由添加、重命名、删除。以后换学科、换教材，直接改字段即可，不用改代码，也不会影响已录入的题目。
+        <b>字段自由设置：</b>一级字段相当于「学科 / 大类」，二级字段相当于「章节 / 小类」，都可以在<b>「字段设置」</b>里自由添加、重命名、删除。错因（C/T/K）与档位（S/A/C）同样在「字段设置」里维护，可增删、可改说明与颜色。
         <button class="field-link-btn" id="openFieldsFromInput">⚙ 打开字段设置</button>
       </div>
 
@@ -382,12 +405,18 @@
         <div><label>标记</label>
           <select id="inStatus"><option value="红">红</option><option value="黄">黄</option><option value="绿">绿</option><option value="归档">归档</option></select>
         </div>
+        <div><label>错因（可选）</label>
+          <select id="inCause"></select>
+        </div>
+        <div><label>档位（可选）</label>
+          <select id="inTier"></select>
+        </div>
         <div class="wide" style="display:flex;align-items:center;gap:8px;">
           <input type="checkbox" id="inGood" style="width:auto;">
           <label for="inGood" style="margin:0;font-weight:600;color:#0891b2;">加入好题板块</label>
         </div>
         <div class="wide"><label>错因 / 备注</label>
-          <textarea id="inErr" placeholder="如：隐函数求导公式记错"></textarea>
+          <textarea id="inErr" placeholder="如：漏负号；没看到 Not；原来这里要用戴维宁"></textarea>
         </div>
       </div>
       <button class="btn btn-primary" id="addBtn">添加并自动排程</button>
@@ -463,6 +492,12 @@
             <option value="补救">补救</option>
           </select>
         </div>
+        <div><label>错因</label>
+          <select id="dueFilterCause"><option value="全部">全部</option></select>
+        </div>
+        <div><label>档位</label>
+          <select id="dueFilterTier"><option value="全部">全部</option></select>
+        </div>
         <div><label>搜索（页码/题号）</label>
           <input id="dueFilterSearch" placeholder="如 P45 / 例3">
         </div>
@@ -481,7 +516,8 @@
       </div>
       <div class="key key-sat">
         <b>备注说明：</b>做题前，先在题目左侧的小输入框里写原因（如“计算难”“公式记错”），再点颜色。备注会保存到题目的错因里。<br>
-        <b>跳期说明：</b>跳到过去或将来，题目都<b>立即从当前日期消失</b>，只在目标日期显示，目标日期的今日到期板块会立即出现该题。点颜色后按当前日期重新排程。<br>
+        <b>错因 / 档位：</b>卡片上的两个小下拉可随时修改「错因（C/T/K）」和「档位（S/A/C）」，只改标签不影响颜色与排程。<br>
+        <b>跳期说明：</b>跳到过去或将来，题目都<b>立即从当前日期消失</b>，只在目标日期显示。点颜色后按当前日期重新排程。<br>
         <b>延后：</b>明天到本周日。 <b>提前：</b>过去 7 天内任意一天。
       </div>
       <div id="dueList"></div>
@@ -503,6 +539,12 @@
         <div><label>类型</label>
           <select id="filterSource"><option value="全部">全部</option><option value="补救">仅补救题</option><option value="常规">仅常规题</option></select>
         </div>
+        <div><label>错因</label>
+          <select id="filterCause"><option value="全部">全部</option></select>
+        </div>
+        <div><label>档位</label>
+          <select id="filterTier"><option value="全部">全部</option></select>
+        </div>
       </div>
       <div class="key key-good">
         <b>好题按钮：</b>每题颜色标记旁边的「加入好题」按钮，可将该题同步到好题板块。再次点击「移出好题」即可取消，不影响颜色标签和复习安排。
@@ -510,7 +552,7 @@
       <div style="overflow-x:auto;">
         <table>
           <thead>
-            <tr><th>一级字段</th><th>二级字段</th><th>来源</th><th>页码</th><th>题号</th><th>标记</th><th>类型</th><th>状态</th><th>首次</th><th>下次</th><th>次数</th><th>操作</th></tr>
+            <tr><th>一级字段</th><th>二级字段</th><th>来源</th><th>页码</th><th>题号</th><th>标记</th><th>错因</th><th>档位</th><th>类型</th><th>状态</th><th>首次</th><th>下次</th><th>次数</th><th>操作</th></tr>
           </thead>
           <tbody id="allTbody"></tbody>
         </table>
@@ -575,7 +617,7 @@
       <h2 style="border-left-color:#7c3aed;">补救板块 · 历史题批量排程</h2>
 
       <div class="key key-remedy">
-        <b>补救题流程：</b>① 待排池录入 → ② 排程后进入系统（今日到期可见）→ ③ 首次复习后即可被周测/月测抽到。
+        <b>补救题流程：</b>① 待排池录入（手动或 JSON 导入）→ ② 排程后进入系统（今日到期可见）→ ③ 首次复习后即可被周测/月测抽到。
       </div>
 
       <div class="remedy-status-grid">
@@ -607,6 +649,12 @@
           <div><label>题号</label><input id="rmNo" placeholder="如 例3"></div>
           <div><label>标记</label>
             <select id="rmStatus"><option value="红">红</option><option value="黄">黄</option><option value="绿">绿</option><option value="归档">归档</option></select>
+          </div>
+          <div><label>错因（可选）</label>
+            <select id="rmCause"></select>
+          </div>
+          <div><label>档位（可选）</label>
+            <select id="rmTier"></select>
           </div>
           <div class="wide"><label>错因 / 备注</label>
             <textarea id="rmErr" placeholder="如：隐函数求导公式记错"></textarea>
@@ -715,6 +763,49 @@
       <div id="fieldEditor"></div>
       <div class="mini" style="margin-top:8px;">提示：重命名一级字段 / 二级字段后，全部题目、今日到期、周测、月测、补救板块的筛选选项会立即同步。</div>
     </div>
+
+    <!-- 新增：错因 / 档位选项管理 -->
+    <div class="card">
+      <h2 style="border-left-color:#dc2626;">错因类型 · C / T / K</h2>
+      <div class="key key-red">
+        <b>C（Careless）</b> 计算失误 / 粗心：思路方法都对，算错数、符号写反、看错题干。<br>
+        <b>T（Thought）</b> 思路盲区：不知道怎么第一步，直接看答案抄第一步思路。<br>
+        <b>K（Knowledge）</b> 知识遗忘：忘了公式/定理，或不认识关键词。
+      </div>
+      <div class="ct-editor-grid">
+        <div class="ct-block">
+          <div class="ct-head">错因选项（可增删改说明与颜色）</div>
+          <div id="causeEditor"></div>
+          <div class="ct-add">
+            <input data-new-code="cause" placeholder="代码，如 M" maxlength="4">
+            <input data-new-desc="cause" placeholder="说明，如 读题失误">
+            <input type="color" data-new-color="cause" value="#6b7280" title="颜色">
+            <button class="btn btn-sm btn-primary" data-add-code="cause">＋ 添加</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="card">
+      <h2 style="border-left-color:#b45309;">题目档位 · S / A / C</h2>
+      <div class="key key-sat">
+        <b>S（Survival）</b> 必做计算题：纯数字、基础计算，必须动笔算，掐 8 分钟。<br>
+        <b>A（Awareness）</b> 套路看步题：需要套一个公式或两个步骤，只写第一步，看答案第一步就过。<br>
+        <b>C（Copy）</b> 战略抄写题：纯字母抽象、大段推导，一秒不想，直接抄答案核心结论。
+      </div>
+      <div class="ct-editor-grid">
+        <div class="ct-block">
+          <div class="ct-head">档位选项（可增删改说明与颜色）</div>
+          <div id="tierEditor"></div>
+          <div class="ct-add">
+            <input data-new-code="tier" placeholder="代码，如 B" maxlength="4">
+            <input data-new-desc="tier" placeholder="说明，如 半套路题">
+            <input type="color" data-new-color="tier" value="#6b7280" title="颜色">
+            <button class="btn btn-sm btn-primary" data-add-code="tier">＋ 添加</button>
+          </div>
+        </div>
+      </div>
+    </div>
   </div>
 
   <!-- 云同步 -->
@@ -821,6 +912,23 @@
       </div>
     </div>
 
+    <!-- 新增：批量导入 JSON 与批次管理 -->
+    <div class="card">
+      <h2 style="border-left-color:#2563eb;">批量导入 JSON · AI 语音整理</h2>
+      <div class="import-hint">
+        <b>流程：</b>① 对着 AI 说今天做了什么题（哪个科目、哪章、哪几道题、什么颜色、错因档位、是否好题、错因备注）<br>
+        ② AI 按固定模板生成一份 JSON 文件 → ③ 点下方「选择 JSON 文件导入」→ ④ 常规题直接进复习池，补救题自动进「补救待排池」。<br>
+        <b>批次命名：</b>默认用 JSON 里的 <code>date</code> 字段；同日多次导入依次追加 <code>(1)(2)…</code>；导入不会覆盖旧批次。<br>
+        <b>删除批次：</b>会连带删除该批次导入的常规题和待排池补救题；若该批次已有补救题排进复习池，会弹窗询问是否一起删除。
+      </div>
+      <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px;">
+        <button class="btn btn-primary" id="importBatchBtn">选择 JSON 文件导入</button>
+        <button class="btn btn-sm" id="showJsonTemplateBtn">查看 JSON 模板</button>
+      </div>
+      <input type="file" id="importBatchFile" accept=".json,application/json" style="display:none">
+      <div id="batchList"></div>
+    </div>
+
     <!-- 手动备份与恢复 -->
     <div class="card">
       <h2>手动备份与恢复</h2>
@@ -855,6 +963,8 @@
 
   var CLOUD_SYNC_STATUS = 'idle';
   var cloudSyncTimeout = null;
+  var cloudSchemaSupported = true;
+  var cloudExtraSupported = true; // 新增：cause_schema / tier_schema / batches 是否可上传
 
   var ITEM_KEY = 'tiqu_final_items';
   var SIM_KEY  = 'tiqu_final_simdate';
@@ -863,18 +973,36 @@
   var BACKUP_CONFIG_KEY = 'tiqu_backup_config';
 
   var FIELD_KEY = 'tiqu_field_schema';
+  var CAUSE_KEY = 'tiqu_cause_schema';
+  var TIER_KEY = 'tiqu_tier_schema';
+  var BATCH_KEY = 'tiqu_batches';
   var FIELD_COLORS = ['#2563eb','#ea580c','#7c3aed','#0891b2','#059669','#d97706','#db2777','#4f46e5'];
   var FIELD_DEFAULT_SEED = [
     { name: '数学', children: ['第1章','第2章','第3章','第4章','第5章','第6章','第7章','第8章','第9章'] },
     { name: '电路', children: ['第1章','第2章','第3章','第4章','第5章','第6章','第7章','第8章','第9章','第10章','第11章','第12章','第13章','第14章'] }
   ];
 
+  // 错因默认
+  var CAUSE_DEFAULT = [
+    { code:'C', desc:'计算失误 / 粗心', color:'#dc2626' },
+    { code:'T', desc:'思路盲区 / 脑子卡壳', color:'#2563eb' },
+    { code:'K', desc:'知识遗忘 / 单词不认识', color:'#b45309' }
+  ];
+  // 档位默认
+  var TIER_DEFAULT = [
+    { code:'S', desc:'必做计算题，掐 8 分钟', color:'#dc2626' },
+    { code:'A', desc:'套路看步题，只写第一步', color:'#b45309' },
+    { code:'C', desc:'战略抄写题，直接抄结论', color:'#6b7280' }
+  ];
+
   var items = [];
   var simDate = '';
   var remedyPool = [];
   var fieldSchema = [];
+  var causeSchema = [];
+  var tierSchema = [];
+  var batches = [];
   var remedyLimits = {};
-  var cloudSchemaSupported = true;
 
   var undoStack = [];
   var UNDO_MAX = 30;
@@ -914,9 +1042,13 @@
       if(!it.lastReview) it.lastReview = '';
       if(typeof it.onlyShowOnNext!=='boolean') it.onlyShowOnNext = false;
       if(!it.initialStatus) it.initialStatus = it.status;
+      if(typeof it.cause !== 'string') it.cause = '';
+      if(typeof it.tier !== 'string') it.tier = '';
+      if(typeof it.batchId !== 'string') it.batchId = '';
     });
     return arr;
   }
+
   function cloudPull(){
     setSyncStatus('syncing', '正在从云端下载…');
     return fetch(SUPABASE_URL + '/rest/v1/user_data?user_id=eq.' + encodeURIComponent(syncUserId), {
@@ -939,15 +1071,22 @@
         if(shouldOverwrite){
           items = cloudItems;
           remedyPool = cloudPool;
+          // 新增：尝试恢复错因/档位/批次
+          if(row.cause_schema) applyIncomingCT('cause', row.cause_schema);
+          if(row.tier_schema) applyIncomingCT('tier', row.tier_schema);
+          if(Array.isArray(row.batches)) mergeIncomingBatches(row.batches);
           if(cloudSim){ simDate = cloudSim; var simEl = $('simDate'); if(simEl) simEl.value = simDate; saveSim(); }
           normalizeRemoteItems(items);
           mergeSchemaWithData(fieldSchema); saveFieldSchema();
-          saveItems(); saveRemedyPool(); fillFieldSelects(); renderRemedyLimits(); renderAll();
+          saveItems(); saveRemedyPool(); saveBatches(); fillFieldSelects(); renderRemedyLimits(); renderAll();
           setSyncStatus('ok', '已从云端同步最新数据（' + items.length + ' 道题）');
           return { pulled: true };
         } else {
+          if(row.cause_schema) applyIncomingCT('cause', row.cause_schema);
+          if(row.tier_schema) applyIncomingCT('tier', row.tier_schema);
+          if(Array.isArray(row.batches)) mergeIncomingBatches(row.batches);
           mergeSchemaWithData(fieldSchema); saveFieldSchema();
-          saveItems(); saveRemedyPool(); fillFieldSelects(); renderRemedyLimits(); renderAll();
+          saveItems(); saveRemedyPool(); saveBatches(); fillFieldSelects(); renderRemedyLimits(); renderAll();
           setSyncStatus('ok', '云端与本地数据一致');
           return { pulled: false };
         }
@@ -963,7 +1102,7 @@
 
   function cloudPush(silent){
     if(!silent){ setSyncStatus('syncing', '正在上传到云端…'); }
-    function send(includeSchema){
+    function send(includeSchema, includeExtra){
       var payload = {
         user_id: syncUserId,
         items: items,
@@ -972,6 +1111,11 @@
         updated_at: new Date().toISOString()
       };
       if(includeSchema) payload.field_schema = { version: 2, fields: cloneSchema(fieldSchema) };
+      if(includeExtra){
+        payload.cause_schema = causeSchema;
+        payload.tier_schema = tierSchema;
+        payload.batches = batches;
+      }
       return fetch(SUPABASE_URL + '/rest/v1/user_data?on_conflict=user_id', {
         method: 'POST',
         headers: {
@@ -983,15 +1127,26 @@
         body: JSON.stringify([payload])
       });
     }
-    return send(cloudSchemaSupported).then(function(res){
+    return send(cloudSchemaSupported, cloudExtraSupported).then(function(res){
       if(res.ok){
         if(!silent){ setSyncStatus('ok', '已成功上传到云端（' + items.length + ' 道题）'); }
         return { ok: true };
       }
       return res.text().then(function(t){
+        // 先尝试去掉新增列（cause_schema / tier_schema / batches）
+        if(cloudExtraSupported && /cause_schema|tier_schema|batches|PGRST204|column|schema/i.test(t)){
+          cloudExtraSupported = false;
+          return send(cloudSchemaSupported, false).then(function(res2){
+            if(res2.ok){
+              if(!silent){ setSyncStatus('ok', '已上传（云端暂不支持错因/档位/批次表，这些字段已保存在本机与备份中）'); }
+              return { ok: true, extraLocalOnly: true };
+            }
+            return res2.text().then(function(t2){ throw new Error(t2); });
+          });
+        }
         if(cloudSchemaSupported && /field_schema|PGRST204|column|schema/i.test(t)){
           cloudSchemaSupported = false;
-          return send(false).then(function(res2){
+          return send(false, cloudExtraSupported).then(function(res2){
             if(!res2.ok) return res2.text().then(function(t2){ throw new Error(t2); });
             if(!silent){ setSyncStatus('ok', '已上传（云端不支持字段表，字段已保存在本机与备份中）'); }
             return { ok: true, schemaLocalOnly: true };
@@ -1051,7 +1206,17 @@
   }
 
   function buildBackupPayload(){
-    return { version: 'backup_v2', exportedAt: new Date().toISOString(), simDate: simDate, fieldSchema: { version: 2, fields: cloneSchema(fieldSchema) }, items: items, remedyPool: remedyPool };
+    return {
+      version: 'backup_v3',
+      exportedAt: new Date().toISOString(),
+      simDate: simDate,
+      fieldSchema: { version: 2, fields: cloneSchema(fieldSchema) },
+      causeSchema: causeSchema.slice(),
+      tierSchema: tierSchema.slice(),
+      batches: batches.slice(),
+      items: items,
+      remedyPool: remedyPool
+    };
   }
 
   function backupFilename(){
@@ -1218,7 +1383,15 @@
 
   function pushUndo(desc){
     try{
-      undoStack.push({ desc: desc, items: JSON.parse(JSON.stringify(items)), remedyPool: JSON.parse(JSON.stringify(remedyPool)), fieldSchema: cloneSchema(fieldSchema) });
+      undoStack.push({
+        desc: desc,
+        items: JSON.parse(JSON.stringify(items)),
+        remedyPool: JSON.parse(JSON.stringify(remedyPool)),
+        fieldSchema: cloneSchema(fieldSchema),
+        causeSchema: JSON.parse(JSON.stringify(causeSchema)),
+        tierSchema: JSON.parse(JSON.stringify(tierSchema)),
+        batches: JSON.parse(JSON.stringify(batches))
+      });
       if(undoStack.length > UNDO_MAX) undoStack.shift();
       updateUndoBtn();
     }catch(e){ console.error('pushUndo error:', e); }
@@ -1226,10 +1399,14 @@
   function doUndo(){
     if(undoStack.length === 0){ alert('没有可撤回的操作。'); return; }
     var state = undoStack.pop();
-    items = state.items; remedyPool = state.remedyPool;
+    items = state.items;
+    remedyPool = state.remedyPool;
     if(state.fieldSchema) fieldSchema = cloneSchema(state.fieldSchema);
+    if(state.causeSchema) causeSchema = state.causeSchema;
+    if(state.tierSchema) tierSchema = state.tierSchema;
+    if(state.batches) batches = state.batches;
     mergeSchemaWithData(fieldSchema); saveFieldSchema();
-    saveItems(); saveRemedyPool(); fillFieldSelects(); renderRemedyLimits(); renderAll(); updateUndoBtn();
+    saveItems(); saveRemedyPool(); saveBatches(); fillFieldSelects(); renderRemedyLimits(); renderAll(); updateUndoBtn();
     alert('已撤回：' + state.desc);
   }
   function updateUndoBtn(){
@@ -1287,19 +1464,262 @@
     return html;
   }
 
+  // ============== 新增：错因/档位 schema ==============
+  function cloneCTSchema(src){
+    var out = [];
+    (src || []).forEach(function(x){
+      if(!x) return;
+      var code = String(x.code == null ? '' : x.code).trim();
+      if(!code) return;
+      out.push({
+        code: code,
+        desc: String(x.desc == null ? '' : x.desc),
+        color: /^#[0-9a-fA-F]{6}$/.test(x.color || '') ? x.color : '#6b7280'
+      });
+    });
+    return out;
+  }
+  function loadCTSchema(key, defaults){
+    try{
+      var raw = localStorage.getItem(key);
+      if(!raw) return defaults.slice();
+      var obj = JSON.parse(raw);
+      if(Array.isArray(obj) && obj.length > 0) return cloneCTSchema(obj);
+      return defaults.slice();
+    }catch(e){ return defaults.slice(); }
+  }
+  function saveCTSchema(key, arr){ try{ localStorage.setItem(key, JSON.stringify(arr)); }catch(e){} }
+  function saveCauseSchema(){ saveCTSchema(CAUSE_KEY, causeSchema); }
+  function saveTierSchema(){ saveCTSchema(TIER_KEY, tierSchema); }
+
+  function loadBatches(){
+    try{
+      var raw = localStorage.getItem(BATCH_KEY);
+      if(!raw) return [];
+      var arr = JSON.parse(raw);
+      if(!Array.isArray(arr)) return [];
+      return arr.filter(function(b){ return b && b.id && b.name; }).map(function(b){
+        return {
+          id: String(b.id), name: String(b.name),
+          date: String(b.date || ''),
+          importedAt: String(b.importedAt || ''),
+          regularCount: Number(b.regularCount) || 0,
+          remedyCount: Number(b.remedyCount) || 0
+        };
+      });
+    }catch(e){ return []; }
+  }
+  function saveBatches(){ try{ localStorage.setItem(BATCH_KEY, JSON.stringify(batches)); }catch(e){} }
+
+  function mergeIncomingBatches(incoming){
+    if(!Array.isArray(incoming)) return;
+    var map = {};
+    batches.forEach(function(b){ map[b.id] = b; });
+    incoming.forEach(function(b){
+      if(!b || !b.id) return;
+      var existing = map[b.id];
+      if(!existing){
+        map[b.id] = {
+          id: String(b.id), name: String(b.name || b.id),
+          date: String(b.date || ''),
+          importedAt: String(b.importedAt || ''),
+          regularCount: Number(b.regularCount) || 0,
+          remedyCount: Number(b.remedyCount) || 0
+        };
+      } else {
+        if(!existing.regularCount && b.regularCount) existing.regularCount = Number(b.regularCount) || 0;
+        if(!existing.remedyCount && b.remedyCount) existing.remedyCount = Number(b.remedyCount) || 0;
+      }
+    });
+    batches = Object.keys(map).map(function(k){ return map[k]; });
+  }
+  function applyIncomingCT(kind, incoming){
+    if(!Array.isArray(incoming) || incoming.length === 0) return;
+    var target = (kind === 'cause') ? causeSchema : tierSchema;
+    var map = {};
+    target.forEach(function(x){ map[x.code] = x; });
+    incoming.forEach(function(x){
+      if(!x || !x.code) return;
+      var code = String(x.code).trim();
+      if(!code) return;
+      if(!map[code]) map[code] = { code: code, desc: String(x.desc || ''), color: /^#[0-9a-fA-F]{6}$/.test(x.color || '') ? x.color : '#6b7280' };
+    });
+    var out = Object.keys(map).map(function(k){ return map[k]; });
+    if(kind === 'cause'){ causeSchema = out; saveCauseSchema(); }
+    else { tierSchema = out; saveTierSchema(); }
+  }
+
+  function getCTSchema(kind){ return kind === 'cause' ? causeSchema : tierSchema; }
+  function getCTItem(kind, code){
+    if(!code) return null;
+    var arr = getCTSchema(kind);
+    for(var i=0;i<arr.length;i++){ if(arr[i].code === code) return arr[i]; }
+    return null;
+  }
+  function causeBadge(code){
+    if(!code) return '';
+    var c = getCTItem('cause', code);
+    var color = c ? c.color : '#6b7280';
+    var desc = c ? c.desc : '';
+    return '<span class="ct-badge" title="错因 ' + escapeHtml(code) + (desc ? '：' + escapeHtml(desc) : '') + '" style="color:' + color + ';border:1px solid ' + color + ';">因·' + escapeHtml(code) + '</span>';
+  }
+  function tierBadge(code){
+    if(!code) return '';
+    var c = getCTItem('tier', code);
+    var color = c ? c.color : '#6b7280';
+    var desc = c ? c.desc : '';
+    return '<span class="ct-badge" title="档位 ' + escapeHtml(code) + (desc ? '：' + escapeHtml(desc) : '') + '" style="color:' + color + ';border:1px solid ' + color + ';">档·' + escapeHtml(code) + '</span>';
+  }
+  function buildCTSelectHtml(kind, selectedCode){
+    var arr = getCTSchema(kind);
+    var label = (kind === 'cause') ? '因' : '档';
+    var html = '<option value="">' + label + '·未分类</option>';
+    arr.forEach(function(x){
+      var text = label + '·' + x.code + (x.desc ? ' ' + x.desc : '');
+      html += '<option value="' + escapeHtml(x.code) + '"' + (selectedCode === x.code ? ' selected' : '') + '>' + escapeHtml(text) + '</option>';
+    });
+    return html;
+  }
+
+  function fillCauseTierSelects(){
+    ['inCause','rmCause'].forEach(function(id){
+      var el = $(id); if(!el) return;
+      var prev = el.value;
+      el.innerHTML = buildCTSelectHtml('cause', '');
+      el.value = prev;
+    });
+    ['inTier','rmTier'].forEach(function(id){
+      var el = $(id); if(!el) return;
+      var prev = el.value;
+      el.innerHTML = buildCTSelectHtml('tier', '');
+      el.value = prev;
+    });
+    ['dueFilterCause','filterCause'].forEach(function(id){
+      var el = $(id); if(!el) return;
+      var prev = el.value || '全部';
+      el.innerHTML = '<option value="全部">全部</option><option value="__none__">未分类</option>' + causeSchema.map(function(x){
+        return '<option value="' + escapeHtml(x.code) + '">因·' + escapeHtml(x.code) + (x.desc ? ' ' + escapeHtml(x.desc) : '') + '</option>';
+      }).join('');
+      if(!el.querySelector('option[value="' + prev + '"]')) prev = '全部';
+      el.value = prev;
+    });
+    ['dueFilterTier','filterTier'].forEach(function(id){
+      var el = $(id); if(!el) return;
+      var prev = el.value || '全部';
+      el.innerHTML = '<option value="全部">全部</option><option value="__none__">未分类</option>' + tierSchema.map(function(x){
+        return '<option value="' + escapeHtml(x.code) + '">档·' + escapeHtml(x.code) + (x.desc ? ' ' + escapeHtml(x.desc) : '') + '</option>';
+      }).join('');
+      if(!el.querySelector('option[value="' + prev + '"]')) prev = '全部';
+      el.value = prev;
+    });
+  }
+
+  // ============== 错因/档位设置编辑器 ==============
+  function renderCTEditor(kind){
+    var box = $(kind === 'cause' ? 'causeEditor' : 'tierEditor');
+    if(!box) return;
+    var arr = getCTSchema(kind);
+    if(arr.length === 0){ box.innerHTML = '<div class="field-empty-hint">暂无选项，请在下方添加。</div>'; return; }
+    var html = '';
+    arr.forEach(function(x, i){
+      var count = kind === 'cause'
+        ? items.filter(function(it){ return it.cause === x.code; }).length + remedyPool.filter(function(it){ return it.cause === x.code; }).length
+        : items.filter(function(it){ return it.tier === x.code; }).length + remedyPool.filter(function(it){ return it.tier === x.code; }).length;
+      html += '<div class="ct-row">';
+      html += '<span class="ct-code-badge" style="color:' + x.color + ';border-color:' + x.color + '">' + escapeHtml(x.code) + '</span>';
+      html += '<input data-ct-desc="' + kind + ':' + i + '" value="' + escapeHtml(x.desc) + '" placeholder="说明">';
+      html += '<input type="color" data-ct-color="' + kind + ':' + i + '" value="' + x.color + '" title="颜色">';
+      html += '<span class="mini">' + count + ' 题</span>';
+      html += '<button class="btn btn-sm btn-danger" data-ct-del="' + kind + ':' + i + '">删</button>';
+      html += '</div>';
+    });
+    box.innerHTML = html;
+  }
+  function renderCauseTierSettings(){
+    renderCTEditor('cause');
+    renderCTEditor('tier');
+  }
+
+  function addCTOption(kind, code, desc, color){
+    code = String(code||'').trim();
+    desc = String(desc||'').trim();
+    if(!code){ alert('请输入代码。'); return; }
+    if(!/^[A-Za-z0-9_]{1,4}$/.test(code)){ alert('代码只能 1~4 位字母/数字/下划线。'); return; }
+    var arr = getCTSchema(kind);
+    if(arr.some(function(x){ return x.code === code; })){ alert('代码「' + code + '」已存在。'); return; }
+    pushUndo('新增' + (kind==='cause'?'错因':'档位') + '选项「' + code + '」');
+    arr.push({ code: code, desc: desc, color: color || '#6b7280' });
+    if(kind === 'cause') saveCauseSchema(); else saveTierSchema();
+    scheduleIdleBackup(); scheduleCloudSync();
+    fillCauseTierSelects(); renderCauseTierSettings(); renderAll();
+  }
+  function renameCTDesc(kind, idx, newDesc){
+    var arr = getCTSchema(kind);
+    var x = arr[idx]; if(!x) return;
+    newDesc = String(newDesc||'');
+    if(x.desc === newDesc) return;
+    pushUndo('修改' + (kind==='cause'?'错因':'档位') + '「' + x.code + '」说明');
+    x.desc = newDesc;
+    if(kind === 'cause') saveCauseSchema(); else saveTierSchema();
+    scheduleIdleBackup(); scheduleCloudSync();
+    fillCauseTierSelects(); renderAll();
+  }
+  function changeCTColor(kind, idx, color){
+    var arr = getCTSchema(kind);
+    var x = arr[idx]; if(!x) return;
+    if(!/^#[0-9a-fA-F]{6}$/.test(color||'')) return;
+    pushUndo('修改' + (kind==='cause'?'错因':'档位') + '「' + x.code + '」颜色');
+    x.color = color;
+    if(kind === 'cause') saveCauseSchema(); else saveTierSchema();
+    scheduleIdleBackup(); scheduleCloudSync();
+    renderAll();
+  }
+  function deleteCTOption(kind, idx){
+    var arr = getCTSchema(kind);
+    var x = arr[idx]; if(!x) return;
+    var usedCount = (kind === 'cause')
+      ? items.filter(function(it){ return it.cause === x.code; }).length + remedyPool.filter(function(it){ return it.cause === x.code; }).length
+      : items.filter(function(it){ return it.tier === x.code; }).length + remedyPool.filter(function(it){ return it.tier === x.code; }).length;
+    if(usedCount > 0){
+      alert('「' + x.code + '」还有 ' + usedCount + ' 道题在使用，不能删除。\n请先把这些题的' + (kind==='cause'?'错因':'档位') + '改为其他值，或清空后再删。');
+      return;
+    }
+    if(!confirm('确定删除' + (kind==='cause'?'错因':'档位') + '选项「' + x.code + '」？')) return;
+    pushUndo('删除' + (kind==='cause'?'错因':'档位') + '选项「' + x.code + '」');
+    arr.splice(idx, 1);
+    if(kind === 'cause') saveCauseSchema(); else saveTierSchema();
+    scheduleIdleBackup(); scheduleCloudSync();
+    fillCauseTierSelects(); renderCauseTierSettings(); renderAll();
+  }
+
+  // ============== 题目读写 ==============
   function loadItems(){
     try{
       var raw = localStorage.getItem(ITEM_KEY); if(!raw) return [];
       var arr = JSON.parse(raw); if(!Array.isArray(arr)) return [];
       arr.forEach(function(it){
         if(!it.id) it.id = uid(); if(!it.subject) it.subject='未分类'; if(!it.chapter) it.chapter=''; if(!it.source) it.source='讲义'; if(!it.page) it.page=''; if(!it.no) it.no=''; if(!it.status) it.status='黄'; if(!it.first) it.first=todayStr(); if(!it.next) it.next=it.first; if(typeof it.reviewCount!=='number') it.reviewCount=0; if(!it.errReason) it.errReason=''; if(typeof it.greenStreak!=='number') it.greenStreak=0; if(typeof it.isRemedy!=='boolean') it.isRemedy=false; if(typeof it.isGood!=='boolean') it.isGood=false; if(!it.lastReview) it.lastReview=''; if(typeof it.onlyShowOnNext!=='boolean') it.onlyShowOnNext=false; if(!it.initialStatus) it.initialStatus = it.status;
+        if(typeof it.cause !== 'string') it.cause = '';
+        if(typeof it.tier !== 'string') it.tier = '';
+        if(typeof it.batchId !== 'string') it.batchId = '';
       });
       return arr;
     }catch(e){ return []; }
   }
   function saveItems(){ try{ localStorage.setItem(ITEM_KEY,JSON.stringify(items)); }catch(e){ showError('保存失败：'+e.message); } }
   function saveSim(){ try{ localStorage.setItem(SIM_KEY,simDate); }catch(e){} }
-  function loadRemedyPool(){ try{ var raw = localStorage.getItem(REMEDY_KEY); return raw ? JSON.parse(raw) : []; }catch(e){ return []; } }
+  function loadRemedyPool(){
+    try{
+      var raw = localStorage.getItem(REMEDY_KEY); var arr = raw ? JSON.parse(raw) : [];
+      if(!Array.isArray(arr)) return [];
+      arr.forEach(function(it){
+        if(typeof it.cause !== 'string') it.cause = '';
+        if(typeof it.tier !== 'string') it.tier = '';
+        if(typeof it.batchId !== 'string') it.batchId = '';
+      });
+      return arr;
+    }catch(e){ return []; }
+  }
   function saveRemedyPool(){ try{ localStorage.setItem(REMEDY_KEY,JSON.stringify(remedyPool)); }catch(e){} }
 
   // ================= 自由字段（一级 / 二级） =================
@@ -1397,6 +1817,7 @@
     ['inSubject','rmSubject'].forEach(function(id){ syncSelectOptions($(id), names, null, ''); });
     ['filterSubject','dueFilterSubject'].forEach(function(id){ syncSelectOptions($(id), names, null, '全部'); });
     fillChapterSelect(); fillRemedyChapterSelect(); fillFilterChapter(); fillDueFilterChapter();
+    fillCauseTierSelects();
   }
   function fillChapterSelect(){
     var subj = ($('inSubject')||{}).value || '';
@@ -1567,7 +1988,6 @@
     if(mode==='weekly') return isThisWeek(it.first); if(mode==='monthly') return isThisMonth(it.first); return false;
   }
 
-  // ============ 关键修改：applyResult 支持备注 ============
   function applyResult(id, result, note){
     var it = null; for(var i=0;i<items.length;i++){ if(items[i].id===id){ it=items[i]; break; } }
     if(!it) return;
@@ -1577,7 +1997,6 @@
     it.lastReview = cur;
     it.onlyShowOnNext = false;
 
-    // 如果传入了备注，就保存到 errReason
     if(note && note.trim()){
       it.errReason = note.trim();
     }
@@ -1592,6 +2011,24 @@
       else { it.status='绿'; it.greenStreak=0; it.next=addDays(cur,7); }
     }
     saveItems(); scheduleIdleBackup(); scheduleCloudSync(); renderAll();
+  }
+
+  // 只更新错因/档位，不重新渲染面板（避免丢备注焦点）
+  function setItemCause(id, value){
+    var it = null; for(var i=0;i<items.length;i++){ if(items[i].id===id){ it=items[i]; break; } }
+    if(!it) return;
+    if(it.cause === value) return;
+    it.cause = String(value||'');
+    saveItems(); scheduleIdleBackup(); scheduleCloudSync();
+    renderAllTable(); renderGood();
+  }
+  function setItemTier(id, value){
+    var it = null; for(var i=0;i<items.length;i++){ if(items[i].id===id){ it=items[i]; break; } }
+    if(!it) return;
+    if(it.tier === value) return;
+    it.tier = String(value||'');
+    saveItems(); scheduleIdleBackup(); scheduleCloudSync();
+    renderAllTable(); renderGood();
   }
 
   function countNewInRange(subject, mode){ var count = 0; items.forEach(function(it){ if(it.subject !== subject) return; if(isNewInRange(it, mode)) count++; }); return count; }
@@ -1719,7 +2156,7 @@
       var extendedTip = ''; if(scope === 'new' && oldPickedCount > 0){ extendedTip = ' <span class="mini" style="color:#b45309;">（本周/本月仅 '+newPickedCount+' 道，扩展 '+oldPickedCount+' 道）</span>'; }
       resultHtml += '<div style="background:#fff;border:1px solid var(--line);border-radius:10px;padding:12px 14px;margin-bottom:12px;"><div style="font-size:13px;font-weight:700;color:#0f172a;padding-bottom:8px;margin-bottom:8px;border-bottom:1px dashed var(--line);">' + cfg.chapter + ' <span class="mini">（题库 '+chapterPool.length+' 道，抽 '+picked.length+' 道）</span>' + extendedTip + '</div>';
       if(picked.length===0){ resultHtml += '<div class="mini" style="padding:6px 0;">该章节没有符合条件的题目</div>'; }
-      else { picked.forEach(function(it, i){ var remedyTag = it.isRemedy ? ' <span class="tag t-remedy">补救</span>' : ''; var goodTag = it.isGood ? ' <span class="tag t-good">好题</span>' : ''; resultHtml += '<div class="result-item" data-result-id="'+it.id+'"><div class="info"><span class="pill">'+(i+1)+'</span><span class="tag '+statusClass(it.status)+'">'+it.status+'</span>' + remedyTag + goodTag + ' ' + it.source + ' · ' + it.page + ' · ' + it.no + '<span class="mini" style="margin-left:6px;">首次：'+fmtDateWk(it.first)+'</span>' + (it.errReason?'<div class="mini" style="margin-top:3px;">错因：'+escapeHtml(it.errReason)+'</div>':'') + '</div><div class="actions"><button class="btn btn-sm btn-bad" data-pick-act="不会" data-pick-id="'+it.id+'">不会</button><button class="btn btn-sm btn-ok" data-pick-act="卡" data-pick-id="'+it.id+'">卡</button><button class="btn btn-sm btn-green" data-pick-act="会" data-pick-id="'+it.id+'">会</button></div></div>'; }); }
+      else { picked.forEach(function(it, i){ var remedyTag = it.isRemedy ? ' <span class="tag t-remedy">补救</span>' : ''; var goodTag = it.isGood ? ' <span class="tag t-good">好题</span>' : ''; resultHtml += '<div class="result-item" data-result-id="'+it.id+'"><div class="info"><span class="pill">'+(i+1)+'</span><span class="tag '+statusClass(it.status)+'">'+it.status+'</span>' + remedyTag + goodTag + causeBadge(it.cause) + tierBadge(it.tier) + ' ' + it.source + ' · ' + it.page + ' · ' + it.no + '<span class="mini" style="margin-left:6px;">首次：'+fmtDateWk(it.first)+'</span>' + (it.errReason?'<div class="mini" style="margin-top:3px;">错因：'+escapeHtml(it.errReason)+'</div>':'') + '</div><div class="actions"><button class="btn btn-sm btn-bad" data-pick-act="不会" data-pick-id="'+it.id+'">不会</button><button class="btn btn-sm btn-ok" data-pick-act="卡" data-pick-id="'+it.id+'">卡</button><button class="btn btn-sm btn-green" data-pick-act="会" data-pick-id="'+it.id+'">会</button></div></div>'; }); }
       resultHtml += '</div>';
     });
     var header = '<div class="key" style="margin-bottom:12px;"><b>'+subject+' '+modeLabel+'：</b>共 '+totalPicked+' 道 · 范围 '+scopeLabel; if(scope === 'new' && totalOld > 0){ header += ' · 新题 '+totalNew+' 道，扩展 '+totalOld+' 道'; } header += '</div>';
@@ -1746,15 +2183,20 @@
   }
 
   function getDueFiltered(){
-    var subj = ($('dueFilterSubject')||{}).value || '全部'; var chap = ($('dueFilterChapter')||{}).value || '全部'; var stat = ($('dueFilterStatus')||{}).value || '全部'; var type = ($('dueFilterType')||{}).value || '全部'; var search = ($('dueFilterSearch')||{}).value || ''; search = search.trim().toLowerCase();
+    var subj = ($('dueFilterSubject')||{}).value || '全部'; var chap = ($('dueFilterChapter')||{}).value || '全部'; var stat = ($('dueFilterStatus')||{}).value || '全部'; var type = ($('dueFilterType')||{}).value || '全部';
+    var cause = ($('dueFilterCause')||{}).value || '全部'; var tier = ($('dueFilterTier')||{}).value || '全部';
+    var search = ($('dueFilterSearch')||{}).value || ''; search = search.trim().toLowerCase();
     var due = items.filter(isDueOn);
     if(subj!=='全部') due = due.filter(function(i){ return i.subject===subj; }); if(chap!=='全部') due = due.filter(function(i){ return i.chapter===chap; }); if(stat!=='全部') due = due.filter(function(i){ return i.status===stat; }); if(type==='补救') due = due.filter(function(i){ return i.isRemedy; }); if(type==='常规') due = due.filter(function(i){ return !i.isRemedy; });
+    if(cause === '__none__') due = due.filter(function(i){ return !i.cause; });
+    else if(cause !== '全部') due = due.filter(function(i){ return i.cause === cause; });
+    if(tier === '__none__') due = due.filter(function(i){ return !i.tier; });
+    else if(tier !== '全部') due = due.filter(function(i){ return i.tier === tier; });
     if(search){ due = due.filter(function(i){ var page = (i.page||'').toLowerCase(); var no = (i.no||'').toLowerCase(); return page.indexOf(search) !== -1 || no.indexOf(search) !== -1; }); }
     due.sort(function(a,b){ var order = {'红':0,'黄':1,'绿':2}; if(order[a.status]!==order[b.status]) return order[a.status]-order[b.status]; return a.next.localeCompare(b.next); });
     return due;
   }
 
-  // ============ 关键修改：今日到期每道题前加备注输入框 ============
   function renderDue(){
     var cur = getCurrentSimDate(); var label = $('todayLabel'); var countEl = $('dueCount'); var container = $('dueList'); if(!container) return;
     if(label) label.textContent = '当前：' + fmtDateWk(cur);
@@ -1765,7 +2207,9 @@
     var optionsHtml = buildPostponeOptionsHtml('跳到…'); var html = '';
     due.forEach(function(it){
       var remedyTag = it.isRemedy ? ' <span class="tag t-remedy">补救·' + ((it.reviewCount||0)===0?'首刷':'复刷') + '</span>' : ''; var goodTag = it.isGood ? ' <span class="tag t-good">好题</span>' : ''; var tip = methodTip(it.status); var tipHtml = tip ? '<span class="method-tip">' + tip + '</span>' : '';
-      html += '<div class="due-item '+borderClass(it.status)+'"><div class="head"><div class="meta"><span class="tag '+statusClass(it.status)+'">'+it.status+'</span>' + remedyTag + goodTag + tipHtml + ' ' + '<b>'+it.subject+'</b> · '+it.chapter+' · '+it.source+' · '+it.page+' · '+it.no + '<div class="mini">首次：'+fmtDateWk(it.first)+' · 下次：'+fmtDateWk(it.next)+' · 已复习 '+(it.reviewCount||0)+' 次</div>' + (it.errReason?'<div class="err-reason">错因：'+escapeHtml(it.errReason)+'</div>':'') + '</div><div class="actions">' +
+      html += '<div class="due-item '+borderClass(it.status)+'"><div class="head"><div class="meta"><span class="tag '+statusClass(it.status)+'">'+it.status+'</span>' + remedyTag + goodTag + tipHtml + causeBadge(it.cause) + tierBadge(it.tier) + ' ' + '<b>'+it.subject+'</b> · '+it.chapter+' · '+it.source+' · '+it.page+' · '+it.no + '<div class="mini">首次：'+fmtDateWk(it.first)+' · 下次：'+fmtDateWk(it.next)+' · 已复习 '+(it.reviewCount||0)+' 次</div>' + (it.errReason?'<div class="err-reason">错因：'+escapeHtml(it.errReason)+'</div>':'') + '</div><div class="actions">' +
+        '<select class="ct-select" data-cause-id="'+it.id+'" title="修改错因">' + buildCTSelectHtml('cause', it.cause) + '</select>' +
+        '<select class="ct-select" data-tier-id="'+it.id+'" title="修改档位">' + buildCTSelectHtml('tier', it.tier) + '</select>' +
         '<input type="text" class="due-note-input" data-note-id="'+it.id+'" placeholder="备注（如：计算难）" value="'+(it.errReason ? escapeHtml(it.errReason) : '')+'">' +
         '<button class="btn btn-sm btn-bad" data-act="不会" data-id="'+it.id+'">不会 → 红</button>' +
         '<button class="btn btn-sm btn-ok" data-act="卡" data-id="'+it.id+'">卡 → 黄</button>' +
@@ -1775,15 +2219,20 @@
     });
     container.innerHTML = html;
     container.querySelectorAll('.postpone-select').forEach(function(sel){ sel.addEventListener('change', function(){ var id = sel.getAttribute('data-postpone-id'); var date = sel.value; if(date){ postponeOne(id, date); sel.value = ''; } }); });
+    container.querySelectorAll('select[data-cause-id]').forEach(function(sel){ sel.addEventListener('change', function(){ setItemCause(sel.getAttribute('data-cause-id'), sel.value); }); });
+    container.querySelectorAll('select[data-tier-id]').forEach(function(sel){ sel.addEventListener('change', function(){ setItemTier(sel.getAttribute('data-tier-id'), sel.value); }); });
   }
 
   function renderAllTable(){
     var tbody = $('allTbody'); if(!tbody) return;
     var subj = ($('filterSubject')||{}).value || '全部'; var chap = ($('filterChapter')||{}).value || '全部'; var stat = ($('filterStatus')||{}).value || '全部'; var src = ($('filterSource')||{}).value || '全部';
+    var cause = ($('filterCause')||{}).value || '全部'; var tier = ($('filterTier')||{}).value || '全部';
     var list = items.slice();
     if(subj!=='全部') list = list.filter(function(i){return i.subject===subj;}); if(chap!=='全部') list = list.filter(function(i){return i.chapter===chap;}); if(stat!=='全部') list = list.filter(function(i){return i.status===stat;}); if(src==='补救') list = list.filter(function(i){return i.isRemedy;}); if(src==='常规') list = list.filter(function(i){return !i.isRemedy;});
+    if(cause === '__none__') list = list.filter(function(i){ return !i.cause; }); else if(cause !== '全部') list = list.filter(function(i){ return i.cause === cause; });
+    if(tier === '__none__') list = list.filter(function(i){ return !i.tier; }); else if(tier !== '全部') list = list.filter(function(i){ return i.tier === tier; });
     list.sort(function(a,b){ if(a.next!==b.next) return a.next.localeCompare(b.next); var order = {'红':0,'黄':1,'绿':2,'归档':3}; return order[a.status]-order[b.status]; });
-    if(list.length===0){ tbody.innerHTML = '<tr><td colspan="12" style="text-align:center;color:#6b7280;padding:24px;">没有匹配的题目</td></tr>'; return; }
+    if(list.length===0){ tbody.innerHTML = '<tr><td colspan="14" style="text-align:center;color:#6b7280;padding:24px;">没有匹配的题目</td></tr>'; return; }
     var html = '';
     list.forEach(function(it){
       var typeTag = it.isRemedy ? '<span class="tag t-remedy">补救</span>' : '<span class="mini">常规</span>'; var stateTag = '';
@@ -1791,9 +2240,13 @@
       var markCell = '<span class="tag '+statusClass(it.status)+'">'+it.status+'</span>';
       if(it.isGood){ markCell += ' <span class="tag t-good">好题</span>'; markCell += '<button class="btn-good-remove" data-good-toggle="'+it.id+'" title="移出好题">移出好题</button>'; } else { markCell += '<button class="btn-good-add" data-good-toggle="'+it.id+'" title="加入好题">+ 好题</button>'; }
       var jumpTag = it.onlyShowOnNext ? ' <span class="date-info-badge" title="已跳到指定日期，只在当天显示">📌跳到'+it.next.slice(5)+'</span>' : '';
-      html += '<tr><td>'+it.subject+'</td><td>'+it.chapter+'</td><td>'+it.source+'</td><td>'+it.page+'</td><td>'+it.no+'</td><td>'+markCell+'</td><td>'+typeTag+'</td><td>'+stateTag+'</td><td>'+fmtDateWk(it.first)+'</td><td>'+fmtDateWk(it.next)+jumpTag+'</td><td>'+(it.reviewCount||0)+'</td><td style="white-space:nowrap;"><button class="btn btn-sm" data-act="不会" data-id="'+it.id+'">红</button> <button class="btn btn-sm" data-act="卡" data-id="'+it.id+'">黄</button> <button class="btn btn-sm" data-act="会" data-id="'+it.id+'">绿</button> <button class="btn btn-sm btn-danger" data-del="'+it.id+'">删</button></td></tr>';
+      var causeCell = '<select class="ct-select" data-row-cause-id="'+it.id+'">' + buildCTSelectHtml('cause', it.cause) + '</select>';
+      var tierCell = '<select class="ct-select" data-row-tier-id="'+it.id+'">' + buildCTSelectHtml('tier', it.tier) + '</select>';
+      html += '<tr><td>'+it.subject+'</td><td>'+it.chapter+'</td><td>'+it.source+'</td><td>'+it.page+'</td><td>'+it.no+'</td><td>'+markCell+'</td><td>'+causeCell+'</td><td>'+tierCell+'</td><td>'+typeTag+'</td><td>'+stateTag+'</td><td>'+fmtDateWk(it.first)+'</td><td>'+fmtDateWk(it.next)+jumpTag+'</td><td>'+(it.reviewCount||0)+'</td><td style="white-space:nowrap;"><button class="btn btn-sm" data-act="不会" data-id="'+it.id+'">红</button> <button class="btn btn-sm" data-act="卡" data-id="'+it.id+'">黄</button> <button class="btn btn-sm" data-act="会" data-id="'+it.id+'">绿</button> <button class="btn btn-sm btn-danger" data-del="'+it.id+'">删</button></td></tr>';
     });
     tbody.innerHTML = html;
+    tbody.querySelectorAll('select[data-row-cause-id]').forEach(function(sel){ sel.addEventListener('change', function(){ setItemCause(sel.getAttribute('data-row-cause-id'), sel.value); }); });
+    tbody.querySelectorAll('select[data-row-tier-id]').forEach(function(sel){ sel.addEventListener('change', function(){ setItemTier(sel.getAttribute('data-row-tier-id'), sel.value); }); });
   }
 
   function renderWeekRed(){
@@ -1804,7 +2257,7 @@
     var headerHtml = '<div class="key key-red" style="margin-bottom:12px;"><b>范围：</b>' + fmtDateWk(range.start) + ' ~ ' + fmtDateWk(range.end) + '　<b>红题数量：</b>' + redItems.length + ' 道</div>';
     if(redItems.length === 0){ container.innerHTML = headerHtml + '<div class="empty">本周没有红题。</div>'; return; }
     var html = headerHtml;
-    redItems.forEach(function(it){ var goodTag = it.isGood ? ' <span class="tag t-good">好题</span>' : ''; html += '<div class="weekred-item"><div class="head"><div class="meta"><span class="tag t-red">红</span> ' + goodTag + '<b>'+it.subject+'</b> · '+it.chapter+' · '+it.source+' · '+it.page+' · '+it.no + ' <span class="badge">已复习 '+(it.reviewCount||0)+' 次</span><div class="mini">首次：'+fmtDateWk(it.first)+' · 下次：'+fmtDateWk(it.next)+'</div>' + (it.errReason?'<div class="err-reason">错因：'+escapeHtml(it.errReason)+'</div>':'') + '</div></div></div>'; });
+    redItems.forEach(function(it){ var goodTag = it.isGood ? ' <span class="tag t-good">好题</span>' : ''; html += '<div class="weekred-item"><div class="head"><div class="meta"><span class="tag t-red">红</span> ' + goodTag + causeBadge(it.cause) + tierBadge(it.tier) + '<b>'+it.subject+'</b> · '+it.chapter+' · '+it.source+' · '+it.page+' · '+it.no + ' <span class="badge">已复习 '+(it.reviewCount||0)+' 次</span><div class="mini">首次：'+fmtDateWk(it.first)+' · 下次：'+fmtDateWk(it.next)+'</div>' + (it.errReason?'<div class="err-reason">错因：'+escapeHtml(it.errReason)+'</div>':'') + '</div></div></div>'; });
     container.innerHTML = html;
   }
 
@@ -1817,7 +2270,7 @@
     var container = $('rmQueueList'); var countEl = $('rmQueueCount'); if(!container) return; if(countEl) countEl.textContent = '（共 ' + remedyPool.length + ' 条）';
     if(remedyPool.length === 0){ container.innerHTML = '<div class="empty">待排池为空，请在上方录入历史题。</div>'; return; }
     var html = '';
-    remedyPool.forEach(function(it, idx){ html += '<div class="remedy-queue-item"><div class="info"><span class="tag '+statusClass(it.status)+'">'+it.status+'</span> ' + '<b>'+it.subject+'</b> · '+it.chapter+' · '+it.source+' · '+it.page+' · '+it.no + (it.errReason?'<div class="mini" style="margin-top:2px;">错因：'+escapeHtml(it.errReason)+'</div>':'') + '</div><button class="btn btn-sm btn-danger" data-rm-del="'+idx+'">删除</button></div>'; });
+    remedyPool.forEach(function(it, idx){ html += '<div class="remedy-queue-item"><div class="info"><span class="tag '+statusClass(it.status)+'">'+it.status+'</span> ' + causeBadge(it.cause) + tierBadge(it.tier) + '<b>'+it.subject+'</b> · '+it.chapter+' · '+it.source+' · '+it.page+' · '+it.no + (it.errReason?'<div class="mini" style="margin-top:2px;">错因：'+escapeHtml(it.errReason)+'</div>':'') + '</div><button class="btn btn-sm btn-danger" data-rm-del="'+idx+'">删除</button></div>'; });
     container.innerHTML = html;
   }
 
@@ -1826,8 +2279,8 @@
     var list = items.filter(function(i){ return i.isRemedy; }); if(filter === 'waiting'){ list = list.filter(function(i){ return (i.reviewCount||0) === 0; }); } else if(filter === 'active'){ list = list.filter(function(i){ return (i.reviewCount||0) > 0; }); }
     list.sort(function(a,b){ if(a.next!==b.next) return a.next.localeCompare(b.next); return (a.subject||'').localeCompare(b.subject||''); });
     if(list.length === 0){ container.innerHTML = '<div class="empty">暂无已排程的补救题。</div>'; return; }
-    var html = '<div style="overflow-x:auto;"><table><thead><tr><th>一级字段</th><th>二级字段</th><th>来源</th><th>页码</th><th>题号</th><th>标记</th><th>状态</th><th>首次</th><th>下次</th><th>次数</th></tr></thead><tbody>';
-    list.forEach(function(it){ var stateTag = (it.reviewCount||0) === 0 ? '<span class="tag t-wait">待首次复习</span>' : '<span class="tag t-new">已可抽题</span>'; var goodTag = it.isGood ? ' <span class="tag t-good">好题</span>' : ''; html += '<tr><td>'+it.subject+'</td><td>'+it.chapter+'</td><td>'+it.source+'</td><td>'+it.page+'</td><td>'+it.no+'</td><td><span class="tag '+statusClass(it.status)+'">'+it.status+'</span> '+goodTag+'</td><td>'+stateTag+'</td><td>'+fmtDateWk(it.first)+'</td><td>'+fmtDateWk(it.next)+'</td><td>'+(it.reviewCount||0)+'</td></tr>'; });
+    var html = '<div style="overflow-x:auto;"><table><thead><tr><th>一级字段</th><th>二级字段</th><th>来源</th><th>页码</th><th>题号</th><th>标记</th><th>错因</th><th>档位</th><th>状态</th><th>首次</th><th>下次</th><th>次数</th></tr></thead><tbody>';
+    list.forEach(function(it){ var stateTag = (it.reviewCount||0) === 0 ? '<span class="tag t-wait">待首次复习</span>' : '<span class="tag t-new">已可抽题</span>'; var goodTag = it.isGood ? ' <span class="tag t-good">好题</span>' : ''; html += '<tr><td>'+it.subject+'</td><td>'+it.chapter+'</td><td>'+it.source+'</td><td>'+it.page+'</td><td>'+it.no+'</td><td><span class="tag '+statusClass(it.status)+'">'+it.status+'</span> '+goodTag+'</td><td>'+causeBadge(it.cause)+'</td><td>'+tierBadge(it.tier)+'</td><td>'+stateTag+'</td><td>'+fmtDateWk(it.first)+'</td><td>'+fmtDateWk(it.next)+'</td><td>'+(it.reviewCount||0)+'</td></tr>'; });
     html += '</tbody></table></div>'; container.innerHTML = html;
   }
 
@@ -1836,7 +2289,7 @@
     if(goodItems.length === 0){ container.innerHTML = '<div class="empty">暂无好题。在录入新题时勾选「加入好题板块」，或在「全部题目」中点击每题标记旁的「+ 好题」按钮。</div>'; return; }
     goodItems.sort(function(a,b){ if(a.subject !== b.subject) return a.subject.localeCompare(b.subject); if(a.chapter !== b.chapter) return a.chapter.localeCompare(b.chapter); return a.next.localeCompare(b.next); });
     var html = '';
-    goodItems.forEach(function(it){ html += '<div class="good-item"><div class="head"><div class="meta"><span class="tag '+statusClass(it.status)+'">'+it.status+'</span> ' + '<span class="tag t-good">好题</span> ' + (it.isRemedy ? '<span class="tag t-remedy">补救</span> ' : '') + '<b>'+it.subject+'</b> · '+it.chapter+' · '+it.source+' · '+it.page+' · '+it.no + '<div class="mini">首次：'+fmtDateWk(it.first)+' · 下次：'+fmtDateWk(it.next)+' · 已复习 '+(it.reviewCount||0)+' 次</div>' + (it.errReason?'<div class="err-reason">错因：'+escapeHtml(it.errReason)+'</div>':'') + '</div><div class="actions"><button class="btn btn-sm btn-danger" data-good-remove="'+it.id+'">移出好题</button></div></div></div>'; });
+    goodItems.forEach(function(it){ html += '<div class="good-item"><div class="head"><div class="meta"><span class="tag '+statusClass(it.status)+'">'+it.status+'</span> ' + '<span class="tag t-good">好题</span> ' + (it.isRemedy ? '<span class="tag t-remedy">补救</span> ' : '') + causeBadge(it.cause) + tierBadge(it.tier) + '<b>'+it.subject+'</b> · '+it.chapter+' · '+it.source+' · '+it.page+' · '+it.no + '<div class="mini">首次：'+fmtDateWk(it.first)+' · 下次：'+fmtDateWk(it.next)+' · 已复习 '+(it.reviewCount||0)+' 次</div>' + (it.errReason?'<div class="err-reason">错因：'+escapeHtml(it.errReason)+'</div>':'') + '</div><div class="actions"><button class="btn btn-sm btn-danger" data-good-remove="'+it.id+'">移出好题</button></div></div></div>'; });
     container.innerHTML = html;
   }
 
@@ -1881,11 +2334,177 @@
 
   function renderDashboard(){ renderCalendar(); renderStatsPanel(); }
 
+  // ============== 批次管理 ==============
+  function genBatchName(baseDate){
+    var existing = batches.filter(function(b){ return b.date === baseDate; });
+    if(existing.length === 0) return baseDate;
+    var used = {}; existing.forEach(function(b){ used[b.name] = 1; });
+    if(!used[baseDate]) return baseDate;
+    var n = 1;
+    while(used[baseDate + ' (' + n + ')']) n++;
+    return baseDate + ' (' + n + ')';
+  }
+
+  function renderBatchList(){
+    var box = $('batchList'); if(!box) return;
+    var histItems = items.filter(function(it){ return !it.batchId; });
+    var histPool = remedyPool.filter(function(it){ return !it.batchId; });
+    var html = '';
+    if(batches.length === 0 && histItems.length === 0 && histPool.length === 0){
+      box.innerHTML = '<div class="empty">还没有导入批次。</div>';
+      return;
+    }
+    if(histItems.length + histPool.length > 0){
+      html += '<div class="batch-row history">';
+      html += '<div class="batch-info"><b>历史手动录入</b> <span class="mini">（虚拟批次）常规 ' + histItems.length + ' 道 / 补救待排 ' + histPool.length + ' 道</span></div>';
+      html += '<div class="batch-actions"><span class="mini">如需删除请到「全部题目」逐条操作</span></div>';
+      html += '</div>';
+    }
+    batches.slice().sort(function(a,b){ return (b.importedAt||'').localeCompare(a.importedAt||''); }).forEach(function(b){
+      var t = b.importedAt ? new Date(b.importedAt) : null;
+      var timeStr = t ? (t.getFullYear()+'-'+String(t.getMonth()+1).padStart(2,'0')+'-'+String(t.getDate()).padStart(2,'0')+' '+String(t.getHours()).padStart(2,'0')+':'+String(t.getMinutes()).padStart(2,'0')) : '';
+      html += '<div class="batch-row">';
+      html += '<div class="batch-info"><b>' + escapeHtml(b.name) + '</b> <span class="mini">常规 ' + (b.regularCount||0) + ' 道 / 补救 ' + (b.remedyCount||0) + ' 道 · 导入于 ' + timeStr + '</span></div>';
+      html += '<div class="batch-actions">';
+      html += '<button class="btn btn-sm" data-batch-rename="' + b.id + '">重命名</button> ';
+      html += '<button class="btn btn-sm btn-danger" data-batch-del="' + b.id + '">删除批次</button>';
+      html += '</div></div>';
+    });
+    box.innerHTML = html;
+  }
+
+  function normalizeImportRecord(raw){
+    if(!raw || typeof raw !== 'object') return null;
+    var subject = String(raw.subject || '').trim();
+    var chapter = String(raw.chapter || '').trim();
+    if(!subject || !chapter) return null;
+    var page = String(raw.page || '').trim();
+    var no = String(raw.no || '').trim();
+    if(!page && !no) return null;
+    var status = ['红','黄','绿','归档'].indexOf(raw.status) >= 0 ? raw.status : '黄';
+    var source = ['真题本','讲义'].indexOf(raw.source) >= 0 ? raw.source : '真题本';
+    var cause = String(raw.cause || '').trim();
+    var tier = String(raw.tier || '').trim();
+    if(cause && !causeSchema.some(function(c){ return c.code === cause; })) cause = '';
+    if(tier && !tierSchema.some(function(t){ return t.code === tier; })) tier = '';
+    var type = raw.type === 'remedy' ? 'remedy' : 'regular';
+    return { subject:subject, chapter:chapter, source:source, page:page, no:no, status:status, cause:cause, tier:tier, isGood: !!raw.isGood, note: String(raw.note||''), type:type };
+  }
+
+  function importBatchFromJson(jsonText){
+    var obj;
+    try { obj = JSON.parse(jsonText); } catch(e){ alert('JSON 解析失败：' + e.message); return; }
+    var date = (obj && typeof obj.date === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(obj.date)) ? obj.date : todayStr();
+    var arr = obj && Array.isArray(obj.items) ? obj.items : null;
+    if(!arr){ alert('JSON 中缺少 items 数组。'); return; }
+    if(arr.length === 0){ alert('items 为空，没有可导入的题目。'); return; }
+    var regularRecs = [], remedyRecs = [], skipped = [];
+    arr.forEach(function(raw, idx){
+      var rec = normalizeImportRecord(raw);
+      if(!rec){ skipped.push('第 ' + (idx+1) + ' 条缺章节/页码/题号'); return; }
+      if(rec.type === 'remedy') remedyRecs.push(rec);
+      else regularRecs.push(rec);
+    });
+    var msg = '导入预览：\n';
+    msg += '• 批次日期：' + date + '\n';
+    msg += '• 常规题：' + regularRecs.length + ' 道（直接进复习池，首次 = ' + date + '）\n';
+    msg += '• 补救题：' + remedyRecs.length + ' 道（进「补救待排池」，暂不排程）\n';
+    if(skipped.length){ msg += '• 跳过 ' + skipped.length + ' 条：\n  ' + skipped.slice(0,6).join('\n  ') + (skipped.length > 6 ? '\n  ...' : '') + '\n'; }
+    msg += '\n确定导入吗？';
+    if(!confirm(msg)) return;
+    if(regularRecs.length === 0 && remedyRecs.length === 0){ alert('没有可导入的有效条目。'); return; }
+
+    var batchId = uid();
+    var batchName = genBatchName(date);
+    var now = new Date();
+
+    pushUndo('导入 JSON 批次「' + batchName + '」');
+
+    regularRecs.forEach(function(rec){
+      items.push({
+        id: uid(), subject: rec.subject, chapter: rec.chapter, source: rec.source,
+        page: rec.page, no: rec.no, status: rec.status, errReason: rec.note,
+        first: date, next: scheduleNext(rec.status, null, date), reviewCount: 0,
+        lastReview: '', greenStreak: 0, isRemedy: false, isGood: rec.isGood,
+        onlyShowOnNext: false, initialStatus: rec.status,
+        cause: rec.cause, tier: rec.tier, batchId: batchId
+      });
+      ensureField(rec.subject); ensureChild(rec.subject, rec.chapter);
+    });
+    remedyRecs.forEach(function(rec){
+      remedyPool.push({
+        id: uid(), subject: rec.subject, chapter: rec.chapter, source: rec.source,
+        page: rec.page, no: rec.no, status: rec.status, errReason: rec.note,
+        cause: rec.cause, tier: rec.tier, batchId: batchId
+      });
+      ensureField(rec.subject); ensureChild(rec.subject, rec.chapter);
+    });
+
+    batches.push({
+      id: batchId, name: batchName, date: date,
+      importedAt: now.toISOString(),
+      regularCount: regularRecs.length,
+      remedyCount: remedyRecs.length
+    });
+
+    saveItems(); saveRemedyPool(); saveBatches(); saveFieldSchema();
+    scheduleIdleBackup(); scheduleCloudSync();
+    fillFieldSelects(); renderRemedyLimits(); renderAll();
+    alert('导入完成：常规 ' + regularRecs.length + ' 道 → 复习池；补救 ' + remedyRecs.length + ' 道 → 待排池。');
+  }
+
+  function renameBatch(batchId, newName){
+    newName = String(newName||'').trim();
+    if(!newName){ return; }
+    var batch = null; for(var i=0;i<batches.length;i++){ if(batches[i].id === batchId){ batch = batches[i]; break; } }
+    if(!batch) return;
+    if(batches.some(function(b){ return b.id !== batchId && b.name === newName; })){ alert('批次名已存在。'); return; }
+    pushUndo('重命名批次「' + batch.name + '」→「' + newName + '」');
+    batch.name = newName;
+    saveBatches(); scheduleIdleBackup(); scheduleCloudSync(); renderBatchList();
+  }
+
+  function deleteBatch(batchId){
+    var batch = null; for(var i=0;i<batches.length;i++){ if(batches[i].id === batchId){ batch = batches[i]; break; } }
+    if(!batch) return;
+    var poolItems = remedyPool.filter(function(it){ return it.batchId === batchId; });
+    var scheduledRemedy = items.filter(function(it){ return it.batchId === batchId && it.isRemedy; });
+    var regularItems = items.filter(function(it){ return it.batchId === batchId && !it.isRemedy; });
+
+    var head = '确定删除批次「' + batch.name + '」？\n';
+    head += '• 常规题：' + regularItems.length + ' 道（会一起删除）\n';
+    head += '• 补救待排池：' + poolItems.length + ' 道（会一起删除）\n';
+
+    var alsoDeleteScheduled = false;
+    if(scheduledRemedy.length > 0){
+      var tail = '\n⚠ 本批次还有 ' + scheduledRemedy.length + ' 道补救题已排程进复习池。\n\n点「确定」= 连已排程的补救题也一起删除；\n点「取消」= 保留已排程的补救题，仅删除其余部分。';
+      alsoDeleteScheduled = confirm(head + tail);
+    } else {
+      if(!confirm(head + '\n确定删除？')) return;
+    }
+
+    pushUndo('删除批次「' + batch.name + '」');
+
+    items = items.filter(function(it){
+      if(it.batchId !== batchId) return true;
+      if(it.isRemedy && !alsoDeleteScheduled) return true;
+      return false;
+    });
+    remedyPool = remedyPool.filter(function(it){ return it.batchId !== batchId; });
+    batches = batches.filter(function(b){ return b.id !== batchId; });
+
+    saveItems(); saveRemedyPool(); saveBatches();
+    scheduleIdleBackup(); scheduleCloudSync();
+    renderAll();
+    alert('批次「' + batch.name + '」已删除。' + (scheduledRemedy.length > 0 ? (alsoDeleteScheduled ? '\n已排程的 ' + scheduledRemedy.length + ' 道补救题也已一起删除。' : '\n已排程的 ' + scheduledRemedy.length + ' 道补救题已保留。') : ''));
+  }
+
   function renderAll(){
     var inputEl = $('simDate'); if(inputEl && inputEl.value && inputEl.value !== simDate){ simDate = inputEl.value; saveSim(); }
     renderSimDisplay(); renderStats(); renderDue(); renderAllTable(); renderWeekRed(); renderGood(); renderDashboard();
     refreshExamBoxesIfNeeded('weekly'); refreshExamBoxesIfNeeded('monthly');
     renderRemedyStatus(); renderRemedyQueue(); renderRemedyScheduled(); renderRemedyLimits(); updateWeekRedTab();
+    renderBatchList();
   }
 
   var idleBackupTimer = null;
@@ -1895,28 +2514,55 @@
   }
 
   function addItem(){
-    clearError(); var subject = $('inSubject').value; var chapter = $('inChapter').value; var source = $('inSource').value; var page = $('inPage').value.trim(); var no = $('inNo').value.trim(); var status = $('inStatus').value; var errReason = $('inErr').value.trim(); var isGood = $('inGood').checked;
+    clearError();
+    var subject = $('inSubject').value; var chapter = $('inChapter').value; var source = $('inSource').value;
+    var page = $('inPage').value.trim(); var no = $('inNo').value.trim(); var status = $('inStatus').value;
+    var errReason = $('inErr').value.trim(); var isGood = $('inGood').checked;
+    var cause = $('inCause').value || ''; var tier = $('inTier').value || '';
     if(!subject){ showError('请先在「字段设置」里添加一级字段'); return; }
     if(!page && !no){ showError('至少填写页码或题号'); return; } if(!chapter){ showError('请选择二级字段（可到「字段设置」里添加）'); return; }
     var cur = getCurrentSimDate(); var first = cur; var next = scheduleNext(status, null, first);
     pushUndo('添加题目「' + subject + ' ' + chapter + ' ' + page + ' ' + no + '」');
-    items.push({ id:uid(), subject:subject, chapter:chapter, source:source, page:page, no:no, status:status, errReason:errReason, first:first, next:next, reviewCount:0, lastReview:'', greenStreak:0, isRemedy:false, isGood:isGood, onlyShowOnNext:false, initialStatus: status });
-    saveItems(); scheduleIdleBackup(); scheduleCloudSync(); $('inPage').value=''; $('inNo').value=''; $('inErr').value=''; $('inGood').checked=false;
+    items.push({
+      id:uid(), subject:subject, chapter:chapter, source:source, page:page, no:no,
+      status:status, errReason:errReason, first:first, next:next, reviewCount:0,
+      lastReview:'', greenStreak:0, isRemedy:false, isGood:isGood, onlyShowOnNext:false,
+      initialStatus: status, cause:cause, tier:tier, batchId: ''
+    });
+    saveItems(); scheduleIdleBackup(); scheduleCloudSync();
+    $('inPage').value=''; $('inNo').value=''; $('inErr').value=''; $('inGood').checked=false; $('inCause').value=''; $('inTier').value='';
     var hint = $('addHint'); if(hint) hint.textContent = '✓ 已添加，下次复习：' + fmtDateWk(next); renderAll();
   }
 
   function addToRemedyPool(){
-    var subject = $('rmSubject').value; var chapter = $('rmChapter').value; var source = $('rmSource').value; var page = $('rmPage').value.trim(); var no = $('rmNo').value.trim(); var status = $('rmStatus').value; var errReason = $('rmErr').value.trim();
+    var subject = $('rmSubject').value; var chapter = $('rmChapter').value; var source = $('rmSource').value;
+    var page = $('rmPage').value.trim(); var no = $('rmNo').value.trim(); var status = $('rmStatus').value;
+    var errReason = $('rmErr').value.trim(); var cause = $('rmCause').value || ''; var tier = $('rmTier').value || '';
     if(!subject){ showError('补救录入：请先在「字段设置」里添加一级字段'); return; }
     if(!page && !no){ showError('补救录入：至少填写页码或题号'); return; } if(!chapter){ showError('补救录入：请选择二级字段'); return; }
     pushUndo('加入待排池「' + subject + ' ' + chapter + ' ' + page + ' ' + no + '」');
-    remedyPool.push({ id: uid(), subject: subject, chapter: chapter, source: source, page: page, no: no, status: status, errReason: errReason });
-    saveRemedyPool(); scheduleIdleBackup(); scheduleCloudSync(); $('rmPage').value=''; $('rmNo').value=''; $('rmErr').value='';
+    remedyPool.push({
+      id: uid(), subject: subject, chapter: chapter, source: source,
+      page: page, no: no, status: status, errReason: errReason,
+      cause: cause, tier: tier, batchId: ''
+    });
+    saveRemedyPool(); scheduleIdleBackup(); scheduleCloudSync();
+    $('rmPage').value=''; $('rmNo').value=''; $('rmErr').value=''; $('rmCause').value=''; $('rmTier').value='';
     var hint = $('rmAddHint'); if(hint) hint.textContent = '✓ 已加入待排池，当前 ' + remedyPool.length + ' 条'; renderAll();
   }
 
-  function deleteRemedyQueueItem(idx){ var it = remedyPool[idx]; if(!it) return; pushUndo('从待排池删除「' + it.subject + ' ' + it.page + ' ' + it.no + '」'); remedyPool.splice(idx, 1); saveRemedyPool(); scheduleIdleBackup(); scheduleCloudSync(); renderAll(); }
-  function clearRemedyQueue(){ if(remedyPool.length === 0){ alert('待排池已经是空的。'); return; } if(!confirm('确定清空待排池？共 ' + remedyPool.length + ' 条。')) return; pushUndo('清空待排池 ' + remedyPool.length + ' 条'); remedyPool = []; saveRemedyPool(); scheduleIdleBackup(); scheduleCloudSync(); $('rmPreview').innerHTML = ''; renderAll(); }
+  function deleteRemedyQueueItem(idx){
+    var it = remedyPool[idx]; if(!it) return;
+    pushUndo('从待排池删除「' + it.subject + ' ' + it.page + ' ' + it.no + '」');
+    remedyPool.splice(idx, 1);
+    saveRemedyPool(); scheduleIdleBackup(); scheduleCloudSync(); renderAll();
+  }
+  function clearRemedyQueue(){
+    if(remedyPool.length === 0){ alert('待排池已经是空的。'); return; }
+    if(!confirm('确定清空待排池？共 ' + remedyPool.length + ' 条。')) return;
+    pushUndo('清空待排池 ' + remedyPool.length + ' 条');
+    remedyPool = []; saveRemedyPool(); scheduleIdleBackup(); scheduleCloudSync(); $('rmPreview').innerHTML = ''; renderAll();
+  }
 
   function buildRemedySchedule(){
     var cur = getCurrentSimDate(); var startDate = $('rmStartDate').value || cur; var sortBy = $('rmSortBy').value;
@@ -1970,7 +2616,17 @@
     var result = buildRemedySchedule();
     if(!confirm('即将把 '+remedyPool.length+' 条历史题按排程加入系统，确定继续？\n（首次复习后立即可被周测/月测抽到）')) return;
     pushUndo('生成补救排程，把 ' + remedyPool.length + ' 条历史题加入系统');
-    result.assignments.forEach(function(a){ var it = a.item; items.push({ id: uid(), subject: it.subject, chapter: it.chapter, source: it.source, page: it.page, no: it.no, status: it.status, errReason: it.errReason, first: a.date, next: a.date, reviewCount: 0, lastReview: '', greenStreak: 0, isRemedy: true, isGood: false, onlyShowOnNext: false, initialStatus: it.status }); });
+    result.assignments.forEach(function(a){
+      var it = a.item;
+      items.push({
+        id: uid(), subject: it.subject, chapter: it.chapter, source: it.source,
+        page: it.page, no: it.no, status: it.status, errReason: it.errReason,
+        first: a.date, next: a.date, reviewCount: 0, lastReview: '',
+        greenStreak: 0, isRemedy: true, isGood: false, onlyShowOnNext: false,
+        initialStatus: it.status, cause: it.cause || '', tier: it.tier || '',
+        batchId: it.batchId || ''
+      });
+    });
     remedyPool = []; saveRemedyPool(); saveItems(); scheduleIdleBackup(); scheduleCloudSync();
     $('rmPreview').innerHTML = '<div class="key key-remedy"><b>✓ 已生成：</b>'+result.assignments.length+' 条历史题已加入系统，首轮复习从 '+result.startDate+' 开始。</div>'; renderAll();
   }
@@ -2014,9 +2670,16 @@
   function exportExcel(){
     if(items.length===0){ alert('没有数据可导出。'); return; }
     var sorted = items.slice().sort(function(a,b){ if(a.subject!==b.subject) return a.subject.localeCompare(b.subject); if(a.chapter!==b.chapter) return a.chapter.localeCompare(b.chapter); return a.next.localeCompare(b.next); });
-    var headers = ['一级字段','二级字段','来源','页码','题号','标记','初始标记','类型','状态','好题','首次复习','下次复习','复习次数','绿连击','错因/备注'];
+    var headers = ['一级字段','二级字段','来源','页码','题号','标记','错因','档位','批次','初始标记','类型','状态','好题','首次复习','下次复习','复习次数','绿连击','错因/备注'];
     var rowsHtml = '';
-    sorted.forEach(function(it){ var typeStr = it.isRemedy ? '补救' : '常规'; var stateStr = ''; if(it.isRemedy){ stateStr = (it.reviewCount||0) === 0 ? '待首次复习' : '已可抽题'; } else { stateStr = '—'; } var goodStr = it.isGood ? '是' : '否'; rowsHtml += '<tr><td>'+escapeHtml(it.subject)+'</td><td>'+escapeHtml(it.chapter)+'</td><td>'+escapeHtml(it.source)+'</td><td>'+escapeHtml(it.page)+'</td><td>'+escapeHtml(it.no)+'</td><td>'+escapeHtml(it.status)+'</td><td>'+escapeHtml(it.initialStatus||it.status)+'</td><td>'+typeStr+'</td><td>'+stateStr+'</td><td>'+goodStr+'</td><td>'+escapeHtml(fmtDateWk(it.first))+'</td><td>'+escapeHtml(fmtDateWk(it.next))+'</td><td>'+(it.reviewCount||0)+'</td><td>'+(it.greenStreak||0)+'</td><td>'+escapeHtml(it.errReason||'')+'</td></tr>'; });
+    var batchMap = {}; batches.forEach(function(b){ batchMap[b.id] = b.name; });
+    sorted.forEach(function(it){
+      var typeStr = it.isRemedy ? '补救' : '常规'; var stateStr = '';
+      if(it.isRemedy){ stateStr = (it.reviewCount||0) === 0 ? '待首次复习' : '已可抽题'; } else { stateStr = '—'; }
+      var goodStr = it.isGood ? '是' : '否';
+      var batchStr = it.batchId ? (batchMap[it.batchId] || '(已删除批次)') : '历史手动录入';
+      rowsHtml += '<tr><td>'+escapeHtml(it.subject)+'</td><td>'+escapeHtml(it.chapter)+'</td><td>'+escapeHtml(it.source)+'</td><td>'+escapeHtml(it.page)+'</td><td>'+escapeHtml(it.no)+'</td><td>'+escapeHtml(it.status)+'</td><td>'+escapeHtml(it.cause||'')+'</td><td>'+escapeHtml(it.tier||'')+'</td><td>'+escapeHtml(batchStr)+'</td><td>'+escapeHtml(it.initialStatus||it.status)+'</td><td>'+typeStr+'</td><td>'+stateStr+'</td><td>'+goodStr+'</td><td>'+escapeHtml(fmtDateWk(it.first))+'</td><td>'+escapeHtml(fmtDateWk(it.next))+'</td><td>'+(it.reviewCount||0)+'</td><td>'+(it.greenStreak||0)+'</td><td>'+escapeHtml(it.errReason||'')+'</td></tr>';
+    });
     var headHtml = headers.map(function(h){ return '<th>'+h+'</th>'; }).join('');
     var html = '<html xmlns:x="urn:schemas-microsoft-com:office:excel"><head><meta charset="UTF-8"></head><body><table border="1" cellpadding="4" cellspacing="0" style="font-family:微软雅黑;font-size:12px;"><thead><tr>'+headHtml+'</tr></thead><tbody>'+rowsHtml+'</tbody></table></body></html>';
     var blob = new Blob(['\ufeff'+html], {type:'application/vnd.ms-excel;charset=utf-8'});
@@ -2026,9 +2689,84 @@
   function restoreFromIdb(){
     openBackupDB().then(function(db){
       return new Promise(function(resolve, reject){ var tx = db.transaction('snapshots', 'readonly'); var store = tx.objectStore('snapshots'); var allKeys = []; var req = store.openKeyCursor(); req.onsuccess = function(e){ var cursor = e.target.result; if(cursor){ allKeys.push(cursor.key); cursor.continue(); } else { allKeys.sort(); resolve(allKeys); } }; req.onerror = function(){ reject(req.error); }; });
-    }).then(function(keys){ if(!keys || keys.length === 0){ alert('IndexedDB 中还没有备份快照。'); return null; } var latestKey = keys[keys.length - 1]; return idbGet('snapshots', latestKey); })
-    .then(function(snapshot){ if(!snapshot) return; var ok = confirm('将从 IndexedDB 最新快照恢复：\n• 快照时间：' + (snapshot.exportedAt || '未知') + '\n• 题目数：' + (snapshot.items ? snapshot.items.length : 0) + '\n• 待排池：' + (snapshot.remedyPool ? snapshot.remedyPool.length : 0) + '\n\n当前数据将被覆盖，确定继续？'); if(!ok) return; pushUndo('从 IndexedDB 快照恢复'); if(snapshot.items) items = snapshot.items; if(snapshot.remedyPool) remedyPool = snapshot.remedyPool; if(snapshot.fieldSchema) applyIncomingSchema(snapshot.fieldSchema); else if(snapshot.fields) applyIncomingSchema(snapshot.fields); if(snapshot.simDate){ simDate = snapshot.simDate; var simEl = $('simDate'); if(simEl) simEl.value = simDate; saveSim(); } items.forEach(function(it){ if(!it.id) it.id = uid(); if(!it.chapter) it.chapter = ''; if(typeof it.reviewCount!=='number') it.reviewCount = 0; if(typeof it.greenStreak!=='number') it.greenStreak = 0; if(typeof it.isRemedy!=='boolean') it.isRemedy = false; if(typeof it.isGood!=='boolean') it.isGood = false; if(!it.lastReview) it.lastReview = ''; if(typeof it.onlyShowOnNext!=='boolean') it.onlyShowOnNext = false; if(!it.initialStatus) it.initialStatus = it.status; }); mergeSchemaWithData(fieldSchema); saveFieldSchema(); fillFieldSelects(); renderRemedyLimits(); saveItems(); saveRemedyPool(); scheduleCloudSync(); renderAll(); alert('已从 IDB 快照恢复：' + items.length + ' 道题，待排池 ' + remedyPool.length + ' 条。'); })
+    }).then(function(keys){
+      if(!keys || keys.length === 0){ alert('IndexedDB 中还没有备份快照。'); return null; }
+      var latestKey = keys[keys.length - 1]; return idbGet('snapshots', latestKey);
+    })
+    .then(function(snapshot){
+      if(!snapshot) return;
+      var ok = confirm('将从 IndexedDB 最新快照恢复：\n• 快照时间：' + (snapshot.exportedAt || '未知') + '\n• 题目数：' + (snapshot.items ? snapshot.items.length : 0) + '\n• 待排池：' + (snapshot.remedyPool ? snapshot.remedyPool.length : 0) + '\n\n当前数据将被覆盖，确定继续？');
+      if(!ok) return;
+      pushUndo('从 IndexedDB 快照恢复');
+      if(snapshot.items) items = snapshot.items;
+      if(snapshot.remedyPool) remedyPool = snapshot.remedyPool;
+      if(snapshot.fieldSchema) applyIncomingSchema(snapshot.fieldSchema);
+      else if(snapshot.fields) applyIncomingSchema(snapshot.fields);
+      if(Array.isArray(snapshot.causeSchema)){ causeSchema = cloneCTSchema(snapshot.causeSchema); saveCauseSchema(); }
+      if(Array.isArray(snapshot.tierSchema)){ tierSchema = cloneCTSchema(snapshot.tierSchema); saveTierSchema(); }
+      if(Array.isArray(snapshot.batches)) batches = snapshot.batches.slice();
+      if(snapshot.simDate){ simDate = snapshot.simDate; var simEl = $('simDate'); if(simEl) simEl.value = simDate; saveSim(); }
+      items.forEach(function(it){
+        if(!it.id) it.id = uid(); if(!it.chapter) it.chapter = '';
+        if(typeof it.reviewCount!=='number') it.reviewCount = 0;
+        if(typeof it.greenStreak!=='number') it.greenStreak = 0;
+        if(typeof it.isRemedy!=='boolean') it.isRemedy = false;
+        if(typeof it.isGood!=='boolean') it.isGood = false;
+        if(!it.lastReview) it.lastReview = '';
+        if(typeof it.onlyShowOnNext!=='boolean') it.onlyShowOnNext = false;
+        if(!it.initialStatus) it.initialStatus = it.status;
+        if(typeof it.cause!=='string') it.cause = '';
+        if(typeof it.tier!=='string') it.tier = '';
+        if(typeof it.batchId!=='string') it.batchId = '';
+      });
+      mergeSchemaWithData(fieldSchema); saveFieldSchema();
+      fillFieldSelects(); renderRemedyLimits(); saveItems(); saveRemedyPool(); saveBatches();
+      scheduleCloudSync(); renderAll();
+      alert('已从 IDB 快照恢复：' + items.length + ' 道题，待排池 ' + remedyPool.length + ' 条。');
+    })
     .catch(function(e){ alert('恢复失败：' + e.message); });
+  }
+
+  function readJsonFile(file, cb){
+    var reader = new FileReader();
+    reader.onload = function(ev){ cb(ev.target.result); };
+    reader.readAsText(file);
+  }
+
+  function importFullBackup(jsonText){
+    var obj;
+    try{ obj = JSON.parse(jsonText); }catch(err){ alert('文件解析失败：'+err.message); return; }
+    var newItems = null, newSim = null, newPool = null;
+    if(Array.isArray(obj)) newItems = obj;
+    else if(obj && Array.isArray(obj.items)){ newItems = obj.items; newSim = obj.simDate; newPool = obj.remedyPool; }
+    else { alert('文件格式错误'); return; }
+    if(!confirm('导入将覆盖当前所有数据，确定继续？')) return;
+    pushUndo('导入 JSON 备份（覆盖当前数据）');
+    items = newItems;
+    items.forEach(function(it){
+      if(!it.id) it.id = uid(); if(!it.chapter) it.chapter = '';
+      if(typeof it.reviewCount!=='number') it.reviewCount = 0;
+      if(typeof it.greenStreak!=='number') it.greenStreak = 0;
+      if(typeof it.isRemedy!=='boolean') it.isRemedy = false;
+      if(typeof it.isGood!=='boolean') it.isGood = false;
+      if(!it.lastReview) it.lastReview = '';
+      if(typeof it.onlyShowOnNext!=='boolean') it.onlyShowOnNext = false;
+      if(!it.initialStatus) it.initialStatus = it.status;
+      if(typeof it.cause!=='string') it.cause = '';
+      if(typeof it.tier!=='string') it.tier = '';
+      if(typeof it.batchId!=='string') it.batchId = '';
+    });
+    if(Array.isArray(newPool)) remedyPool = newPool;
+    if(obj && obj.fieldSchema) applyIncomingSchema(obj.fieldSchema);
+    else if(obj && obj.fields) applyIncomingSchema(obj.fields);
+    if(obj && Array.isArray(obj.causeSchema)){ causeSchema = cloneCTSchema(obj.causeSchema); saveCauseSchema(); }
+    if(obj && Array.isArray(obj.tierSchema)){ tierSchema = cloneCTSchema(obj.tierSchema); saveTierSchema(); }
+    if(obj && Array.isArray(obj.batches)) batches = obj.batches.slice();
+    if(newSim){ simDate = newSim; var simInput = $('simDate'); if(simInput) simInput.value = simDate; saveSim(); localStorage.setItem(MANUAL_KEY, 'true'); }
+    mergeSchemaWithData(fieldSchema); saveFieldSchema();
+    fillFieldSelects(); renderRemedyLimits(); saveItems(); saveRemedyPool(); saveBatches();
+    scheduleCloudSync(); renderAll();
+    alert('导入成功，共 '+items.length+' 道题，待排池 '+remedyPool.length+' 条。');
   }
 
   function bindEvents(){
@@ -2040,7 +2778,7 @@
         tab.classList.add('active');
         var panel = $('panel-'+tab.getAttribute('data-tab')); if(panel) panel.classList.add('active');
         var t = tab.getAttribute('data-tab');
-        if(t === 'weekred'){ renderWeekRed(); } else if(t === 'dashboard'){ renderDashboard(); } else if(t === 'fields'){ renderFieldSettings(); } else if(t === 'data'){ updateBackupStatusUI(); } else if(t === 'sync'){ renderSyncUI(); }
+        if(t === 'weekred'){ renderWeekRed(); } else if(t === 'dashboard'){ renderDashboard(); } else if(t === 'fields'){ renderFieldSettings(); renderCauseTierSettings(); } else if(t === 'data'){ updateBackupStatusUI(); renderBatchList(); } else if(t === 'sync'){ renderSyncUI(); }
       });
     });
 
@@ -2061,7 +2799,7 @@
 
     var rmSubj = $('rmSubject'); if(rmSubj) rmSubj.addEventListener('change', fillRemedyChapterSelect);
     var rmAddBtn = $('rmAddBtn'); if(rmAddBtn) rmAddBtn.addEventListener('click', addToRemedyPool);
-    var rmClearQueue = $('rmClearQueue'); if(rmClearQueue) rmClearQueue.addEventListener('click', clearRemedyQueue);
+    var rmClearQueueBtn = $('rmClearQueue'); if(rmClearQueueBtn) rmClearQueueBtn.addEventListener('click', clearRemedyQueue);
     var rmQueueList = $('rmQueueList'); if(rmQueueList){ rmQueueList.addEventListener('click', function(e){ var btn = e.target.closest('button[data-rm-del]'); if(!btn) return; deleteRemedyQueueItem(parseInt(btn.getAttribute('data-rm-del'), 10)); }); }
     var rmPreviewBtn = $('rmPreviewBtn'); if(rmPreviewBtn) rmPreviewBtn.addEventListener('click', previewRemedySchedule);
     var rmGenerateBtn = $('rmGenerateBtn'); if(rmGenerateBtn) rmGenerateBtn.addEventListener('click', generateRemedySchedule);
@@ -2073,12 +2811,13 @@
     var dueFilterChapter = $('dueFilterChapter'); if(dueFilterChapter) dueFilterChapter.addEventListener('change', renderDue);
     var dueFilterStatus = $('dueFilterStatus'); if(dueFilterStatus) dueFilterStatus.addEventListener('change', renderDue);
     var dueFilterType = $('dueFilterType'); if(dueFilterType) dueFilterType.addEventListener('change', renderDue);
+    var dueFilterCause = $('dueFilterCause'); if(dueFilterCause) dueFilterCause.addEventListener('change', renderDue);
+    var dueFilterTier = $('dueFilterTier'); if(dueFilterTier) dueFilterTier.addEventListener('change', renderDue);
     var dueFilterSearch = $('dueFilterSearch'); if(dueFilterSearch) dueFilterSearch.addEventListener('input', renderDue);
-    var dueResetFilterBtn = $('dueResetFilterBtn'); if(dueResetFilterBtn) dueResetFilterBtn.addEventListener('click', function(){ $('dueFilterSubject').value = '全部'; fillDueFilterChapter(); $('dueFilterChapter').value = '全部'; $('dueFilterStatus').value = '全部'; $('dueFilterType').value = '全部'; $('dueFilterSearch').value = ''; renderDue(); });
+    var dueResetFilterBtn = $('dueResetFilterBtn'); if(dueResetFilterBtn) dueResetFilterBtn.addEventListener('click', function(){ $('dueFilterSubject').value = '全部'; fillDueFilterChapter(); $('dueFilterChapter').value = '全部'; $('dueFilterStatus').value = '全部'; $('dueFilterType').value = '全部'; $('dueFilterCause').value = '全部'; $('dueFilterTier').value = '全部'; $('dueFilterSearch').value = ''; renderDue(); });
 
     var bulkBtn = $('bulkPostponeBtn'); if(bulkBtn) bulkBtn.addEventListener('click', postponeAll);
 
-    // ============ 关键修改：今日到期点击时读备注输入框 ============
     var dueList = $('dueList');
     if(dueList){
       dueList.addEventListener('click', function(e){
@@ -2094,11 +2833,22 @@
       });
     }
 
-    var allTbody = $('allTbody'); if(allTbody){ allTbody.addEventListener('click', function(e){ var btn = e.target.closest('button'); if(!btn) return; if(btn.getAttribute('data-good-toggle')){ toggleGood(btn.getAttribute('data-good-toggle')); } else if(btn.getAttribute('data-act')){ applyResult(btn.getAttribute('data-id'), btn.getAttribute('data-act')); } else if(btn.getAttribute('data-del')){ deleteItem(btn.getAttribute('data-del')); } }); }
+    var allTbody = $('allTbody');
+    if(allTbody){
+      allTbody.addEventListener('click', function(e){
+        var btn = e.target.closest('button');
+        if(!btn) return;
+        if(btn.getAttribute('data-good-toggle')){ toggleGood(btn.getAttribute('data-good-toggle')); }
+        else if(btn.getAttribute('data-act')){ applyResult(btn.getAttribute('data-id'), btn.getAttribute('data-act')); }
+        else if(btn.getAttribute('data-del')){ deleteItem(btn.getAttribute('data-del')); }
+      });
+    }
     var fSubj = $('filterSubject'); if(fSubj) fSubj.addEventListener('change', function(){ fillFilterChapter(); renderAllTable(); });
     var fChap = $('filterChapter'); if(fChap) fChap.addEventListener('change', renderAllTable);
     var fStat = $('filterStatus'); if(fStat) fStat.addEventListener('change', renderAllTable);
     var fSrc = $('filterSource'); if(fSrc) fSrc.addEventListener('change', renderAllTable);
+    var fCause = $('filterCause'); if(fCause) fCause.addEventListener('change', renderAllTable);
+    var fTier = $('filterTier'); if(fTier) fTier.addEventListener('change', renderAllTable);
 
     bindExamBoxEvents();
 
@@ -2145,7 +2895,51 @@
       });
     }
 
-    var goodList = $('goodList');    var goodList = $('goodList'); if(goodList){ goodList.addEventListener('click', function(e){ var btn = e.target.closest('button[data-good-remove]'); if(!btn) return; removeGood(btn.getAttribute('data-good-remove')); }); }
+    // ====== 错因/档位编辑器事件 ======
+    ['causeEditor','tierEditor'].forEach(function(id){
+      var box = $(id); if(!box) return;
+      box.addEventListener('change', function(e){
+        var t = e.target; if(!t || !t.getAttribute) return;
+        var descAttr = t.getAttribute('data-ct-desc');
+        if(descAttr){
+          var parts = descAttr.split(':'); var kind = parts[0]; var idx = parseInt(parts[1],10);
+          renameCTDesc(kind, idx, t.value);
+          return;
+        }
+        var colorAttr = t.getAttribute('data-ct-color');
+        if(colorAttr){
+          var parts2 = colorAttr.split(':'); changeCTColor(parts2[0], parseInt(parts2[1],10), t.value);
+        }
+      });
+      box.addEventListener('click', function(e){
+        var btn = e.target.closest('button'); if(!btn) return;
+        var delAttr = btn.getAttribute('data-ct-del'); if(delAttr === null) return;
+        var parts = delAttr.split(':'); deleteCTOption(parts[0], parseInt(parts[1],10));
+      });
+    });
+    ['cause','tier'].forEach(function(kind){
+      var addBtn = document.querySelector('button[data-add-code="' + kind + '"]');
+      if(!addBtn) return;
+      addBtn.addEventListener('click', function(){
+        var codeEl = document.querySelector('input[data-new-code="' + kind + '"]');
+        var descEl = document.querySelector('input[data-new-desc="' + kind + '"]');
+        var colorEl = document.querySelector('input[data-new-color="' + kind + '"]');
+        if(!codeEl) return;
+        var code = codeEl.value.trim();
+        addCTOption(kind, code, descEl ? descEl.value : '', colorEl ? colorEl.value : '#6b7280');
+        if(codeEl) codeEl.value = '';
+        if(descEl) descEl.value = '';
+      });
+    });
+
+    var goodList = $('goodList');
+    if(goodList){
+      goodList.addEventListener('click', function(e){
+        var btn = e.target.closest('button[data-good-remove]');
+        if(!btn) return;
+        removeGood(btn.getAttribute('data-good-remove'));
+      });
+    }
 
     var rangeBtns = document.querySelectorAll('#statRangeBtns .btn');
     rangeBtns.forEach(function(btn){ btn.addEventListener('click', function(){ rangeBtns.forEach(function(b){ b.classList.remove('active'); }); btn.classList.add('active'); currentStatRange = parseInt(btn.getAttribute('data-stat-range'), 10) || 7; renderStatsPanel(); }); });
@@ -2163,7 +2957,65 @@
     var restoreIdbBtn = $('restoreFromIdbBtn'); if(restoreIdbBtn) restoreIdbBtn.addEventListener('click', restoreFromIdb);
 
     var importFromFolderBtn = $('importFromFolderBtn'); var importFromFolderFile = $('importFromFolderFile');
-    if(importFromFolderBtn && importFromFolderFile){ importFromFolderBtn.addEventListener('click', function(){ importFromFolderFile.click(); }); importFromFolderFile.addEventListener('change', function(e){ var f = e.target.files[0]; if(!f) return; var reader = new FileReader(); reader.onload = function(ev){ try{ var obj = JSON.parse(ev.target.result); var newItems = null, newSim = null, newPool = null; if(Array.isArray(obj)) newItems = obj; else if(obj && Array.isArray(obj.items)){ newItems = obj.items; newSim = obj.simDate; newPool = obj.remedyPool; } else { alert('文件格式错误'); return; } if(!confirm('导入将覆盖当前所有数据，确定继续？')) return; pushUndo('从备份文件恢复'); items = newItems; items.forEach(function(it){ if(!it.id) it.id = uid(); if(!it.chapter) it.chapter = ''; if(typeof it.reviewCount!=='number') it.reviewCount = 0; if(typeof it.greenStreak!=='number') it.greenStreak = 0; if(typeof it.isRemedy!=='boolean') it.isRemedy = false; if(typeof it.isGood!=='boolean') it.isGood = false; if(!it.lastReview) it.lastReview = ''; if(typeof it.onlyShowOnNext!=='boolean') it.onlyShowOnNext = false; if(!it.initialStatus) it.initialStatus = it.status; }); if(Array.isArray(newPool)) remedyPool = newPool; if(obj && obj.fieldSchema) applyIncomingSchema(obj.fieldSchema); else if(obj && obj.fields) applyIncomingSchema(obj.fields); if(newSim){ simDate = newSim; if(simInput) simInput.value = simDate; saveSim(); localStorage.setItem(MANUAL_KEY, 'true'); } mergeSchemaWithData(fieldSchema); saveFieldSchema(); fillFieldSelects(); renderRemedyLimits(); saveItems(); saveRemedyPool(); scheduleCloudSync(); renderAll(); alert('恢复成功：' + items.length + ' 道题，待排池 ' + remedyPool.length + ' 条。'); }catch(err){ alert('文件解析失败：'+err.message); } }; reader.readAsText(f); e.target.value = ''; }); }
+    if(importFromFolderBtn && importFromFolderFile){
+      importFromFolderBtn.addEventListener('click', function(){ importFromFolderFile.click(); });
+      importFromFolderFile.addEventListener('change', function(e){ var f = e.target.files[0]; if(!f) return; readJsonFile(f, importFullBackup); e.target.value = ''; });
+    }
+
+    // ====== 批量导入 ======
+    var importBatchBtn = $('importBatchBtn'); var importBatchFile = $('importBatchFile');
+    if(importBatchBtn && importBatchFile){
+      importBatchBtn.addEventListener('click', function(){ importBatchFile.click(); });
+      importBatchFile.addEventListener('change', function(e){ var f = e.target.files[0]; if(!f) return; readJsonFile(f, function(text){ importBatchFromJson(text); }); e.target.value = ''; });
+    }
+    var showJsonTemplateBtn = $('showJsonTemplateBtn');
+    if(showJsonTemplateBtn){
+      showJsonTemplateBtn.addEventListener('click', function(){
+        var tpl =
+'{\n' +
+'  "date": "2026-10-22",\n' +
+'  "items": [\n' +
+'    {\n' +
+'      "type": "regular",\n' +
+'      "subject": "数学",\n' +
+'      "chapter": "第3章",\n' +
+'      "source": "真题本",\n' +
+'      "page": "P45",\n' +
+'      "no": "例5",\n' +
+'      "status": "红",\n' +
+'      "cause": "C",\n' +
+'      "tier": "S",\n' +
+'      "isGood": true,\n' +
+'      "note": "漏负号"\n' +
+'    },\n' +
+'    {\n' +
+'      "type": "remedy",\n' +
+'      "subject": "电路",\n' +
+'      "chapter": "第5章",\n' +
+'      "source": "讲义",\n' +
+'      "page": "P12",\n' +
+'      "no": "例2",\n' +
+'      "status": "黄",\n' +
+'      "cause": "T",\n' +
+'      "tier": "A",\n' +
+'      "isGood": false,\n' +
+'      "note": "不知道怎么列节点方程"\n' +
+'    }\n' +
+'  ]\n' +
+'}';
+        alert('JSON 模板（把以下内容发给 AI 参考）：\n\n' + tpl + '\n\n字段说明：\n• type：regular=常规题（进复习池），remedy=补救题（进待排池）\n• status：红/黄/绿/归档\n• cause：C/T/K 或留空\n• tier：S/A/C 或留空\n• isGood：true/false\n• note：错因备注文字');
+      });
+    }
+    var batchListEl = $('batchList');
+    if(batchListEl){
+      batchListEl.addEventListener('click', function(e){
+        var btn = e.target.closest('button'); if(!btn) return;
+        var rid = btn.getAttribute('data-batch-rename');
+        if(rid){ var b = null; for(var i=0;i<batches.length;i++){ if(batches[i].id === rid){ b = batches[i]; break; } } if(!b) return; var nn = prompt('输入新的批次名：', b.name); if(nn !== null) renameBatch(rid, nn); return; }
+        var did = btn.getAttribute('data-batch-del');
+        if(did){ deleteBatch(did); return; }
+      });
+    }
 
     var copySyncCodeBtn = $('copySyncCodeBtn'); if(copySyncCodeBtn) copySyncCodeBtn.addEventListener('click', function(){ var el = $('syncCodeDisplay'); if(!el) return; var text = el.textContent; if(navigator.clipboard && navigator.clipboard.writeText){ navigator.clipboard.writeText(text).then(function(){ alert('已复制同步码：' + text); }).catch(function(){ alert('复制失败，请手动长按复制：' + text); }); } else { alert('请手动复制：' + text); } });
     var pullFromCloudBtn = $('pullFromCloudBtn'); if(pullFromCloudBtn) pullFromCloudBtn.addEventListener('click', function(){ var input = $('inputSyncCode'); if(!input || !input.value.trim()){ alert('请输入同步码'); return; } var newId = input.value.trim(); if(newId === syncUserId){ alert('这与当前同步码相同'); return; } if(!confirm('即将用同步码 ' + newId + ' 的数据覆盖当前设备，确定继续？')) return; syncUserId = newId; localStorage.setItem(SYNC_ID_KEY, syncUserId); renderSyncUI(); cloudPull().then(function(){ renderAll(); alert('已切换同步码并拉取数据：' + items.length + ' 道题'); }); });
@@ -2171,10 +3023,12 @@
     var forcePullBtn = $('forcePullBtn'); if(forcePullBtn) forcePullBtn.addEventListener('click', function(){ cloudPull().then(function(){ renderAll(); }); });
 
     var excelBtn = $('excelBtn'); if(excelBtn) excelBtn.addEventListener('click', exportExcel);
-    var exportBtn = $('exportBtn'); if(exportBtn){ exportBtn.addEventListener('click', function(){ var payload = buildBackupPayload(); var blob = new Blob([JSON.stringify(payload, null, 2)], {type:'application/json'}); var url = URL.createObjectURL(blob); var a = document.createElement('a'); a.href = url; a.download = backupFilename(); a.click(); URL.revokeObjectURL(url); }); }
+    var exportBtn = $('exportBtn');
+    if(exportBtn){ exportBtn.addEventListener('click', function(){ var payload = buildBackupPayload(); var blob = new Blob([JSON.stringify(payload, null, 2)], {type:'application/json'}); var url = URL.createObjectURL(blob); var a = document.createElement('a'); a.href = url; a.download = backupFilename(); a.click(); URL.revokeObjectURL(url); }); }
     var importBtn = $('importBtn'); if(importBtn) importBtn.addEventListener('click', function(){ $('importFile').click(); });
-    var importFile = $('importFile'); if(importFile){ importFile.addEventListener('change', function(e){ var f = e.target.files[0]; if(!f) return; var reader = new FileReader(); reader.onload = function(ev){ try{ var obj = JSON.parse(ev.target.result); var newItems = null, newSim = null, newPool = null; if(Array.isArray(obj)) newItems = obj; else if(obj && Array.isArray(obj.items)){ newItems = obj.items; newSim = obj.simDate; newPool = obj.remedyPool; } else { alert('文件格式错误'); return; } if(!confirm('导入将覆盖当前所有数据，确定继续？')) return; pushUndo('导入 JSON 备份（覆盖当前数据）'); items = newItems; items.forEach(function(it){ if(!it.id) it.id = uid(); if(!it.chapter) it.chapter = ''; if(typeof it.reviewCount!=='number') it.reviewCount = 0; if(typeof it.greenStreak!=='number') it.greenStreak = 0; if(typeof it.isRemedy!=='boolean') it.isRemedy = false; if(typeof it.isGood!=='boolean') it.isGood = false; if(!it.lastReview) it.lastReview = ''; if(typeof it.onlyShowOnNext!=='boolean') it.onlyShowOnNext = false; if(!it.initialStatus) it.initialStatus = it.status; }); if(Array.isArray(newPool)) remedyPool = newPool; if(obj && obj.fieldSchema) applyIncomingSchema(obj.fieldSchema); else if(obj && obj.fields) applyIncomingSchema(obj.fields); if(newSim){ simDate = newSim; if(simInput) simInput.value = simDate; saveSim(); localStorage.setItem(MANUAL_KEY, 'true'); } mergeSchemaWithData(fieldSchema); saveFieldSchema(); fillFieldSelects(); renderRemedyLimits(); saveItems(); saveRemedyPool(); scheduleCloudSync(); renderAll(); alert('导入成功，共 '+items.length+' 道题，待排池 '+remedyPool.length+' 条。'); }catch(err){ alert('文件解析失败：'+err.message); } }; reader.readAsText(f); e.target.value = ''; }); }
-    var resetBtn = $('resetBtn'); if(resetBtn){ resetBtn.addEventListener('click', function(){ if(confirm('确定清空所有数据（含待排池）？此操作不可恢复。')){ pushUndo('清空所有数据（含待排池）'); items = []; remedyPool = []; saveItems(); saveRemedyPool(); scheduleCloudSync(); renderAll(); } }); }
+    var importFile = $('importFile');
+    if(importFile){ importFile.addEventListener('change', function(e){ var f = e.target.files[0]; if(!f) return; readJsonFile(f, importFullBackup); e.target.value = ''; }); }
+    var resetBtn = $('resetBtn'); if(resetBtn){ resetBtn.addEventListener('click', function(){ if(confirm('确定清空所有数据（含待排池、批次记录）？此操作不可恢复。')){ pushUndo('清空所有数据（含待排池）'); items = []; remedyPool = []; batches = []; saveItems(); saveRemedyPool(); saveBatches(); scheduleCloudSync(); renderAll(); } }); }
 
     window.addEventListener('beforeunload', function(){ try{ writeIdbSnapshot(); }catch(e){} });
   }
@@ -2183,11 +3037,16 @@
 
   function init(){
     try{
-      loadBackupConfig(); items = loadItems(); remedyPool = loadRemedyPool();
+      loadBackupConfig();
+      items = loadItems();
+      remedyPool = loadRemedyPool();
+      causeSchema = loadCTSchema(CAUSE_KEY, CAUSE_DEFAULT);
+      tierSchema = loadCTSchema(TIER_KEY, TIER_DEFAULT);
+      batches = loadBatches();
       initFieldSchema(loadFieldSchema()); saveFieldSchema();
       simDate = chinaToday(); localStorage.removeItem(MANUAL_KEY); saveSim();
       fillFieldSelects(); renderRemedyLimits(); updatePostponeOptions(); $('rmStartDate').value = simDate;
-      bindEvents(); renderAll(); renderFieldSettings(); updateUndoBtn(); updateBackupStatusUI(); renderSyncUI(); clearError();
+      bindEvents(); renderAll(); renderFieldSettings(); renderCauseTierSettings(); updateUndoBtn(); updateBackupStatusUI(); renderSyncUI(); clearError();
 
       cloudPull().then(function(result){ if(result.pulled){ renderAll(); } });
 
