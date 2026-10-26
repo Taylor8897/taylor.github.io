@@ -397,8 +397,10 @@
           <select id="inSubject"></select>
         </div>
         <div><label>二级字段</label><select id="inChapter"></select></div>
+        <div><label>三级字段</label><select id="inLevel3"></select></div>
+        <div><label>四级字段</label><select id="inLevel4"></select></div>
         <div><label>来源</label>
-          <select id="inSource"><option value="真题本">真题本</option><option value="讲义">讲义</option></select>
+          <select id="inSource"></select>
         </div>
         <div><label>页码</label><input id="inPage" placeholder="如 P45"></div>
         <div><label>题号</label><input id="inNo" placeholder="如 例3"></div>
@@ -477,6 +479,8 @@
         <div><label>二级字段</label>
           <select id="dueFilterChapter"><option value="全部">全部</option></select>
         </div>
+        <div><label>三级字段</label><select id="dueFilterLevel3"><option value="全部">全部</option></select></div>
+        <div><label>四级字段</label><select id="dueFilterLevel4"><option value="全部">全部</option></select></div>
         <div><label>标记</label>
           <select id="dueFilterStatus">
             <option value="全部">全部</option>
@@ -533,6 +537,8 @@
           <select id="filterSubject"><option value="全部">全部</option></select>
         </div>
         <div><label>二级字段</label><select id="filterChapter"><option value="全部">全部</option></select></div>
+        <div><label>三级字段</label><select id="filterLevel3"><option value="全部">全部</option></select></div>
+        <div><label>四级字段</label><select id="filterLevel4"><option value="全部">全部</option></select></div>
         <div><label>标记</label>
           <select id="filterStatus"><option value="全部">全部</option><option value="红">红</option><option value="黄">黄</option><option value="绿">绿</option><option value="归档">归档</option></select>
         </div>
@@ -642,8 +648,10 @@
             <select id="rmSubject"></select>
           </div>
           <div><label>二级字段</label><select id="rmChapter"></select></div>
+          <div><label>三级字段</label><select id="rmLevel3"></select></div>
+          <div><label>四级字段</label><select id="rmLevel4"></select></div>
           <div><label>来源</label>
-            <select id="rmSource"><option value="真题本">真题本</option><option value="讲义">讲义</option></select>
+            <select id="rmSource"></select>
           </div>
           <div><label>页码</label><input id="rmPage" placeholder="如 P45"></div>
           <div><label>题号</label><input id="rmNo" placeholder="如 例3"></div>
@@ -804,6 +812,18 @@
             <button class="btn btn-sm btn-primary" data-add-code="tier">＋ 添加</button>
           </div>
         </div>
+      </div>
+    </div>
+
+    <div class="card">
+      <h2 style="border-left-color:#0891b2;">来源选项</h2>
+      <div class="key key-good">
+        <b>来源说明：</b>这里维护「真题本 / 讲义 / PPT」等来源，录入、补救录入、JSON 导入都会从这里读取。删除来源不会自动改动已录入题目的来源值。
+      </div>
+      <div id="sourceEditor"></div>
+      <div class="ct-add">
+        <input data-new-source placeholder="新增来源，如：网课 / 模拟卷">
+        <button class="btn btn-sm btn-primary" data-add-source="1">＋ 添加</button>
       </div>
     </div>
   </div>
@@ -973,6 +993,8 @@
   var BACKUP_CONFIG_KEY = 'tiqu_backup_config';
 
   var FIELD_KEY = 'tiqu_field_schema';
+  var SOURCE_KEY = 'tiqu_source_schema';
+  var SOURCE_DEFAULT = ['真题本', '讲义', 'PPT'];
   var CAUSE_KEY = 'tiqu_cause_schema';
   var TIER_KEY = 'tiqu_tier_schema';
   var BATCH_KEY = 'tiqu_batches';
@@ -999,6 +1021,7 @@
   var simDate = '';
   var remedyPool = [];
   var fieldSchema = [];
+  var sourceSchema = [];
   var causeSchema = [];
   var tierSchema = [];
   var batches = [];
@@ -1722,72 +1745,124 @@
   }
   function saveRemedyPool(){ try{ localStorage.setItem(REMEDY_KEY,JSON.stringify(remedyPool)); }catch(e){} }
 
-  // ================= 自由字段（一级 / 二级） =================
+  // ================= 自由字段（1~4 级树） =================
+  var FIELD_MAX_DEPTH = 4;
+  function newFieldNode(name){ return { id: uid(), name: String(name || '').trim(), children: [] }; }
   function cloneSchema(src){
-    var out = [];
-    (src || []).forEach(function(f){
-      if(!f) return;
-      var name = String(f.name == null ? '' : f.name).trim();
-      if(!name || name === '全部') return;
-      var children = [];
-      (f.children || []).forEach(function(ch){
-        var c = String(ch == null ? '' : ch).trim();
-        if(c && children.indexOf(c) === -1) children.push(c);
-      });
-      for(var i=0;i<out.length;i++){
-        if(out[i].name === name){ children.forEach(function(c){ if(out[i].children.indexOf(c) === -1) out[i].children.push(c); }); return; }
+    var raw = Array.isArray(src) ? src : (src && Array.isArray(src.fields) ? src.fields : []);
+    function conv(node){
+      if(!node) return null;
+      if(typeof node === 'string'){
+        var t = node.trim();
+        return t ? newFieldNode(t) : null;
       }
-      out.push({ name: name, children: children });
+      var name = String(node.name == null ? '' : node.name).trim();
+      if(!name || name === '全部') return null;
+      var out = { id: node.id || uid(), name: name, children: [] };
+      (Array.isArray(node.children) ? node.children : []).forEach(function(ch){
+        var c = conv(ch);
+        if(c && !out.children.some(function(x){ return x.name === c.name; })) out.children.push(c);
+      });
+      return out;
+    }
+    var out = [];
+    raw.forEach(function(n){
+      var c = conv(n);
+      if(!c) return;
+      var exist = null;
+      for(var i=0;i<out.length;i++){ if(out[i].name === c.name){ exist = out[i]; break; } }
+      if(exist) mergeFieldNode(exist, c); else out.push(c);
     });
     return out;
+  }
+  function mergeFieldNode(target, src){
+    (src.children || []).forEach(function(c){
+      var ex = null;
+      for(var i=0;i<target.children.length;i++){ if(target.children[i].name === c.name){ ex = target.children[i]; break; } }
+      if(ex) mergeFieldNode(ex, c); else target.children.push(c);
+    });
   }
   function loadFieldSchema(){
     try{
       var raw = localStorage.getItem(FIELD_KEY);
       if(!raw) return null;
-      var obj = JSON.parse(raw);
-      if(Array.isArray(obj)) return cloneSchema(obj);
-      if(obj && Array.isArray(obj.fields)) return cloneSchema(obj.fields);
-      return null;
+      return cloneSchema(JSON.parse(raw));
     }catch(e){ return null; }
   }
   function saveFieldSchema(){
-    try{ localStorage.setItem(FIELD_KEY, JSON.stringify({ version: 2, fields: cloneSchema(fieldSchema) })); }catch(e){}
+    try{ localStorage.setItem(FIELD_KEY, JSON.stringify({ version: 3, fields: cloneSchema(fieldSchema) })); }catch(e){}
   }
   function getL1Names(){ return fieldSchema.map(function(f){ return f.name; }); }
   function getField(name){
     for(var i=0;i<fieldSchema.length;i++){ if(fieldSchema[i].name === name) return fieldSchema[i]; }
     return null;
   }
+  function getChildrenByName(node){ return node ? (node.children || []).map(function(c){ return c.name; }) : []; }
   function getL2Names(fieldName){
     if(fieldName === '全部' || !fieldName){
       var all = [], seen = {};
-      fieldSchema.forEach(function(f){ f.children.forEach(function(c){ if(!seen[c]){ seen[c] = 1; all.push(c); } }); });
+      fieldSchema.forEach(function(f){ (f.children || []).forEach(function(c){ if(!seen[c.name]){ seen[c.name] = 1; all.push(c.name); } }); });
       return all;
     }
-    var f = getField(fieldName);
-    return f ? f.children.slice() : [];
+    return getChildrenByName(getField(fieldName));
+  }
+  function findNodeByPath(path){
+    var list = fieldSchema, node = null;
+    for(var i=0;i<path.length;i++){
+      var name = String(path[i] || '').trim();
+      if(!name) return null;
+      node = null;
+      for(var j=0;j<list.length;j++){ if(list[j].name === name){ node = list[j]; break; } }
+      if(!node) return null;
+      list = node.children || [];
+    }
+    return node;
+  }
+  function getChildrenByPath(path){ var n = findNodeByPath(path); return n ? (n.children || []).map(function(c){ return c.name; }) : []; }
+  function getNamesAtDepth(depth){
+    var out = [], seen = {};
+    function walk(list, d){
+      list.forEach(function(n){
+        if(d === depth){ if(!seen[n.name]){ seen[n.name] = 1; out.push(n.name); } }
+        else walk(n.children || [], d + 1);
+      });
+    }
+    walk(fieldSchema, 1);
+    return out;
   }
   function ensureField(name){
     name = String(name == null ? '' : name).trim();
     if(!name || name === '全部') return null;
     var f = getField(name);
-    if(!f){ f = { name: name, children: [] }; fieldSchema.push(f); }
+    if(!f){ f = newFieldNode(name); fieldSchema.push(f); }
     return f;
   }
   function ensureChild(fieldName, childName){
-    var f = ensureField(fieldName); if(!f) return;
+    var f = ensureField(fieldName); if(!f) return null;
     childName = String(childName == null ? '' : childName).trim();
-    if(childName && f.children.indexOf(childName) === -1) f.children.push(childName);
+    if(!childName) return null;
+    var c = null;
+    for(var i=0;i<f.children.length;i++){ if(f.children[i].name === childName){ c = f.children[i]; break; } }
+    if(!c){ c = newFieldNode(childName); f.children.push(c); }
+    return c;
+  }
+  function ensurePath(path){
+    var list = fieldSchema, node = null;
+    for(var i=0;i<path.length && i<FIELD_MAX_DEPTH;i++){
+      var name = String(path[i] || '').trim();
+      if(!name) break;
+      var found = null;
+      for(var j=0;j<list.length;j++){ if(list[j].name === name){ found = list[j]; break; } }
+      if(!found){ found = newFieldNode(name); list.push(found); }
+      node = found; list = found.children;
+    }
+    return node;
   }
   function mergeSchemaWithData(base){
     fieldSchema = cloneSchema(base || []);
     function addItem(it){
       if(!it) return;
-      var l1 = String(it.subject == null ? '' : it.subject).trim() || '未分类';
-      var f = ensureField(l1);
-      var l2 = String(it.chapter == null ? '' : it.chapter).trim();
-      if(l2 && f && f.children.indexOf(l2) === -1) f.children.push(l2);
+      ensurePath([it.subject || '未分类', it.chapter, it.level3, it.level4]);
     }
     items.forEach(addItem); remedyPool.forEach(addItem);
     return fieldSchema;
@@ -1800,7 +1875,59 @@
   }
   function fieldItemCount(name){ return items.filter(function(it){ return it.subject === name; }).length; }
   function chapterItemCount(fieldName, childName){ return items.filter(function(it){ return it.subject === fieldName && it.chapter === childName; }).length; }
-
+  function countItemsUnderPath(path){
+    function hit(it){
+      if(path[0] && it.subject !== path[0]) return false;
+      if(path[1] && it.chapter !== path[1]) return false;
+      if(path[2] && it.level3 !== path[2]) return false;
+      if(path[3] && it.level4 !== path[3]) return false;
+      return true;
+    }
+    return items.filter(hit).length + remedyPool.filter(hit).length;
+  }
+  function ensureItemLevels(){
+    items.forEach(function(it){ if(typeof it.level3 !== 'string') it.level3 = ''; if(typeof it.level4 !== 'string') it.level4 = ''; });
+    remedyPool.forEach(function(it){ if(typeof it.level3 !== 'string') it.level3 = ''; if(typeof it.level4 !== 'string') it.level4 = ''; });
+  }
+  function loadSourceSchema(){
+    try{
+      var raw = localStorage.getItem(SOURCE_KEY);
+      if(!raw) return SOURCE_DEFAULT.slice();
+      var arr = JSON.parse(raw);
+      if(Array.isArray(arr) && arr.length){
+        var out = [];
+        arr.forEach(function(x){ var t = String(x || '').trim(); if(t && out.indexOf(t) === -1) out.push(t); });
+        if(out.length) return out;
+      }
+      return SOURCE_DEFAULT.slice();
+    }catch(e){ return SOURCE_DEFAULT.slice(); }
+  }
+  function saveSourceSchema(){ try{ localStorage.setItem(SOURCE_KEY, JSON.stringify(sourceSchema)); }catch(e){} }
+  function fillSourceSelects(){
+    ['inSource','rmSource'].forEach(function(id){
+      var el = $(id); if(!el) return;
+      var prev = el.value;
+      el.innerHTML = sourceSchema.map(function(x){ return '<option value="' + escapeHtml(x) + '">' + escapeHtml(x) + '</option>'; }).join('');
+      if(sourceSchema.indexOf(prev) >= 0) el.value = prev;
+    });
+  }
+  function applyIncomingSources(arr){
+    if(!Array.isArray(arr)) return;
+    var changed = false;
+    arr.forEach(function(x){ var t = String(x || '').trim(); if(t && sourceSchema.indexOf(t) === -1){ sourceSchema.push(t); changed = true; } });
+    if(changed){ saveSourceSchema(); fillSourceSelects(); renderSourceSettings(); }
+  }
+  function renderSourceSettings(){
+    var box = $('sourceEditor'); if(!box) return;
+    if(!sourceSchema.length){ box.innerHTML = '<div class="field-empty-hint">暂无来源，请在下方添加。</div>'; return; }
+    var html = '';
+    sourceSchema.forEach(function(x, i){
+      html += '<div class="ct-row"><span class="ct-code-badge" style="color:#0891b2;border-color:#0891b2">来源</span>';
+      html += '<input data-source-idx="' + i + '" value="' + escapeHtml(x) + '" style="flex:1;min-width:120px;font-size:12px;padding:4px 8px;">';
+      html += '<button class="btn btn-sm btn-danger" data-source-del="' + i + '">删</button></div>';
+    });
+    box.innerHTML = html;
+  }
   function syncSelectOptions(el, values, keepValue, placeholderText){
     if(!el) return;
     var prev = (keepValue !== undefined && keepValue !== null) ? keepValue : el.value;
@@ -1817,23 +1944,66 @@
     ['inSubject','rmSubject'].forEach(function(id){ syncSelectOptions($(id), names, null, ''); });
     ['filterSubject','dueFilterSubject'].forEach(function(id){ syncSelectOptions($(id), names, null, '全部'); });
     fillChapterSelect(); fillRemedyChapterSelect(); fillFilterChapter(); fillDueFilterChapter();
+    fillSourceSelects();
     fillCauseTierSelects();
   }
+  function fillLevelSelect(id, parentPath, allowAll){
+    var el = $(id); if(!el) return;
+    var list;
+    if(parentPath.some(function(x){ return x === '全部'; })) list = getNamesAtDepth(parentPath.length + 1);
+    else list = getChildrenByPath(parentPath);
+    var wrap = el.parentNode;
+    if(wrap) wrap.style.display = list.length ? '' : 'none';
+    if(!list.length){ el.innerHTML = allowAll ? '<option value="全部">全部</option>' : ''; return; }
+    syncSelectOptions(el, list, null, allowAll ? '全部' : '');
+  }
   function fillChapterSelect(){
-    var subj = ($('inSubject')||{}).value || '';
+    var subj = ($('inSubject') || {}).value || '';
     syncSelectOptions($('inChapter'), getL2Names(subj), null, '');
+    fillLevel3Select();
   }
   function fillRemedyChapterSelect(){
-    var subj = ($('rmSubject')||{}).value || '';
+    var subj = ($('rmSubject') || {}).value || '';
     syncSelectOptions($('rmChapter'), getL2Names(subj), null, '');
+    fillRmLevel3Select();
   }
   function fillFilterChapter(){
-    var subj = ($('filterSubject')||{}).value || '全部';
+    var subj = ($('filterSubject') || {}).value || '全部';
     syncSelectOptions($('filterChapter'), getL2Names(subj), null, '全部');
+    fillFilterLevel3();
   }
   function fillDueFilterChapter(){
-    var subj = ($('dueFilterSubject')||{}).value || '全部';
+    var subj = ($('dueFilterSubject') || {}).value || '全部';
     syncSelectOptions($('dueFilterChapter'), getL2Names(subj), null, '全部');
+    fillDueFilterLevel3();
+  }
+  function fillLevel3Select(){
+    fillLevelSelect('inLevel3', [($('inSubject') || {}).value || '', ($('inChapter') || {}).value || ''], false);
+    fillLevel4Select();
+  }
+  function fillLevel4Select(){
+    fillLevelSelect('inLevel4', [($('inSubject') || {}).value || '', ($('inChapter') || {}).value || '', ($('inLevel3') || {}).value || ''], false);
+  }
+  function fillRmLevel3Select(){
+    fillLevelSelect('rmLevel3', [($('rmSubject') || {}).value || '', ($('rmChapter') || {}).value || ''], false);
+    fillRmLevel4Select();
+  }
+  function fillRmLevel4Select(){
+    fillLevelSelect('rmLevel4', [($('rmSubject') || {}).value || '', ($('rmChapter') || {}).value || '', ($('rmLevel3') || {}).value || ''], false);
+  }
+  function fillFilterLevel3(){
+    fillLevelSelect('filterLevel3', [($('filterSubject') || {}).value || '全部', ($('filterChapter') || {}).value || '全部'], true);
+    fillFilterLevel4();
+  }
+  function fillFilterLevel4(){
+    fillLevelSelect('filterLevel4', [($('filterSubject') || {}).value || '全部', ($('filterChapter') || {}).value || '全部', ($('filterLevel3') || {}).value || '全部'], true);
+  }
+  function fillDueFilterLevel3(){
+    fillLevelSelect('dueFilterLevel3', [($('dueFilterSubject') || {}).value || '全部', ($('dueFilterChapter') || {}).value || '全部'], true);
+    fillDueFilterLevel4();
+  }
+  function fillDueFilterLevel4(){
+    fillLevelSelect('dueFilterLevel4', [($('dueFilterSubject') || {}).value || '全部', ($('dueFilterChapter') || {}).value || '全部', ($('dueFilterLevel3') || {}).value || '全部'], true);
   }
   function renderRemedyLimits(){
     var wrap = $('rmLimits'); if(!wrap) return;
@@ -1856,123 +2026,108 @@
     renderAll();
     scheduleCloudSync();
   }
-  function renameField(oldName, newName){
-    oldName = String(oldName||'').trim(); newName = String(newName||'').trim();
-    if(!oldName || !newName || oldName === newName) return false;
-    if(newName === '全部' || getField(newName)){ alert('一级字段「' + newName + '」已存在，或名称不可用。'); return false; }
-    var count = fieldItemCount(oldName);
-    if(count > 0 && !confirm('重命名会把 ' + count + ' 道题的一级字段从「' + oldName + '」同步改为「' + newName + '」，确定继续？')) return false;
-    var f = getField(oldName); if(!f) return false;
-    pushUndo('重命名一级字段「' + oldName + '」→「' + newName + '」');
-    f.name = newName;
-    items.forEach(function(it){ if(it.subject === oldName) it.subject = newName; });
-    remedyPool.forEach(function(it){ if(it.subject === oldName) it.subject = newName; });
-    if(remedyLimits[oldName] !== undefined){ remedyLimits[newName] = remedyLimits[oldName]; delete remedyLimits[oldName]; }
+  function samePrefix(it, path, depth){
+    if(path[0] && it.subject !== path[0]) return false;
+    if(depth >= 2 && path[1] && it.chapter !== path[1]) return false;
+    if(depth >= 3 && path[2] && it.level3 !== path[2]) return false;
+    return true;
+  }
+  function renameNodeByPath(path, newName){
+    newName = String(newName || '').trim();
+    if(!path.length || !newName) return false;
+    if(newName === '全部'){ alert('名称不可用。'); return false; }
+    var oldName = path[path.length - 1];
+    if(oldName === newName) return false;
+    var list = path.length === 1 ? fieldSchema : ((findNodeByPath(path.slice(0, -1)) || {}).children || []);
+    if(list.some(function(x){ return x.name === newName; })){ alert('同级已存在「' + newName + '」。'); return false; }
+    var count = countItemsUnderPath(path);
+    if(count > 0 && !confirm('重命名会把 ' + count + ' 道题的「' + oldName + '」同步改为「' + newName + '」，确定继续？')) return false;
+    var node = findNodeByPath(path); if(!node) return false;
+    pushUndo('重命名字段「' + path.join(' / ') + '」→「' + newName + '」');
+    node.name = newName;
+    var fieldKey = ['subject','chapter','level3','level4'][path.length - 1];
+    items.forEach(function(it){ if(it[fieldKey] === oldName && samePrefix(it, path, path.length)) it[fieldKey] = newName; });
+    remedyPool.forEach(function(it){ if(it[fieldKey] === oldName && samePrefix(it, path, path.length)) it[fieldKey] = newName; });
     saveItems(); saveRemedyPool(); saveFieldSchema(); scheduleCloudSync();
     fillFieldSelects(); renderRemedyLimits(); renderFieldSettings(); renderAll();
     return true;
   }
-  function renameChild(fieldName, oldName, newName){
-    oldName = String(oldName||'').trim(); newName = String(newName||'').trim();
-    if(!oldName || !newName || oldName === newName) return false;
-    var f = getField(fieldName); if(!f) return false;
-    if(f.children.indexOf(newName) !== -1){ alert('二级字段「' + newName + '」已存在。'); return false; }
-    var count = chapterItemCount(fieldName, oldName);
-    if(count > 0 && !confirm('重命名会把 ' + count + ' 道题的二级字段从「' + oldName + '」同步改为「' + newName + '」，确定继续？')) return false;
-    pushUndo('重命名二级字段「' + fieldName + ' / ' + oldName + '」→「' + newName + '」');
-    f.children[f.children.indexOf(oldName)] = newName;
-    items.forEach(function(it){ if(it.subject === fieldName && it.chapter === oldName) it.chapter = newName; });
-    remedyPool.forEach(function(it){ if(it.subject === fieldName && it.chapter === oldName) it.chapter = newName; });
-    saveItems(); saveRemedyPool(); saveFieldSchema(); scheduleCloudSync();
-    fillFieldSelects(); renderFieldSettings(); renderAll();
-    return true;
-  }
-  function addField(name){
-    name = String(name||'').trim();
-    if(!name){ alert('请先输入一级字段名称。'); return; }
-    if(name === '全部' || getField(name)){ alert('一级字段「' + name + '」已存在。'); return; }
-    pushUndo('新增一级字段「' + name + '」');
-    fieldSchema.push({ name: name, children: [] });
+  function addNodeByPath(parentPath, name){
+    name = String(name || '').trim();
+    if(!name){ alert('请输入名称。'); return; }
+    var depth = parentPath.length + 1;
+    if(depth > FIELD_MAX_DEPTH){ alert('最多支持 ' + FIELD_MAX_DEPTH + ' 级字段。'); return; }
+    var list = parentPath.length === 0 ? fieldSchema : ((findNodeByPath(parentPath) || {}).children || []);
+    if(list.some(function(x){ return x.name === name; })){ alert('同级已存在「' + name + '」。'); return; }
+    pushUndo('新增字段「' + parentPath.concat([name]).join(' / ') + '」');
+    list.push(newFieldNode(name));
     onSchemaChanged();
   }
-  function addChild(fieldName, name){
-    name = String(name||'').trim();
-    if(!name){ alert('请先输入二级字段名称。'); return; }
-    var f = getField(fieldName); if(!f) return;
-    if(f.children.indexOf(name) !== -1){ alert('二级字段「' + name + '」已存在。'); return; }
-    pushUndo('新增二级字段「' + fieldName + ' / ' + name + '」');
-    f.children.push(name);
+  function deleteNodeByPath(path){
+    var node = findNodeByPath(path); if(!node) return;
+    var count = countItemsUnderPath(path);
+    if(count > 0){ alert('「' + path.join(' / ') + '」下还有 ' + count + ' 道题，不能删除。请先把题目改到其他字段。'); return; }
+    if(!confirm('确定删除字段「' + path.join(' / ') + '」及其所有子节点吗？')) return;
+    pushUndo('删除字段「' + path.join(' / ') + '」');
+    var list = path.length === 1 ? fieldSchema : ((findNodeByPath(path.slice(0, -1)) || {}).children || []);
+    var idx = -1;
+    for(var i=0;i<list.length;i++){ if(list[i].name === path[path.length - 1]){ idx = i; break; } }
+    if(idx >= 0) list.splice(idx, 1);
+    if(path.length === 1) delete remedyLimits[path[0]];
     onSchemaChanged();
   }
-  function deleteField(name){
-    var f = getField(name); if(!f) return;
-    var count = fieldItemCount(name);
-    if(count > 0){ alert('「' + name + '」下还有 ' + count + ' 道题，不能删除。请先重命名该字段，或把题目改到其他字段后再删除。'); return; }
-    if(!confirm('确定删除一级字段「' + name + '」及其下的二级字段吗？（该字段下没有题目，不会丢失数据）')) return;
-    pushUndo('删除一级字段「' + name + '」');
-    fieldSchema = fieldSchema.filter(function(x){ return x.name !== name; });
-    delete remedyLimits[name];
-    onSchemaChanged();
-  }
-  function deleteChild(fieldName, childName){
-    var f = getField(fieldName); if(!f) return;
-    var count = chapterItemCount(fieldName, childName);
-    if(count > 0){ alert('「' + fieldName + ' / ' + childName + '」下还有 ' + count + ' 道题，不能删除。'); return; }
-    pushUndo('删除二级字段「' + fieldName + ' / ' + childName + '」');
-    f.children = f.children.filter(function(c){ return c !== childName; });
-    onSchemaChanged();
-  }
-  function moveField(name, dir){
-    var idx = -1; for(var i=0;i<fieldSchema.length;i++){ if(fieldSchema[i].name === name){ idx = i; break; } }
-    if(idx === -1) return;
-    var to = idx + dir; if(to < 0 || to >= fieldSchema.length) return;
-    pushUndo('调整一级字段顺序');
-    var tmp = fieldSchema[idx]; fieldSchema[idx] = fieldSchema[to]; fieldSchema[to] = tmp;
-    onSchemaChanged();
-  }
-  function moveChild(fieldName, name, dir){
-    var f = getField(fieldName); if(!f) return;
-    var idx = f.children.indexOf(name); if(idx === -1) return;
-    var to = idx + dir; if(to < 0 || to >= f.children.length) return;
-    pushUndo('调整二级字段顺序');
-    var tmp = f.children[idx]; f.children[idx] = f.children[to]; f.children[to] = tmp;
+  function moveNodeByPath(path, dir){
+    var list = path.length === 1 ? fieldSchema : ((findNodeByPath(path.slice(0, -1)) || {}).children || []);
+    var idx = -1;
+    for(var i=0;i<list.length;i++){ if(list[i].name === path[path.length - 1]){ idx = i; break; } }
+    if(idx < 0) return;
+    var to = idx + dir; if(to < 0 || to >= list.length) return;
+    pushUndo('调整字段顺序');
+    var tmp = list[idx]; list[idx] = list[to]; list[to] = tmp;
     onSchemaChanged();
   }
   function renderFieldSettings(){
     var box = $('fieldEditor'); if(!box) return;
     if(!fieldSchema.length){ box.innerHTML = '<div class="field-empty-hint">还没有一级字段。请在上方输入名称并点击「添加一级字段」。</div>'; return; }
-    var html = '';
-    fieldSchema.forEach(function(f, fi){
-      var count = fieldItemCount(f.name);
-      html += '<div class="field-block">';
-      html += '<div class="field-head"><span class="tag t-blue">一级</span>';
-      html += '<input class="field-name" data-l1-name="' + fi + '" value="' + escapeHtml(f.name) + '">';
-      html += '<span class="field-meta">' + count + ' 道题 · ' + f.children.length + ' 个二级字段</span><span style="flex:1;"></span>';
-      html += '<button class="btn btn-sm" data-l1-up="' + fi + '" title="上移">↑</button>';
-      html += '<button class="btn btn-sm" data-l1-down="' + fi + '" title="下移">↓</button>';
-      html += '<button class="btn btn-sm btn-danger" data-l1-del="' + fi + '">删除一级字段</button></div>';
-      html += '<div class="field-children">';
-      f.children.forEach(function(ch, ci){
-        html += '<span class="field-chip"><input data-l2-name="' + fi + ':' + ci + '" value="' + escapeHtml(ch) + '"><button class="chip-x" data-l2-del="' + fi + ':' + ci + '" title="删除二级字段">×</button></span>';
+    function renderNodes(list, parentPath, depth){
+      var html = '';
+      list.forEach(function(node){
+        var path = parentPath.concat([node.name]);
+        var key = path.join('|');
+        var count = countItemsUnderPath(path);
+        var pad = (depth - 1) * 18;
+        var lvlName = depth === 1 ? '一级' : depth === 2 ? '二级' : depth === 3 ? '三级' : '四级';
+        html += '<div class="field-block" style="margin-left:' + pad + 'px">';
+        html += '<div class="field-head"><span class="tag t-blue">' + lvlName + '</span>';
+        html += '<input class="field-name" data-node-path="' + escapeHtml(key) + '" value="' + escapeHtml(node.name) + '">';
+        html += '<span class="field-meta">' + count + ' 道题 · ' + (node.children || []).length + ' 个子节点</span><span style="flex:1;"></span>';
+        html += '<button class="btn btn-sm" data-node-up="' + escapeHtml(key) + '">↑</button>';
+        html += '<button class="btn btn-sm" data-node-down="' + escapeHtml(key) + '">↓</button>';
+        html += '<button class="btn btn-sm btn-danger" data-node-del="' + escapeHtml(key) + '">删除</button></div>';
+        if(depth < FIELD_MAX_DEPTH){
+          var nextName = ['', '二级', '三级', '四级'][depth] || '子';
+          html += '<div class="field-children"><span class="field-add"><input data-new-child="' + escapeHtml(key) + '" placeholder="新增' + nextName + '字段"><button class="btn btn-sm" data-node-add="' + escapeHtml(key) + '">＋ 添加</button></span></div>';
+        } else {
+          html += '<div class="field-children"><span class="mini">已达最大 4 级</span></div>';
+        }
+        if(node.children && node.children.length) html += renderNodes(node.children, path, depth + 1);
+        html += '</div>';
       });
-      html += '<span class="field-add"><input data-new-l2="' + fi + '" placeholder="新增二级字段"><button class="btn btn-sm" data-l2-add="' + fi + '">＋ 添加</button></span>';
-      html += '</div></div>';
-    });
-    box.innerHTML = html;
+      return html;
+    }
+    box.innerHTML = renderNodes(fieldSchema, [], 1);
   }
   function applyIncomingSchema(schema){
     if(!schema) return;
-    var incoming = Array.isArray(schema) ? cloneSchema(schema) : (schema && Array.isArray(schema.fields) ? cloneSchema(schema.fields) : null);
-    if(!incoming) return;
+    var incoming = cloneSchema(schema);
     incoming.forEach(function(f){
       var local = getField(f.name);
       if(!local){ fieldSchema.push(f); return; }
-      f.children.forEach(function(c){ if(local.children.indexOf(c) === -1) local.children.push(c); });
+      mergeFieldNode(local, f);
     });
     mergeSchemaWithData(fieldSchema);
     saveFieldSchema();
   }
-
   function scheduleNext(newStatus, prevStatus, fromDate){
     if(newStatus==='红') return addDays(fromDate,1);
     if(newStatus==='黄') return addDays(fromDate,3);
@@ -2500,6 +2655,7 @@
   }
 
   function renderAll(){
+    ensureItemLevels();
     var inputEl = $('simDate'); if(inputEl && inputEl.value && inputEl.value !== simDate){ simDate = inputEl.value; saveSim(); }
     renderSimDisplay(); renderStats(); renderDue(); renderAllTable(); renderWeekRed(); renderGood(); renderDashboard();
     refreshExamBoxesIfNeeded('weekly'); refreshExamBoxesIfNeeded('monthly');
@@ -2515,7 +2671,9 @@
 
   function addItem(){
     clearError();
-    var subject = $('inSubject').value; var chapter = $('inChapter').value; var source = $('inSource').value;
+    var subject = $('inSubject').value; var chapter = $('inChapter').value;
+    var level3 = ($('inLevel3') || {}).value || ''; var level4 = ($('inLevel4') || {}).value || '';
+    var source = $('inSource').value;
     var page = $('inPage').value.trim(); var no = $('inNo').value.trim(); var status = $('inStatus').value;
     var errReason = $('inErr').value.trim(); var isGood = $('inGood').checked;
     var cause = $('inCause').value || ''; var tier = $('inTier').value || '';
@@ -2523,8 +2681,9 @@
     if(!page && !no){ showError('至少填写页码或题号'); return; } if(!chapter){ showError('请选择二级字段（可到「字段设置」里添加）'); return; }
     var cur = getCurrentSimDate(); var first = cur; var next = scheduleNext(status, null, first);
     pushUndo('添加题目「' + subject + ' ' + chapter + ' ' + page + ' ' + no + '」');
+    ensurePath([subject, chapter, level3, level4]);
     items.push({
-      id:uid(), subject:subject, chapter:chapter, source:source, page:page, no:no,
+      id:uid(), subject:subject, chapter:chapter, level3:level3, level4:level4, source:source, page:page, no:no,
       status:status, errReason:errReason, first:first, next:next, reviewCount:0,
       lastReview:'', greenStreak:0, isRemedy:false, isGood:isGood, onlyShowOnNext:false,
       initialStatus: status, cause:cause, tier:tier, batchId: ''
@@ -2535,14 +2694,17 @@
   }
 
   function addToRemedyPool(){
-    var subject = $('rmSubject').value; var chapter = $('rmChapter').value; var source = $('rmSource').value;
+    var subject = $('rmSubject').value; var chapter = $('rmChapter').value;
+    var level3 = ($('rmLevel3') || {}).value || ''; var level4 = ($('rmLevel4') || {}).value || '';
+    var source = $('rmSource').value;
     var page = $('rmPage').value.trim(); var no = $('rmNo').value.trim(); var status = $('rmStatus').value;
     var errReason = $('rmErr').value.trim(); var cause = $('rmCause').value || ''; var tier = $('rmTier').value || '';
     if(!subject){ showError('补救录入：请先在「字段设置」里添加一级字段'); return; }
     if(!page && !no){ showError('补救录入：至少填写页码或题号'); return; } if(!chapter){ showError('补救录入：请选择二级字段'); return; }
     pushUndo('加入待排池「' + subject + ' ' + chapter + ' ' + page + ' ' + no + '」');
+    ensurePath([subject, chapter, level3, level4]);
     remedyPool.push({
-      id: uid(), subject: subject, chapter: chapter, source: source,
+      id: uid(), subject: subject, chapter: chapter, level3: level3, level4: level4, source: source,
       page: page, no: no, status: status, errReason: errReason,
       cause: cause, tier: tier, batchId: ''
     });
@@ -2795,9 +2957,13 @@
     var undoBtn = $('undoBtn'); if(undoBtn) undoBtn.addEventListener('click', doUndo);
 
     var inSubj = $('inSubject'); if(inSubj) inSubj.addEventListener('change', fillChapterSelect);
+    var inChap = $('inChapter'); if(inChap) inChap.addEventListener('change', fillLevel3Select);
+    var inL3 = $('inLevel3'); if(inL3) inL3.addEventListener('change', fillLevel4Select);
     var addBtn = $('addBtn'); if(addBtn) addBtn.addEventListener('click', addItem);
 
     var rmSubj = $('rmSubject'); if(rmSubj) rmSubj.addEventListener('change', fillRemedyChapterSelect);
+    var rmChap = $('rmChapter'); if(rmChap) rmChap.addEventListener('change', fillRmLevel3Select);
+    var rmL3 = $('rmLevel3'); if(rmL3) rmL3.addEventListener('change', fillRmLevel4Select);
     var rmAddBtn = $('rmAddBtn'); if(rmAddBtn) rmAddBtn.addEventListener('click', addToRemedyPool);
     var rmClearQueueBtn = $('rmClearQueue'); if(rmClearQueueBtn) rmClearQueueBtn.addEventListener('click', clearRemedyQueue);
     var rmQueueList = $('rmQueueList'); if(rmQueueList){ rmQueueList.addEventListener('click', function(e){ var btn = e.target.closest('button[data-rm-del]'); if(!btn) return; deleteRemedyQueueItem(parseInt(btn.getAttribute('data-rm-del'), 10)); }); }
@@ -2808,6 +2974,9 @@
     if(rmLimitsEl) rmLimitsEl.addEventListener('change', function(e){ var t = e.target; if(!t || !t.getAttribute) return; var name = t.getAttribute('data-rm-limit'); if(name === null) return; var num = parseInt(t.value,10); remedyLimits[name] = (isNaN(num) || num < 1) ? 10 : Math.min(num, 100); });
 
     var dueFilterSubject = $('dueFilterSubject'); if(dueFilterSubject) dueFilterSubject.addEventListener('change', function(){ fillDueFilterChapter(); renderDue(); });
+    var dueFilterChapterEl = $('dueFilterChapter'); if(dueFilterChapterEl) dueFilterChapterEl.addEventListener('change', function(){ fillDueFilterLevel3(); renderDue(); });
+    var dueFilterL3 = $('dueFilterLevel3'); if(dueFilterL3) dueFilterL3.addEventListener('change', function(){ fillDueFilterLevel4(); renderDue(); });
+    var dueFilterL4 = $('dueFilterLevel4'); if(dueFilterL4) dueFilterL4.addEventListener('change', renderDue);
     var dueFilterChapter = $('dueFilterChapter'); if(dueFilterChapter) dueFilterChapter.addEventListener('change', renderDue);
     var dueFilterStatus = $('dueFilterStatus'); if(dueFilterStatus) dueFilterStatus.addEventListener('change', renderDue);
     var dueFilterType = $('dueFilterType'); if(dueFilterType) dueFilterType.addEventListener('change', renderDue);
@@ -2844,6 +3013,9 @@
       });
     }
     var fSubj = $('filterSubject'); if(fSubj) fSubj.addEventListener('change', function(){ fillFilterChapter(); renderAllTable(); });
+    var fChap2 = $('filterChapter'); if(fChap2) fChap2.addEventListener('change', function(){ fillFilterLevel3(); renderAllTable(); });
+    var fL3 = $('filterLevel3'); if(fL3) fL3.addEventListener('change', function(){ fillFilterLevel4(); renderAllTable(); });
+    var fL4 = $('filterLevel4'); if(fL4) fL4.addEventListener('change', renderAllTable);
     var fChap = $('filterChapter'); if(fChap) fChap.addEventListener('change', renderAllTable);
     var fStat = $('filterStatus'); if(fStat) fStat.addEventListener('change', renderAllTable);
     var fSrc = $('filterSource'); if(fSrc) fSrc.addEventListener('change', renderAllTable);
@@ -2856,7 +3028,7 @@
     if(openFieldsFromInput) openFieldsFromInput.addEventListener('click', function(){ var t = document.querySelector('.tab[data-tab="fields"]'); if(t) t.click(); });
     var fieldAddL1Btn = $('fieldAddL1Btn');
     var fieldNewL1 = $('fieldNewL1');
-    function doAddField(){ if(!fieldNewL1) return; addField(fieldNewL1.value); fieldNewL1.value = ''; }
+    function doAddField(){ if(!fieldNewL1) return; addNodeByPath([], fieldNewL1.value); fieldNewL1.value = ''; }
     if(fieldAddL1Btn) fieldAddL1Btn.addEventListener('click', doAddField);
     if(fieldNewL1) fieldNewL1.addEventListener('keydown', function(e){ if(e.key === 'Enter'){ e.preventDefault(); doAddField(); } });
     var fieldResetBtn = $('fieldResetBtn');
@@ -2870,27 +3042,31 @@
     if(fieldEditor){
       fieldEditor.addEventListener('click', function(e){
         var btn = e.target.closest('button'); if(!btn) return;
-        var v;
-        v = btn.getAttribute('data-l1-up'); if(v !== null){ moveField(fieldSchema[parseInt(v,10)].name, -1); return; }
-        v = btn.getAttribute('data-l1-down'); if(v !== null){ moveField(fieldSchema[parseInt(v,10)].name, 1); return; }
-        v = btn.getAttribute('data-l1-del'); if(v !== null){ deleteField(fieldSchema[parseInt(v,10)].name); return; }
-        v = btn.getAttribute('data-l2-add');
-        if(v !== null){ var fi = parseInt(v,10); var inp = fieldEditor.querySelector('input[data-new-l2="' + fi + '"]'); addChild((fieldSchema[fi]||{}).name, inp ? inp.value : ''); return; }
-        v = btn.getAttribute('data-l2-del');
-        if(v !== null){ var parts = v.split(':'); var f = fieldSchema[parseInt(parts[0],10)]; if(f) deleteChild(f.name, f.children[parseInt(parts[1],10)]); return; }
+        var p = btn.getAttribute('data-node-up');
+        if(p !== null){ moveNodeByPath(p.split('|'), -1); return; }
+        p = btn.getAttribute('data-node-down');
+        if(p !== null){ moveNodeByPath(p.split('|'), 1); return; }
+        p = btn.getAttribute('data-node-del');
+        if(p !== null){ deleteNodeByPath(p.split('|')); return; }
+        p = btn.getAttribute('data-node-add');
+        if(p !== null){
+          var wrap = btn.closest('.field-children');
+          var inp = wrap ? wrap.querySelector('input[data-new-child]') : null;
+          addNodeByPath(p.split('|'), inp ? inp.value : '');
+          return;
+        }
       });
       fieldEditor.addEventListener('change', function(e){
         var t = e.target; if(!t || !t.getAttribute) return;
-        var v = t.getAttribute('data-l1-name');
-        if(v !== null){ var fi = parseInt(v,10); var f = fieldSchema[fi]; if(f && t.value.trim() !== f.name && !renameField(f.name, t.value)) renderFieldSettings(); return; }
-        v = t.getAttribute('data-l2-name');
-        if(v !== null){ var parts = v.split(':'); var f2 = fieldSchema[parseInt(parts[0],10)]; if(f2){ var oldName = f2.children[parseInt(parts[1],10)]; if(oldName !== undefined && t.value.trim() !== oldName && !renameChild(f2.name, oldName, t.value)) renderFieldSettings(); } return; }
-        v = t.getAttribute('data-rm-limit');
-        if(v !== null){ var num = parseInt(t.value,10); remedyLimits[v] = (isNaN(num) || num < 1) ? 10 : Math.min(num, 100); }
+        var p = t.getAttribute('data-node-path');
+        if(p !== null){ renameNodeByPath(p.split('|'), t.value); return; }
+        var lim = t.getAttribute('data-rm-limit');
+        if(lim !== null){ var num = parseInt(t.value, 10); remedyLimits[lim] = (isNaN(num) || num < 1) ? 10 : Math.min(num, 100); }
       });
       fieldEditor.addEventListener('keydown', function(e){
-        if(e.key === 'Enter' && e.target && e.target.getAttribute && e.target.getAttribute('data-new-l2') !== null){
-          e.preventDefault(); var fi = parseInt(e.target.getAttribute('data-new-l2'),10); addChild((fieldSchema[fi]||{}).name, e.target.value);
+        if(e.key === 'Enter' && e.target && e.target.getAttribute && e.target.getAttribute('data-new-child') !== null){
+          e.preventDefault();
+          addNodeByPath(e.target.getAttribute('data-new-child').split('|'), e.target.value);
         }
       });
     }
@@ -2931,6 +3107,34 @@
         if(descEl) descEl.value = '';
       });
     });
+
+    var sourceEditor = $('sourceEditor');
+    if(sourceEditor){
+      sourceEditor.addEventListener('change', function(e){
+        var t = e.target; if(!t || t.getAttribute('data-source-idx') === null) return;
+        var i = parseInt(t.getAttribute('data-source-idx'), 10);
+        var val = String(t.value || '').trim();
+        if(!val){ t.value = sourceSchema[i] || ''; return; }
+        if(sourceSchema.some(function(x, k){ return k !== i && x === val; })){ alert('来源已存在。'); t.value = sourceSchema[i] || ''; return; }
+        sourceSchema[i] = val; saveSourceSchema(); fillSourceSelects();
+      });
+      sourceEditor.addEventListener('click', function(e){
+        var btn = e.target.closest('button[data-source-del]'); if(!btn) return;
+        var i = parseInt(btn.getAttribute('data-source-del'), 10);
+        if(!confirm('确定删除来源「' + sourceSchema[i] + '」？（已录入题目的来源值不变）')) return;
+        sourceSchema.splice(i, 1); saveSourceSchema(); fillSourceSelects(); renderSourceSettings();
+      });
+    }
+    var addSourceBtn = document.querySelector('[data-add-source]');
+    if(addSourceBtn){
+      addSourceBtn.addEventListener('click', function(){
+        var inp = document.querySelector('input[data-new-source]'); if(!inp) return;
+        var v = String(inp.value || '').trim();
+        if(!v){ alert('请输入来源名称。'); return; }
+        if(sourceSchema.indexOf(v) >= 0){ alert('来源已存在。'); return; }
+        sourceSchema.push(v); inp.value = ''; saveSourceSchema(); fillSourceSelects(); renderSourceSettings();
+      });
+    }
 
     var goodList = $('goodList');
     if(goodList){
@@ -3044,8 +3248,9 @@
       tierSchema = loadCTSchema(TIER_KEY, TIER_DEFAULT);
       batches = loadBatches();
       initFieldSchema(loadFieldSchema()); saveFieldSchema();
+      sourceSchema = loadSourceSchema(); saveSourceSchema();
       simDate = chinaToday(); localStorage.removeItem(MANUAL_KEY); saveSim();
-      fillFieldSelects(); renderRemedyLimits(); updatePostponeOptions(); $('rmStartDate').value = simDate;
+      fillFieldSelects(); fillSourceSelects(); renderSourceSettings(); renderRemedyLimits(); updatePostponeOptions(); $('rmStartDate').value = simDate;
       bindEvents(); renderAll(); renderFieldSettings(); renderCauseTierSettings(); updateUndoBtn(); updateBackupStatusUI(); renderSyncUI(); clearError();
 
       cloudPull().then(function(result){ if(result.pulled){ renderAll(); } });
