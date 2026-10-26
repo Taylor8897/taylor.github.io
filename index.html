@@ -2537,7 +2537,9 @@
     var no = String(raw.no || '').trim();
     if(!page && !no) return null;
     var status = ['红','黄','绿','归档'].indexOf(raw.status) >= 0 ? raw.status : '黄';
-    var source = ['真题本','讲义'].indexOf(raw.source) >= 0 ? raw.source : '真题本';
+    var source = String(raw.source || '').trim();
+    if(!source) source = (sourceSchema[0] || '真题本');
+    if(sourceSchema.indexOf(source) === -1){ sourceSchema.push(source); saveSourceSchema(); fillSourceSelects(); }
     var cause = String(raw.cause || '').trim();
     var tier = String(raw.tier || '').trim();
     if(cause && !causeSchema.some(function(c){ return c.code === cause; })) cause = '';
